@@ -6,10 +6,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/relay/channel"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/types"
 
@@ -81,14 +83,40 @@ func CommonClaudeHeadersOperation(c *gin.Context, req *http.Header, info *relayc
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) error {
 	channel.SetupApiRequestHeader(info, c, req)
-	req.Set("x-api-key", info.ApiKey)
 	anthropicVersion := c.Request.Header.Get("anthropic-version")
 	if anthropicVersion == "" {
 		anthropicVersion = "2023-06-01"
 	}
 	req.Set("anthropic-version", anthropicVersion)
 	CommonClaudeHeadersOperation(c, req, info)
+
+	if strings.HasPrefix(strings.TrimSpace(info.ApiKey), "{") {
+		oauthKey, err := service.EnsureClaudeOAuthCredential(c.Request.Context(), info.ChannelId, info.ApiKey, info.ChannelSetting.Proxy)
+		if err != nil {
+			return err
+		}
+		req.Del("x-api-key")
+		req.Set("Authorization", "Bearer "+strings.TrimSpace(oauthKey.AccessToken))
+		ensureClaudeOAuthBetaHeader(req)
+		return nil
+	}
+
+	req.Set("x-api-key", info.ApiKey)
 	return nil
+}
+
+func ensureClaudeOAuthBetaHeader(req *http.Header) {
+	current := strings.TrimSpace(req.Get("anthropic-beta"))
+	if current == "" {
+		req.Set("anthropic-beta", service.ClaudeOAuthBetaHeader)
+		return
+	}
+	for _, part := range strings.Split(current, ",") {
+		if strings.TrimSpace(part) == service.ClaudeOAuthBetaHeader {
+			return
+		}
+	}
+	req.Set("anthropic-beta", current+","+service.ClaudeOAuthBetaHeader)
 }
 
 func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayInfo, request *dto.GeneralOpenAIRequest) (any, error) {
