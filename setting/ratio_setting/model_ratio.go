@@ -216,6 +216,7 @@ var defaultModelRatio = map[string]float64{
 	"glm-4-airx":                                0.01 * RMB,
 	"glm-4-long":                                0.001 * RMB,
 	"glm-4-flash":                               0,
+	"glm-4.7-flash":                             0,
 	"glm-4v-plus":                               0.01 * RMB,
 	"qwen-turbo":                                0.8572, // ￥0.012 / 1k tokens
 	"qwen-plus":                                 10,     // ￥0.14 / 1k tokens

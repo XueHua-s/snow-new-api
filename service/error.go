@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -114,6 +115,7 @@ func RelayErrorHandler(ctx context.Context, resp *http.Response, showBodyWhenFai
 		// General format error (OpenAI, Anthropic, Gemini, etc.)
 		oaiError := errResponse.TryToOpenAIError()
 		if oaiError != nil {
+			oaiError.Message = enrichUpstreamErrorMessage(resp, *oaiError)
 			newApiErr = types.WithOpenAIError(*oaiError, resp.StatusCode)
 			if showBodyWhenFail {
 				newApiErr.Err = buildErrWithBody(newApiErr.Error())
@@ -121,11 +123,91 @@ func RelayErrorHandler(ctx context.Context, resp *http.Response, showBodyWhenFai
 			return
 		}
 	}
-	newApiErr = types.NewOpenAIError(errors.New(errResponse.ToMessage()), types.ErrorCodeBadResponseStatusCode, resp.StatusCode)
+	newApiErr = types.NewOpenAIError(errors.New(appendUpstreamRateLimitDetails(resp, errResponse.ToMessage())), types.ErrorCodeBadResponseStatusCode, resp.StatusCode)
 	if showBodyWhenFail {
 		newApiErr.Err = buildErrWithBody(newApiErr.Error())
 	}
 	return
+}
+
+func enrichUpstreamErrorMessage(resp *http.Response, openAIError types.OpenAIError) string {
+	base := strings.TrimSpace(openAIError.Message)
+	if base == "" {
+		base = "upstream error"
+	}
+
+	details := make([]string, 0, 4)
+	errorType := strings.TrimSpace(openAIError.Type)
+	if errorType != "" && !strings.EqualFold(errorType, "upstream_error") && !strings.Contains(strings.ToLower(base), strings.ToLower(errorType)) {
+		details = append(details, "type="+errorType)
+	}
+	if openAIError.Code != nil {
+		code := strings.TrimSpace(fmt.Sprintf("%v", openAIError.Code))
+		if code != "" && code != errorType && !strings.Contains(strings.ToLower(base), strings.ToLower(code)) {
+			details = append(details, "code="+code)
+		}
+	}
+	if resp != nil && resp.StatusCode == http.StatusTooManyRequests {
+		details = append(details, collectRateLimitHeaders(resp.Header)...)
+	}
+	if len(details) == 0 {
+		return base
+	}
+	return fmt.Sprintf("%s (%s)", base, strings.Join(details, ", "))
+}
+
+func appendUpstreamRateLimitDetails(resp *http.Response, message string) string {
+	if resp == nil || resp.StatusCode != http.StatusTooManyRequests {
+		return message
+	}
+	details := collectRateLimitHeaders(resp.Header)
+	if len(details) == 0 {
+		return message
+	}
+	base := strings.TrimSpace(message)
+	if base == "" {
+		base = "upstream rate limited"
+	}
+	return fmt.Sprintf("%s (%s)", base, strings.Join(details, ", "))
+}
+
+func collectRateLimitHeaders(headers http.Header) []string {
+	if len(headers) == 0 {
+		return nil
+	}
+
+	valuesByName := make(map[string]string)
+	for name, values := range headers {
+		lowerName := strings.ToLower(strings.TrimSpace(name))
+		if lowerName == "" {
+			continue
+		}
+		if lowerName != "retry-after" &&
+			!strings.HasPrefix(lowerName, "x-ratelimit-") &&
+			!strings.HasPrefix(lowerName, "anthropic-ratelimit-") {
+			continue
+		}
+		value := strings.TrimSpace(strings.Join(values, ","))
+		if value == "" {
+			continue
+		}
+		valuesByName[lowerName] = value
+	}
+	if len(valuesByName) == 0 {
+		return nil
+	}
+
+	names := make([]string, 0, len(valuesByName))
+	for name := range valuesByName {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	details := make([]string, 0, len(names))
+	for _, name := range names {
+		details = append(details, fmt.Sprintf("%s=%s", name, valuesByName[name]))
+	}
+	return details
 }
 
 func ResetStatusCode(newApiErr *types.NewAPIError, statusCodeMappingStr string) {

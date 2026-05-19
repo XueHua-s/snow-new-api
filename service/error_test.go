@@ -1,6 +1,10 @@
 package service
 
 import (
+	"context"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/QuantumNous/new-api/types"
@@ -54,4 +58,26 @@ func TestResetStatusCode(t *testing.T) {
 			require.Equal(t, tc.expectedCode, newAPIError.StatusCode)
 		})
 	}
+}
+
+func TestRelayErrorHandlerIncludesRateLimitHeadersFor429(t *testing.T) {
+	t.Parallel()
+
+	resp := &http.Response{
+		StatusCode: http.StatusTooManyRequests,
+		Header: http.Header{
+			"Retry-After":                      []string{"12"},
+			"Anthropic-Ratelimit-Tokens-Reset": []string{"2026-05-19T15:10:00Z"},
+		},
+		Body: io.NopCloser(strings.NewReader(`{"error":{"type":"rate_limit_error","message":"Error","code":"rate_limit_error"}}`)),
+	}
+
+	newAPIError := RelayErrorHandler(context.Background(), resp, false)
+
+	require.Equal(t, http.StatusTooManyRequests, newAPIError.StatusCode)
+	require.Equal(t, types.ErrorCode("rate_limit_error"), newAPIError.GetErrorCode())
+	require.Contains(t, newAPIError.Error(), "Error")
+	require.Contains(t, newAPIError.Error(), "type=rate_limit_error")
+	require.Contains(t, newAPIError.Error(), "retry-after=12")
+	require.Contains(t, newAPIError.Error(), "anthropic-ratelimit-tokens-reset=2026-05-19T15:10:00Z")
 }

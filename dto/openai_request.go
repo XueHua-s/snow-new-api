@@ -3,6 +3,8 @@ package dto
 import (
 	"encoding/json"
 	"fmt"
+	"mime"
+	"path/filepath"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -337,8 +339,12 @@ func (m *MediaContent) GetFile() *MessageFile {
 			return m.File.(*MessageFile)
 		}
 		if itemMap, ok := m.File.(map[string]any); ok {
+			fileName := common.Interface2String(itemMap["filename"])
+			if fileName == "" {
+				fileName = common.Interface2String(itemMap["file_name"])
+			}
 			out := &MessageFile{
-				FileName: common.Interface2String(itemMap["file_name"]),
+				FileName: fileName,
 				FileData: common.Interface2String(itemMap["file_data"]),
 				FileId:   common.Interface2String(itemMap["file_id"]),
 			}
@@ -386,7 +392,11 @@ func (m *MediaContent) ToFileSource() types.FileSource {
 		if file == nil || file.FileData == "" {
 			return nil
 		}
-		return types.NewFileSourceFromData(file.FileData, "")
+		mimeType := ""
+		if ext := filepath.Ext(file.FileName); ext != "" {
+			mimeType = mime.TypeByExtension(ext)
+		}
+		return types.NewFileSourceFromData(file.FileData, mimeType)
 	case ContentTypeVideoUrl:
 		video := m.GetVideoUrl()
 		if video == nil || video.Url == "" {

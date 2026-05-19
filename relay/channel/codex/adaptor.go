@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/relay/channel/openai"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,19 @@ func (a *Adaptor) Init(info *relaycommon.RelayInfo) {
 }
 
 func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayInfo, request *dto.GeneralOpenAIRequest) (any, error) {
-	return nil, errors.New("codex channel: /v1/chat/completions endpoint not supported")
+	if request == nil {
+		return nil, errors.New("request is nil")
+	}
+
+	responsesReq, err := service.ChatCompletionsRequestToResponsesRequest(request)
+	if err != nil {
+		return nil, err
+	}
+	if info != nil {
+		info.RelayMode = relayconstant.RelayModeResponses
+		info.RequestURLPath = "/v1/responses"
+	}
+	return a.ConvertOpenAIResponsesRequest(c, info, *responsesReq)
 }
 
 func (a *Adaptor) ConvertRerankRequest(c *gin.Context, relayMode int, request dto.RerankRequest) (any, error) {
@@ -118,6 +131,13 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 
 	if info.RelayMode == relayconstant.RelayModeResponsesCompact {
 		return openai.OaiResponsesCompactionHandler(c, resp)
+	}
+
+	if info.RelayFormat == types.RelayFormatOpenAI {
+		if info.IsStream {
+			return openai.OaiResponsesToChatStreamHandler(c, info, resp)
+		}
+		return openai.OaiResponsesToChatHandler(c, info, resp)
 	}
 
 	if info.IsStream {

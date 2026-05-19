@@ -59,6 +59,10 @@ var claudeCliPassThroughHeaders = []string{
 	"Anthropic-Version",
 }
 
+func ClaudeCliPassThroughHeaders() []string {
+	return append([]string(nil), claudeCliPassThroughHeaders...)
+}
+
 func buildPassHeaderTemplate(headers []string) map[string]interface{} {
 	clonedHeaders := make([]string, 0, len(headers))
 	clonedHeaders = append(clonedHeaders, headers...)

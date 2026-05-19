@@ -1,5 +1,7 @@
 package constant
 
+const DefaultStreamingTimeoutSeconds = 300
+
 var StreamingTimeout int
 var DifyDebug bool
 var MaxFileDownloadMB int
