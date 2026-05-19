@@ -215,9 +215,16 @@ func (e *NewAPIError) ToClaudeError() ClaudeError {
 	switch e.errorType {
 	case ErrorTypeOpenAIError:
 		if openAIError, ok := e.RelayError.(OpenAIError); ok {
+			errorType := strings.TrimSpace(fmt.Sprintf("%v", openAIError.Code))
+			if errorType == "" || errorType == "<nil>" {
+				errorType = strings.TrimSpace(openAIError.Type)
+			}
+			if errorType == "" {
+				errorType = string(e.errorCode)
+			}
 			result = ClaudeError{
 				Message: e.Error(),
-				Type:    fmt.Sprintf("%v", openAIError.Code),
+				Type:    errorType,
 			}
 		}
 	case ErrorTypeClaudeError:
@@ -316,15 +323,21 @@ func NewErrorWithStatusCode(err error, errorCode ErrorCode, statusCode int, ops 
 
 func WithOpenAIError(openAIError OpenAIError, statusCode int, ops ...NewAPIErrorOptions) *NewAPIError {
 	code, ok := openAIError.Code.(string)
-	if !ok {
-		if openAIError.Code != nil {
-			code = fmt.Sprintf("%v", openAIError.Code)
-		} else {
-			code = "unknown_error"
-		}
+	if !ok && openAIError.Code != nil {
+		code = fmt.Sprintf("%v", openAIError.Code)
+	}
+	code = strings.TrimSpace(code)
+	if code == "" && strings.TrimSpace(openAIError.Type) != "" {
+		code = strings.TrimSpace(openAIError.Type)
+	}
+	if code == "" {
+		code = "unknown_error"
 	}
 	if openAIError.Type == "" {
 		openAIError.Type = "upstream_error"
+	}
+	if openAIError.Code == nil || strings.TrimSpace(fmt.Sprintf("%v", openAIError.Code)) == "" {
+		openAIError.Code = code
 	}
 	e := &NewAPIError{
 		RelayError: openAIError,

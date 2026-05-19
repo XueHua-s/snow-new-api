@@ -1,18 +1,22 @@
 package claude
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/relay/channel"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/model_setting"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +24,10 @@ import (
 
 type Adaptor struct {
 }
+
+const claudeOAuthRateLimitMaxRetries = 2
+
+var claudeOAuthRateLimitRetryBaseDelay = 750 * time.Millisecond
 
 func (a *Adaptor) ConvertGeminiRequest(*gin.Context, *relaycommon.RelayInfo, *dto.GeminiChatRequest) (any, error) {
 	//TODO implement me
@@ -97,6 +105,7 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 		}
 		req.Del("x-api-key")
 		req.Set("Authorization", "Bearer "+strings.TrimSpace(oauthKey.AccessToken))
+		passClaudeOAuthClientHeaders(c, req)
 		ensureClaudeOAuthHeaders(req)
 		return nil
 	}
@@ -105,8 +114,23 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	return nil
 }
 
+func passClaudeOAuthClientHeaders(c *gin.Context, req *http.Header) {
+	if c == nil || c.Request == nil || req == nil {
+		return
+	}
+	for _, name := range operation_setting.ClaudeCliPassThroughHeaders() {
+		value := strings.TrimSpace(c.Request.Header.Get(name))
+		if value == "" {
+			continue
+		}
+		req.Set(name, value)
+	}
+}
+
 func ensureClaudeOAuthHeaders(req *http.Header) {
-	req.Set("user-agent", service.ClaudeOAuthUserAgent)
+	if strings.TrimSpace(req.Get("user-agent")) == "" {
+		req.Set("user-agent", service.ClaudeOAuthUserAgent)
+	}
 	current := strings.TrimSpace(req.Get("anthropic-beta"))
 	seen := map[string]struct{}{}
 	parts := make([]string, 0, len(service.ClaudeOAuthBetaHeaders)+1)
@@ -151,7 +175,77 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, requestBody io.Reader) (any, error) {
-	return channel.DoApiRequest(a, c, info, requestBody)
+	if !isClaudeOAuthRequest(info) {
+		return channel.DoApiRequest(a, c, info, requestBody)
+	}
+
+	var bodyBytes []byte
+	if requestBody != nil {
+		var err error
+		bodyBytes, err = io.ReadAll(requestBody)
+		if err != nil {
+			return nil, fmt.Errorf("read request body for claude oauth retry failed: %w", err)
+		}
+	}
+
+	var lastResp *http.Response
+	for attempt := 0; attempt <= claudeOAuthRateLimitMaxRetries; attempt++ {
+		if attempt > 0 {
+			wait := claudeOAuthRateLimitRetryDelay(lastResp, attempt)
+			timer := time.NewTimer(wait)
+			select {
+			case <-timer.C:
+			case <-c.Request.Context().Done():
+				timer.Stop()
+				return nil, c.Request.Context().Err()
+			}
+		}
+
+		resp, err := channel.DoApiRequest(a, c, info, bytes.NewReader(bodyBytes))
+		if err != nil {
+			return nil, err
+		}
+		if resp == nil || resp.StatusCode != http.StatusTooManyRequests || attempt == claudeOAuthRateLimitMaxRetries {
+			return resp, nil
+		}
+
+		lastResp = resp
+		service.CloseResponseBodyGracefully(resp)
+	}
+
+	return lastResp, nil
+}
+
+func isClaudeOAuthRequest(info *relaycommon.RelayInfo) bool {
+	return info != nil && strings.HasPrefix(strings.TrimSpace(info.ApiKey), "{")
+}
+
+func claudeOAuthRateLimitRetryDelay(resp *http.Response, attempt int) time.Duration {
+	if attempt < 1 {
+		attempt = 1
+	}
+	if resp != nil {
+		if retryAfter := strings.TrimSpace(resp.Header.Get("Retry-After")); retryAfter != "" {
+			if seconds, err := strconv.Atoi(retryAfter); err == nil && seconds >= 0 {
+				return clampClaudeOAuthRetryDelay(time.Duration(seconds) * time.Second)
+			}
+			if retryAt, err := http.ParseTime(retryAfter); err == nil {
+				return clampClaudeOAuthRetryDelay(time.Until(retryAt))
+			}
+		}
+	}
+	return time.Duration(attempt) * claudeOAuthRateLimitRetryBaseDelay
+}
+
+func clampClaudeOAuthRetryDelay(delay time.Duration) time.Duration {
+	if delay < claudeOAuthRateLimitRetryBaseDelay {
+		return claudeOAuthRateLimitRetryBaseDelay
+	}
+	const maxDelay = 5 * time.Second
+	if delay > maxDelay {
+		return maxDelay
+	}
+	return delay
 }
 
 func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (usage any, err *types.NewAPIError) {
