@@ -98,6 +98,12 @@ var defaultModelRatio = map[string]float64{
 	"gpt-5-mini-2025-08-07":            0.125,
 	"gpt-5-nano":                       0.025,
 	"gpt-5-nano-2025-08-07":            0.025,
+	"gpt-5.3-codex":                    0.2125, // $0.425 / 1M tokens
+	"gpt-5.4":                          0.3125, // $0.625 / 1M tokens
+	"gpt-5.4-fast":                     0.625,  // $1.25 / 1M tokens
+	"gpt-5.4-mini":                     0.094,  // $0.188 / 1M tokens
+	"gpt-5.5":                          0.625,  // $1.25 / 1M tokens
+	"gpt-5.5-fast":                     1.25,   // $2.5 / 1M tokens
 	//"gpt-3.5-turbo-0301":           0.75, //deprecated
 	"gpt-3.5-turbo":          0.25,
 	"gpt-3.5-turbo-0613":     0.75,
@@ -132,21 +138,25 @@ var defaultModelRatio = map[string]float64{
 	"text-moderation-latest":                    0.1,
 	"claude-3-haiku-20240307":                   0.125, // $0.25 / 1M tokens
 	"claude-3-5-haiku-20241022":                 0.5,   // $1 / 1M tokens
-	"claude-haiku-4-5-20251001":                 0.5,   // $1 / 1M tokens
+	"claude-haiku-4-5":                          0.25,  // $0.5 / 1M tokens
+	"claude-haiku-4-5-20251001":                 0.035, // $0.07 / 1M tokens
 	"claude-3-sonnet-20240229":                  1.5,   // $3 / 1M tokens
 	"claude-3-5-sonnet-20240620":                1.5,
 	"claude-3-5-sonnet-20241022":                1.5,
 	"claude-3-7-sonnet-20250219":                1.5,
 	"claude-3-7-sonnet-20250219-thinking":       1.5,
 	"claude-sonnet-4-20250514":                  1.5,
-	"claude-sonnet-4-5-20250929":                1.5,
-	"claude-opus-4-5-20251101":                  2.5,
-	"claude-opus-4-6":                           2.5,
+	"claude-sonnet-4-5":                         0.75,   // $1.5 / 1M tokens
+	"claude-sonnet-4-5-20250929":                0.1075, // $0.215 / 1M tokens
+	"claude-sonnet-4-6":                         0.75,   // $1.5 / 1M tokens
+	"claude-opus-4-5":                           1.25,   // $2.5 / 1M tokens
+	"claude-opus-4-5-20251101":                  0.1775, // $0.355 / 1M tokens
+	"claude-opus-4-6":                           1.25,
 	"claude-opus-4-6-max":                       2.5,
 	"claude-opus-4-6-high":                      2.5,
 	"claude-opus-4-6-medium":                    2.5,
 	"claude-opus-4-6-low":                       2.5,
-	"claude-opus-4-7":                           2.5,
+	"claude-opus-4-7":                           1.25,
 	"claude-opus-4-7-max":                       2.5,
 	"claude-opus-4-7-xhigh":                     2.5,
 	"claude-opus-4-7-high":                      2.5,
@@ -519,6 +529,9 @@ func getHardcodedCompletionModelRatio(name string) (float64, bool) {
 				return 6, true
 			}
 			if strings.HasPrefix(name, "gpt-5.4") {
+				if strings.HasPrefix(name, "gpt-5.4-mini") {
+					return 1.125 / 0.188, true
+				}
 				if strings.HasPrefix(name, "gpt-5.4-nano") {
 					return 6.25, true
 				}
