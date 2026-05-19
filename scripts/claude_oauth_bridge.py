@@ -131,7 +131,47 @@ class ClaudeBridgeHandler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self.send_json(200, {"success": True})
             return
+        if self.path == "/v1/account":
+            self.send_claude_account()
+            return
         self.send_json(404, {"type": "error", "error": {"type": "not_found_error", "message": "not found"}})
+
+    def send_claude_account(self) -> None:
+        cli_path = os.environ.get("CLAUDE_CLI_PATH", "/root/.local/bin/claude")
+        timeout = int(os.environ.get("CLAUDE_BRIDGE_ACCOUNT_TIMEOUT", "30"))
+        env = os.environ.copy()
+        env.setdefault("HOME", "/root")
+        env["PATH"] = "/root/.local/bin:" + env.get("PATH", "")
+
+        try:
+            proc = subprocess.run(
+                [cli_path, "auth", "status", "--json"],
+                text=True,
+                capture_output=True,
+                timeout=timeout,
+                env=env,
+            )
+        except subprocess.TimeoutExpired:
+            self.send_json(504, {"success": False, "message": "claude auth status timed out"})
+            return
+
+        if proc.returncode != 0:
+            message = (proc.stderr or proc.stdout or "claude auth status failed").strip()
+            self.send_json(502, {"success": False, "message": message})
+            return
+
+        try:
+            payload = json.loads(proc.stdout or "{}")
+        except json.JSONDecodeError:
+            payload = {"raw": proc.stdout.strip()}
+        if isinstance(payload, dict):
+            payload["usageAvailable"] = False
+            payload["usageMessage"] = (
+                "Claude Code OAuth exposes authentication and subscription status, "
+                "but does not expose subscription quota usage windows."
+            )
+            payload["source"] = "claude-code-cli"
+        self.send_json(200, {"success": True, "data": payload})
 
     def do_POST(self) -> None:
         if self.path != "/v1/messages":

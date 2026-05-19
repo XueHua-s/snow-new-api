@@ -72,6 +72,8 @@ export type CodexUsageResponse = {
   data?: Record<string, unknown>
 }
 
+export type ClaudeUsageResponse = CodexUsageResponse
+
 export type CodexCredentialRefreshResponse = {
   success: boolean
   message?: string
@@ -294,6 +296,17 @@ export async function getCodexUsage(
     disableDuplicate: true,
   }
   const res = await api.get(`/api/channel/${channelId}/codex/usage`, config)
+  return res.data
+}
+
+export async function getClaudeUsage(
+  channelId: number
+): Promise<ClaudeUsageResponse> {
+  const config: ExtendedApiConfig = {
+    skipBusinessError: true,
+    disableDuplicate: true,
+  }
+  const res = await api.get(`/api/channel/${channelId}/claude/usage`, config)
   return res.data
 }
 

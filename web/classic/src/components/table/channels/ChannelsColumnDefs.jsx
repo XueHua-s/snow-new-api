@@ -538,8 +538,10 @@ export const getChannelsColumns = ({
                 </Tooltip>
                 <Tooltip
                   content={
-                    record.type === 57
-                      ? t('查看 Codex 帐号信息与用量')
+                    record.type === 57 || record.type === 14
+                      ? record.type === 57
+                        ? t('查看 Codex 帐号信息与用量')
+                        : t('查看 Claude 帐号与订阅')
                       : t('剩余额度') +
                         ': ' +
                         renderQuotaWithAmount(record.balance) +
@@ -547,13 +549,21 @@ export const getChannelsColumns = ({
                   }
                 >
                   <Tag
-                    color={record.type === 57 ? 'light-blue' : 'white'}
-                    type={record.type === 57 ? 'light' : 'ghost'}
+                    color={
+                      record.type === 57 || record.type === 14
+                        ? 'light-blue'
+                        : 'white'
+                    }
+                    type={record.type === 57 || record.type === 14 ? 'light' : 'ghost'}
                     shape='circle'
-                    className={record.type === 57 ? 'cursor-pointer' : ''}
+                    className={
+                      record.type === 57 || record.type === 14
+                        ? 'cursor-pointer'
+                        : ''
+                    }
                     onClick={() => updateChannelBalance(record)}
                   >
-                    {record.type === 57
+                    {record.type === 57 || record.type === 14
                       ? t('帐号信息')
                       : renderQuotaWithAmount(record.balance)}
                   </Tag>

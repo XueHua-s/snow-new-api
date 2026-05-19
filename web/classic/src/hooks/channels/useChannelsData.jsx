@@ -39,6 +39,7 @@ import { useChannelUpstreamUpdates } from './useChannelUpstreamUpdates';
 import { parseUpstreamUpdateMeta } from './upstreamUpdateUtils';
 import { Modal, Button } from '@douyinfe/semi-ui';
 import { openCodexUsageModal } from '../../components/table/channels/modals/CodexUsageModal';
+import { openClaudeAccountModal } from '../../components/table/channels/modals/ClaudeAccountModal';
 
 export const useChannelsData = () => {
   const { t } = useTranslation();
@@ -764,6 +765,10 @@ export const useChannelsData = () => {
           else showError(t('复制失败'));
         },
       });
+      return;
+    }
+    if (record?.type === 14) {
+      openClaudeAccountModal({ t, record });
       return;
     }
 

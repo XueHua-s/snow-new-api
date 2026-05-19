@@ -53,7 +53,7 @@ import {
   dotColorMap,
   textColorMap,
 } from '@/components/status-badge'
-import { getCodexUsage } from '../api'
+import { getClaudeUsage, getCodexUsage } from '../api'
 import { CHANNEL_STATUS_CONFIG, MODEL_FETCHABLE_TYPES } from '../constants'
 import {
   formatBalance,
@@ -82,6 +82,7 @@ import {
   CodexUsageDialog,
   type CodexUsageDialogData,
 } from './dialogs/codex-usage-dialog'
+import { ClaudeAccountDialog } from './dialogs/claude-account-dialog'
 import { NumericSpinnerInput } from './numeric-spinner-input'
 
 function parseIonetMeta(otherInfo: string | null | undefined): null | {
@@ -310,6 +311,9 @@ function BalanceCell({ channel }: { channel: Channel }) {
   const [codexUsageOpen, setCodexUsageOpen] = useState(false)
   const [codexUsageResponse, setCodexUsageResponse] =
     useState<CodexUsageDialogData | null>(null)
+  const [claudeUsageOpen, setClaudeUsageOpen] = useState(false)
+  const [claudeUsageResponse, setClaudeUsageResponse] =
+    useState<CodexUsageDialogData | null>(null)
   const currencyLabel = getCurrencyLabel()
   const tokenSuffix = currencyLabel === 'Tokens' ? ' Tokens' : ''
   const withSuffix = (value: string) =>
@@ -337,14 +341,22 @@ function BalanceCell({ channel }: { channel: Channel }) {
     if (isUpdating) return
 
     setIsUpdating(true)
-    if (channel.type === 57) {
+    if (channel.type === 57 || channel.type === 14) {
       try {
-        const res = await getCodexUsage(channel.id)
+        const res =
+          channel.type === 57
+            ? await getCodexUsage(channel.id)
+            : await getClaudeUsage(channel.id)
         if (!res.success) {
           throw new Error(res.message || t('Failed to fetch usage'))
         }
-        setCodexUsageResponse(res)
-        setCodexUsageOpen(true)
+        if (channel.type === 57) {
+          setCodexUsageResponse(res)
+          setCodexUsageOpen(true)
+        } else {
+          setClaudeUsageResponse(res)
+          setClaudeUsageOpen(true)
+        }
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : t('Failed to fetch usage')
@@ -388,7 +400,7 @@ function BalanceCell({ channel }: { channel: Channel }) {
               <span
                 className={cn(
                   'cursor-pointer transition-opacity hover:opacity-70',
-                  channel.type === 57
+                  channel.type === 57 || channel.type === 14
                     ? 'text-primary'
                     : textColorMap[isUpdating ? 'neutral' : variant]
                 )}
@@ -398,7 +410,7 @@ function BalanceCell({ channel }: { channel: Channel }) {
           >
             {isUpdating
               ? 'Updating...'
-              : channel.type === 57
+              : channel.type === 57 || channel.type === 14
                 ? t('Account Info')
                 : remainingDisplay}
           </TooltipTrigger>
@@ -406,9 +418,13 @@ function BalanceCell({ channel }: { channel: Channel }) {
             <p>
               {channel.type === 57
                 ? t('Click to view Codex usage')
+                : channel.type === 14
+                  ? t('Click to view Claude account')
                 : `${t('Remaining:')} ${remainingDisplay}`}
             </p>
-            {channel.type !== 57 && <p>{t('Click to update balance')}</p>}
+            {channel.type !== 57 && channel.type !== 14 && (
+              <p>{t('Click to update balance')}</p>
+            )}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -428,6 +444,34 @@ function BalanceCell({ channel }: { channel: Channel }) {
               throw new Error(res.message || t('Failed to fetch usage'))
             }
             setCodexUsageResponse(res)
+          } catch (error) {
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : t('Failed to fetch usage')
+            )
+          } finally {
+            setIsUpdating(false)
+          }
+        }}
+        isRefreshing={isUpdating}
+      />
+
+      <ClaudeAccountDialog
+        open={claudeUsageOpen}
+        onOpenChange={setClaudeUsageOpen}
+        channelName={channel.name}
+        channelId={channel.id}
+        response={claudeUsageResponse}
+        onRefresh={async () => {
+          if (isUpdating) return
+          setIsUpdating(true)
+          try {
+            const res = await getClaudeUsage(channel.id)
+            if (!res.success) {
+              throw new Error(res.message || t('Failed to fetch usage'))
+            }
+            setClaudeUsageResponse(res)
           } catch (error) {
             toast.error(
               error instanceof Error
