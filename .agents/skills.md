@@ -15,7 +15,7 @@ Use this file when Codex needs to load local skills in `new-api`. Do not scan th
 - `skills/new-api-project-standards/SKILL.md`
   Default entry for Go backend, relay/provider adapters, billing, settings, database migrations, frontend scope selection, and verification commands.
 - `skills/sdd-plan/SKILL.md`
-  Use when the user says `sdd:plan`, `/sdd:plan`, `/plan-task`, or asks for SDD-style task planning. This local alias delegates to the upstream `skills/plan-task/SKILL.md` content currently published by `context-engineering-kit`.
+  Use when the user says `SDD模式`, `sdd:plan`, `/sdd:plan`, `/plan-task`, or asks for SDD-style task planning. This local alias delegates to the upstream `skills/plan-task/SKILL.md` content currently published by `context-engineering-kit`.
 - `skills/plan-task/SKILL.md`
   Upstream `context-engineering-kit` planning skill installed from the published `plan-task` skill name.
 - `skills/software-design-philosophy/SKILL.md`

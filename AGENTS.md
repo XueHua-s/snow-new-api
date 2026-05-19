@@ -40,7 +40,7 @@ skills/          仓库技能入口
 ## Skill Routing
 
 - 默认项目规则、Go relay、计费、数据库、前端范围选择：`skills/new-api-project-standards/SKILL.md`
-- SDD 规格化任务规划，含用户提到的 `sdd:plan` / `/plan-task` 场景：`skills/sdd-plan/SKILL.md`，实际 upstream 技能内容在 `skills/plan-task/SKILL.md`
+- SDD 触发暗语与规格化任务规划，含 `SDD模式`、`sdd:plan`、`/sdd:plan`、`/plan-task` 场景：`skills/sdd-plan/SKILL.md`，实际 upstream 技能内容在 `skills/plan-task/SKILL.md`
 - 模块设计、复杂度治理、信息隐藏：`skills/software-design-philosophy/SKILL.md`
 - 当前 diff / PR 审查、安全可靠性、SOLID、删除候选：`skills/code-review-expert/SKILL.md`
 - UI 页面和组件视觉设计：`skills/frontend-design/SKILL.md`

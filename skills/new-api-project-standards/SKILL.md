@@ -47,4 +47,4 @@ description: "new-api 仓库默认入口技能。用于后端 Go relay/provider 
 - 当前 diff 审查：`skills/code-review-expert/SKILL.md`
 - React 性能：`skills/vercel-react-best-practices/SKILL.md`
 - UI/UX 设计：`skills/frontend-design/SKILL.md` 或 `skills/product-designer/SKILL.md`
-- 规格化任务规划：`skills/sdd-plan/SKILL.md`，实际 upstream 技能内容在 `skills/plan-task/SKILL.md`
+- SDD 触发暗语与规格化任务规划：`skills/sdd-plan/SKILL.md`，覆盖 `SDD模式`、`sdd:plan`、`/sdd:plan`、`/plan-task`；实际 upstream 技能内容在 `skills/plan-task/SKILL.md`
