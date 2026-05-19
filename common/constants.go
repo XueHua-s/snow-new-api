@@ -16,7 +16,7 @@ var StartTime = time.Now().Unix() // unit: second
 var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
 var SystemName = "snow-api"
 var Footer = ""
-var Logo = "https://xhblog.top/_astro/logo.Bpp0JPuA.webp"
+var Logo = "https://xhblog.top/img/724d7fb480c8ac0db472ca5c7e36d239.jpg"
 var TopUpLink = ""
 
 var themeValue atomic.Value // stores string; safe for concurrent read/write
