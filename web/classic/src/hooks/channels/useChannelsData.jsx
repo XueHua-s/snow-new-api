@@ -767,7 +767,7 @@ export const useChannelsData = () => {
       });
       return;
     }
-    if (record?.type === 14) {
+    if (record?.type === 58) {
       openClaudeAccountModal({ t, record });
       return;
     }

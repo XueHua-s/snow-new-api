@@ -201,7 +201,7 @@ func ListModels(c *gin.Context, modelType int) {
 	}
 
 	switch modelType {
-	case constant.ChannelTypeAnthropic:
+	case constant.ChannelTypeAnthropic, constant.ChannelTypeClaudeOAuth:
 		useranthropicModels := make([]dto.AnthropicModel, len(userOpenAiModels))
 		for i, model := range userOpenAiModels {
 			useranthropicModels[i] = dto.AnthropicModel{
@@ -263,7 +263,7 @@ func RetrieveModel(c *gin.Context, modelType int) {
 	modelId := c.Param("model")
 	if aiModel, ok := openAIModelsMap[modelId]; ok {
 		switch modelType {
-		case constant.ChannelTypeAnthropic:
+		case constant.ChannelTypeAnthropic, constant.ChannelTypeClaudeOAuth:
 			c.JSON(200, dto.AnthropicModel{
 				ID:          aiModel.Id,
 				CreatedAt:   time.Unix(int64(aiModel.Created), 0).UTC().Format(time.RFC3339),

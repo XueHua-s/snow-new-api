@@ -151,6 +151,7 @@ import {
 } from '../../lib/status-code-risk-guard'
 import type { Channel } from '../../types'
 import { useChannels } from '../channels-provider'
+import { ClaudeOAuthDialog } from '../dialogs/claude-oauth-dialog'
 import { CodexOAuthDialog } from '../dialogs/codex-oauth-dialog'
 import { FetchModelsDialog } from '../dialogs/fetch-models-dialog'
 import {
@@ -305,6 +306,7 @@ export function ChannelMutateDrawer({
   const [channelKey, setChannelKey] = useState<string | null>(null)
   const [isChannelKeyLoading, setIsChannelKeyLoading] = useState(false)
   const [codexOAuthDialogOpen, setCodexOAuthDialogOpen] = useState(false)
+  const [claudeOAuthDialogOpen, setClaudeOAuthDialogOpen] = useState(false)
   const [isCodexCredentialRefreshing, setIsCodexCredentialRefreshing] =
     useState(false)
   const initialModelsRef = useRef<string[]>([])
@@ -2058,9 +2060,50 @@ export function ChannelMutateDrawer({
                   </div>
                 )}
 
+                {currentType === 58 && (
+                  <div className='bg-muted/20 space-y-3 rounded-lg border p-4'>
+                    <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+                      <div className='space-y-0.5'>
+                        <div className='text-sm font-semibold'>
+                          {t('Claude OAuth Authorization')}
+                        </div>
+                        <div className='text-muted-foreground text-xs'>
+                          {t(
+                            'Claude(OAuth) channels use a subscription OAuth JSON credential as the key.'
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        onClick={() => setClaudeOAuthDialogOpen(true)}
+                      >
+                        <Link2 className='mr-2 h-4 w-4' />
+                        {t('Authorize')}
+                      </Button>
+                    </div>
+                    <Alert>
+                      <AlertDescription>
+                        {t(
+                          'The generated JSON is sent directly to Anthropic OAuth endpoints and does not use a local Claude CLI bridge.'
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+
                 <CodexOAuthDialog
                   open={codexOAuthDialogOpen}
                   onOpenChange={setCodexOAuthDialogOpen}
+                  onKeyGenerated={(key) => {
+                    form.setValue('key', key, { shouldDirty: true })
+                  }}
+                />
+
+                <ClaudeOAuthDialog
+                  open={claudeOAuthDialogOpen}
+                  onOpenChange={setClaudeOAuthDialogOpen}
                   onKeyGenerated={(key) => {
                     form.setValue('key', key, { shouldDirty: true })
                   }}
@@ -2852,7 +2895,9 @@ export function ChannelMutateDrawer({
                       title={t('Channel Extra Settings')}
                       icon={<Settings className='h-4 w-4' />}
                     />
-                    {(currentType === 1 || currentType === 14) && (
+                    {(currentType === 1 ||
+                      currentType === 14 ||
+                      currentType === 58) && (
                       <div className='space-y-3 rounded-lg border p-4'>
                         <SubHeading
                           title={t('Field passthrough controls')}
@@ -2993,7 +3038,7 @@ export function ChannelMutateDrawer({
                             </>
                           )}
 
-                          {currentType === 14 && (
+                          {(currentType === 14 || currentType === 58) && (
                             <>
                               <FormField
                                 control={form.control}

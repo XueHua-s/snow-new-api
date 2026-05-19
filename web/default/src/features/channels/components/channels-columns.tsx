@@ -341,7 +341,7 @@ function BalanceCell({ channel }: { channel: Channel }) {
     if (isUpdating) return
 
     setIsUpdating(true)
-    if (channel.type === 57 || channel.type === 14) {
+    if (channel.type === 57 || channel.type === 58) {
       try {
         const res =
           channel.type === 57
@@ -400,7 +400,7 @@ function BalanceCell({ channel }: { channel: Channel }) {
               <span
                 className={cn(
                   'cursor-pointer transition-opacity hover:opacity-70',
-                  channel.type === 57 || channel.type === 14
+                  channel.type === 57 || channel.type === 58
                     ? 'text-primary'
                     : textColorMap[isUpdating ? 'neutral' : variant]
                 )}
@@ -410,7 +410,7 @@ function BalanceCell({ channel }: { channel: Channel }) {
           >
             {isUpdating
               ? 'Updating...'
-              : channel.type === 57 || channel.type === 14
+              : channel.type === 57 || channel.type === 58
                 ? t('Account Info')
                 : remainingDisplay}
           </TooltipTrigger>
@@ -418,11 +418,11 @@ function BalanceCell({ channel }: { channel: Channel }) {
             <p>
               {channel.type === 57
                 ? t('Click to view Codex usage')
-                : channel.type === 14
+                : channel.type === 58
                   ? t('Click to view Claude account')
                 : `${t('Remaining:')} ${remainingDisplay}`}
             </p>
-            {channel.type !== 57 && channel.type !== 14 && (
+            {channel.type !== 57 && channel.type !== 58 && (
               <p>{t('Click to update balance')}</p>
             )}
           </TooltipContent>

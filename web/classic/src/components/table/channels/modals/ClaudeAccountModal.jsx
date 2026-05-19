@@ -102,12 +102,21 @@ const ClaudeAccountView = ({ t, record, payload, onRefresh }) => {
           <Descriptions.Item itemKey={tt('供应商')}>
             {getText(data?.apiProvider)}
           </Descriptions.Item>
+          <Descriptions.Item itemKey={tt('过期时间')}>
+            {getText(data?.expiresAt)}
+          </Descriptions.Item>
+          <Descriptions.Item itemKey={tt('上次刷新')}>
+            {getText(data?.lastRefresh)}
+          </Descriptions.Item>
+          <Descriptions.Item itemKey={tt('速率层级')}>
+            {getText(data?.rateLimitTier)}
+          </Descriptions.Item>
         </Descriptions>
       </div>
 
       <div className='rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800'>
         {data?.usageMessage ||
-          tt('Claude Code OAuth 可以显示账号和订阅状态，但 CLI 未暴露订阅额度用量窗口。')}
+          tt('Claude OAuth 可以显示授权状态，但协议未暴露订阅额度用量窗口。')}
       </div>
 
       <div className='flex justify-end'>

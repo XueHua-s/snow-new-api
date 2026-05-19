@@ -97,7 +97,7 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 		}
 		req.Del("x-api-key")
 		req.Set("Authorization", "Bearer "+strings.TrimSpace(oauthKey.AccessToken))
-		ensureClaudeOAuthBetaHeader(req)
+		ensureClaudeOAuthHeaders(req)
 		return nil
 	}
 
@@ -105,18 +105,28 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	return nil
 }
 
-func ensureClaudeOAuthBetaHeader(req *http.Header) {
+func ensureClaudeOAuthHeaders(req *http.Header) {
+	req.Set("user-agent", service.ClaudeOAuthUserAgent)
 	current := strings.TrimSpace(req.Get("anthropic-beta"))
-	if current == "" {
-		req.Set("anthropic-beta", service.ClaudeOAuthBetaHeader)
-		return
-	}
-	for _, part := range strings.Split(current, ",") {
-		if strings.TrimSpace(part) == service.ClaudeOAuthBetaHeader {
-			return
+	seen := map[string]struct{}{}
+	parts := make([]string, 0, len(service.ClaudeOAuthBetaHeaders)+1)
+	if current != "" {
+		for _, part := range strings.Split(current, ",") {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			seen[part] = struct{}{}
+			parts = append(parts, part)
 		}
 	}
-	req.Set("anthropic-beta", current+","+service.ClaudeOAuthBetaHeader)
+	for _, beta := range service.ClaudeOAuthBetaHeaders {
+		if _, ok := seen[beta]; ok {
+			continue
+		}
+		parts = append(parts, beta)
+	}
+	req.Set("anthropic-beta", strings.Join(parts, ","))
 }
 
 func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayInfo, request *dto.GeneralOpenAIRequest) (any, error) {

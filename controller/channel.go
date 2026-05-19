@@ -190,6 +190,15 @@ func buildFetchModelsHeaders(channel *model.Channel, key string) (http.Header, e
 	switch channel.Type {
 	case constant.ChannelTypeAnthropic:
 		headers = GetClaudeAuthHeader(key)
+	case constant.ChannelTypeClaudeOAuth:
+		oauthKey, err := service.EnsureClaudeOAuthCredential(context.Background(), channel.Id, key, channel.GetSetting().Proxy)
+		if err != nil {
+			return nil, err
+		}
+		headers = GetAuthHeader(strings.TrimSpace(oauthKey.AccessToken))
+		headers.Set("anthropic-version", "2023-06-01")
+		headers.Set("anthropic-beta", strings.Join(service.ClaudeOAuthBetaHeaders, ","))
+		headers.Set("user-agent", service.ClaudeOAuthUserAgent)
 	default:
 		headers = GetAuthHeader(key)
 	}
@@ -506,6 +515,25 @@ func validateChannel(channel *model.Channel, isAdd bool) error {
 			}
 			if v, ok := keyMap["account_id"]; !ok || v == nil || strings.TrimSpace(fmt.Sprintf("%v", v)) == "" {
 				return fmt.Errorf("Codex key JSON must include account_id")
+			}
+		}
+	}
+
+	if channel.Type == constant.ChannelTypeClaudeOAuth {
+		trimmedKey := strings.TrimSpace(channel.Key)
+		if isAdd || trimmedKey != "" {
+			if !strings.HasPrefix(trimmedKey, "{") {
+				return fmt.Errorf("Claude(OAuth) key must be a valid JSON object")
+			}
+			claudeKey, err := service.ParseClaudeOAuthKey(trimmedKey)
+			if err != nil {
+				return err
+			}
+			if strings.TrimSpace(claudeKey.AccessToken) == "" {
+				return fmt.Errorf("Claude(OAuth) key JSON must include access_token")
+			}
+			if strings.TrimSpace(claudeKey.RefreshToken) == "" {
+				return fmt.Errorf("Claude(OAuth) key JSON must include refresh_token")
 			}
 		}
 	}
@@ -1066,7 +1094,22 @@ func FetchModels(c *gin.Context) {
 		return
 	}
 
-	request.Header.Set("Authorization", "Bearer "+key)
+	if req.Type == constant.ChannelTypeClaudeOAuth {
+		oauthKey, err := service.ParseClaudeOAuthKey(key)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
+		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(oauthKey.AccessToken))
+		request.Header.Set("anthropic-version", "2023-06-01")
+		request.Header.Set("anthropic-beta", strings.Join(service.ClaudeOAuthBetaHeaders, ","))
+		request.Header.Set("user-agent", service.ClaudeOAuthUserAgent)
+	} else {
+		request.Header.Set("Authorization", "Bearer "+key)
+	}
 
 	response, err := client.Do(request)
 	if err != nil {

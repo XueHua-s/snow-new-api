@@ -53,8 +53,9 @@ export function getChannelTypeIcon(type: number): string {
     8: 'OpenAI', // Custom
     3: 'Azure', // Azure
 
-    // Anthropic
+    // Anthropic / Claude
     14: 'Claude', // Anthropic
+    58: 'Claude', // Claude OAuth
 
     // Google family
     24: 'Gemini', // Gemini

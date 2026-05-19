@@ -325,9 +325,9 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
   }
 
   // Field passthrough controls:
-  // - OpenAI (type 1) and Anthropic (type 14): allow_service_tier
+  // - OpenAI (type 1), Anthropic (type 14), Claude OAuth (type 58): allow_service_tier
   // - OpenAI only: disable_store, allow_safety_identifier
-  if (formData.type === 1 || formData.type === 14) {
+  if (formData.type === 1 || formData.type === 14 || formData.type === 58) {
     settingsObj.allow_service_tier = formData.allow_service_tier === true
   } else if ('allow_service_tier' in settingsObj) {
     delete settingsObj.allow_service_tier
@@ -346,12 +346,16 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
       delete settingsObj.allow_safety_identifier
     if ('allow_include_obfuscation' in settingsObj)
       delete settingsObj.allow_include_obfuscation
-    if (formData.type !== 14 && 'allow_inference_geo' in settingsObj)
+    if (
+      formData.type !== 14 &&
+      formData.type !== 58 &&
+      'allow_inference_geo' in settingsObj
+    )
       delete settingsObj.allow_inference_geo
   }
 
-  // Anthropic (type 14): claude_beta_query, allow_inference_geo, allow_speed
-  if (formData.type === 14) {
+  // Anthropic (type 14) and Claude OAuth (type 58): claude_beta_query, allow_inference_geo, allow_speed
+  if (formData.type === 14 || formData.type === 58) {
     settingsObj.allow_inference_geo = formData.allow_inference_geo === true
     settingsObj.allow_speed = formData.allow_speed === true
     settingsObj.claude_beta_query = formData.claude_beta_query === true

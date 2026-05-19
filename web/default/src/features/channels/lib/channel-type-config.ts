@@ -83,6 +83,16 @@ export const CHANNEL_TYPE_CONFIGS: Record<number, ChannelTypeConfig> = {
       models: 'claude-3-opus,claude-3-sonnet,claude-3-haiku',
     },
   },
+  58: {
+    id: 58,
+    name: CHANNEL_TYPES[58],
+    icon: 'anthropic',
+    defaultBaseUrl: 'https://api.anthropic.com',
+    hints: {
+      key: 'OAuth JSON credential',
+      models: 'claude-haiku-4-5,claude-sonnet-4-5,claude-opus-4-7',
+    },
+  },
   24: {
     id: 24,
     name: CHANNEL_TYPES[24],

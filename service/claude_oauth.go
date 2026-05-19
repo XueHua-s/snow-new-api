@@ -1,12 +1,12 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -16,19 +16,26 @@ import (
 )
 
 const (
-	ClaudeOAuthType       = "claude_oauth"
-	ClaudeOAuthBetaHeader = "oauth-2025-04-20"
+	ClaudeOAuthType      = "claude_oauth"
+	ClaudeOAuthUserAgent = "claude-cli/2.1.144 (external, cli)"
 
-	claudeOAuthClientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
-	claudeOAuthTokenURL = "https://platform.claude.com/v1/oauth/token"
+	claudeOAuthClientID     = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+	claudeOAuthAuthorizeURL = "https://claude.ai/oauth/authorize"
+	claudeOAuthTokenURL     = "https://console.anthropic.com/v1/oauth/token"
+	claudeOAuthRedirectURI  = "https://console.anthropic.com/oauth/code/callback"
+	claudeOAuthScope        = "org:create_api_key user:profile user:inference"
 )
 
+var ClaudeOAuthBetaHeaders = []string{
+	"oauth-2025-04-20",
+	"interleaved-thinking-2025-05-14",
+	"claude-code-20250219",
+}
+
 var claudeAIDefaultScopes = []string{
+	"org:create_api_key",
 	"user:profile",
 	"user:inference",
-	"user:sessions:claude_code",
-	"user:mcp_servers",
-	"user:file_upload",
 }
 
 type ClaudeOAuthKey struct {
@@ -47,6 +54,34 @@ type ClaudeOAuthTokenResult struct {
 	RefreshToken string
 	ExpiresAt    time.Time
 	Scopes       []string
+}
+
+type ClaudeOAuthAuthorizationFlow struct {
+	State        string
+	Verifier     string
+	Challenge    string
+	AuthorizeURL string
+}
+
+func CreateClaudeOAuthAuthorizationFlow() (*ClaudeOAuthAuthorizationFlow, error) {
+	state, err := createStateHex(16)
+	if err != nil {
+		return nil, err
+	}
+	verifier, challenge, err := generatePKCEPair()
+	if err != nil {
+		return nil, err
+	}
+	u, err := buildClaudeOAuthAuthorizeURL(state, challenge)
+	if err != nil {
+		return nil, err
+	}
+	return &ClaudeOAuthAuthorizationFlow{
+		State:        state,
+		Verifier:     verifier,
+		Challenge:    challenge,
+		AuthorizeURL: u,
+	}, nil
 }
 
 func ParseClaudeOAuthKey(raw string) (*ClaudeOAuthKey, error) {
@@ -143,6 +178,14 @@ func RefreshClaudeOAuthTokenWithProxy(ctx context.Context, refreshToken string, 
 	return refreshClaudeOAuthToken(ctx, client, claudeOAuthTokenURL, refreshToken, scopes)
 }
 
+func ExchangeClaudeOAuthAuthorizationCodeWithProxy(ctx context.Context, code string, verifier string, proxyURL string) (*ClaudeOAuthTokenResult, error) {
+	client, err := getCodexOAuthHTTPClient(proxyURL)
+	if err != nil {
+		return nil, err
+	}
+	return exchangeClaudeOAuthAuthorizationCode(ctx, client, claudeOAuthTokenURL, code, verifier, claudeOAuthRedirectURI)
+}
+
 func refreshClaudeOAuthToken(ctx context.Context, client *http.Client, tokenURL string, refreshToken string, scopes []string) (*ClaudeOAuthTokenResult, error) {
 	rt := strings.TrimSpace(refreshToken)
 	if rt == "" {
@@ -154,22 +197,16 @@ func refreshClaudeOAuthToken(ctx context.Context, client *http.Client, tokenURL 
 		requestedScopes = claudeAIDefaultScopes
 	}
 
-	bodyMap := map[string]any{
-		"grant_type":    "refresh_token",
-		"refresh_token": rt,
-		"client_id":     claudeOAuthClientID,
-		"scope":         strings.Join(requestedScopes, " "),
-	}
-	body, err := common.Marshal(bodyMap)
-	if err != nil {
-		return nil, err
-	}
+	form := url.Values{}
+	form.Set("grant_type", "refresh_token")
+	form.Set("refresh_token", rt)
+	form.Set("client_id", claudeOAuthClientID)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
@@ -211,6 +248,90 @@ func refreshClaudeOAuthToken(ctx context.Context, client *http.Client, tokenURL 
 		ExpiresAt:    time.Now().Add(time.Duration(payload.ExpiresIn) * time.Second),
 		Scopes:       responseScopes,
 	}, nil
+}
+
+func exchangeClaudeOAuthAuthorizationCode(
+	ctx context.Context,
+	client *http.Client,
+	tokenURL string,
+	code string,
+	verifier string,
+	redirectURI string,
+) (*ClaudeOAuthTokenResult, error) {
+	c := strings.TrimSpace(code)
+	v := strings.TrimSpace(verifier)
+	if c == "" {
+		return nil, errors.New("empty authorization code")
+	}
+	if v == "" {
+		return nil, errors.New("empty code_verifier")
+	}
+
+	form := url.Values{}
+	form.Set("grant_type", "authorization_code")
+	form.Set("client_id", claudeOAuthClientID)
+	form.Set("code", c)
+	form.Set("code_verifier", v)
+	form.Set("redirect_uri", redirectURI)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var payload struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int    `json:"expires_in"`
+		Scope        string `json:"scope"`
+	}
+	if err := common.DecodeJson(resp.Body, &payload); err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("claude oauth code exchange failed: status=%d", resp.StatusCode)
+	}
+	if strings.TrimSpace(payload.AccessToken) == "" || strings.TrimSpace(payload.RefreshToken) == "" || payload.ExpiresIn <= 0 {
+		return nil, errors.New("claude oauth token response missing fields")
+	}
+
+	scopes := normalizeScopes(strings.Fields(payload.Scope))
+	if len(scopes) == 0 {
+		scopes = claudeAIDefaultScopes
+	}
+
+	return &ClaudeOAuthTokenResult{
+		AccessToken:  strings.TrimSpace(payload.AccessToken),
+		RefreshToken: strings.TrimSpace(payload.RefreshToken),
+		ExpiresAt:    time.Now().Add(time.Duration(payload.ExpiresIn) * time.Second),
+		Scopes:       scopes,
+	}, nil
+}
+
+func buildClaudeOAuthAuthorizeURL(state string, challenge string) (string, error) {
+	u, err := url.Parse(claudeOAuthAuthorizeURL)
+	if err != nil {
+		return "", err
+	}
+	q := u.Query()
+	q.Set("code", "true")
+	q.Set("response_type", "code")
+	q.Set("client_id", claudeOAuthClientID)
+	q.Set("redirect_uri", claudeOAuthRedirectURI)
+	q.Set("scope", claudeOAuthScope)
+	q.Set("code_challenge", challenge)
+	q.Set("code_challenge_method", "S256")
+	q.Set("state", state)
+	u.RawQuery = q.Encode()
+	return u.String(), nil
 }
 
 func (key *ClaudeOAuthKey) MarshalJSONForStorage() ([]byte, error) {

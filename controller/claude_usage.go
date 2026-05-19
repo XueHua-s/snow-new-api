@@ -33,8 +33,38 @@ func GetClaudeChannelUsage(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "channel not found"})
 		return
 	}
-	if ch.Type != constant.ChannelTypeAnthropic {
-		c.JSON(http.StatusOK, gin.H{"success": false, "message": "channel type is not Claude"})
+	if ch.Type != constant.ChannelTypeClaudeOAuth {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "channel type is not Claude(OAuth)"})
+		return
+	}
+
+	if strings.HasPrefix(strings.TrimSpace(ch.Key), "{") {
+		key, err := service.EnsureClaudeOAuthCredential(c.Request.Context(), ch.Id, ch.Key, ch.GetSetting().Proxy)
+		if err != nil {
+			common.SysError("failed to parse claude oauth credential: " + err.Error())
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "解析 Claude OAuth 凭证失败，请重新授权"})
+			return
+		}
+		email, _ := service.ExtractEmailFromJWT(key.AccessToken)
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "",
+			"data": gin.H{
+				"loggedIn":          strings.TrimSpace(key.AccessToken) != "",
+				"authMethod":        "OAuth subscription",
+				"apiProvider":       "Claude(OAuth)",
+				"email":             email,
+				"subscriptionType":  fallbackString(key.SubscriptionType, "subscription"),
+				"rateLimitTier":     key.RateLimitTier,
+				"expiresAt":         formatOptionalTime(key.ExpiresAt),
+				"lastRefresh":       key.LastRefresh,
+				"scopes":            key.Scopes,
+				"usageAvailable":    false,
+				"usageMessage":      "Claude OAuth 协议可以显示授权状态，但 Anthropic 未在该协议中公开订阅额度用量窗口。",
+				"directOAuth":       true,
+				"bridgeProcessUsed": false,
+			},
+		})
 		return
 	}
 
@@ -92,4 +122,19 @@ func GetClaudeChannelUsage(c *gin.Context) {
 		result["message"] = fmt.Sprintf("upstream status: %d", resp.StatusCode)
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func fallbackString(v string, fallback string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return fallback
+	}
+	return v
+}
+
+func formatOptionalTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
 }

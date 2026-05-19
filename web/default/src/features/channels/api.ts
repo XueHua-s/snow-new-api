@@ -65,6 +65,19 @@ export type CodexOAuthCompleteResponse = {
   }
 }
 
+export type ClaudeOAuthStartResponse = CodexOAuthStartResponse
+
+export type ClaudeOAuthCompleteResponse = {
+  success: boolean
+  message?: string
+  data?: {
+    key?: string
+    email?: string
+    expires_at?: string
+    last_refresh?: string
+  }
+}
+
 export type CodexUsageResponse = {
   success: boolean
   message?: string
@@ -270,6 +283,24 @@ export async function completeCodexOAuth(
   const config: ExtendedApiConfig = { skipBusinessError: true }
   const res = await api.post(
     '/api/channel/codex/oauth/complete',
+    { input },
+    config
+  )
+  return res.data
+}
+
+export async function startClaudeOAuth(): Promise<ClaudeOAuthStartResponse> {
+  const config: ExtendedApiConfig = { skipBusinessError: true }
+  const res = await api.post('/api/channel/claude/oauth/start', {}, config)
+  return res.data
+}
+
+export async function completeClaudeOAuth(
+  input: string
+): Promise<ClaudeOAuthCompleteResponse> {
+  const config: ExtendedApiConfig = { skipBusinessError: true }
+  const res = await api.post(
+    '/api/channel/claude/oauth/complete',
     { input },
     config
   )

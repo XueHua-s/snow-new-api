@@ -61,6 +61,7 @@ import ModelSelectModal from './ModelSelectModal';
 import SingleModelSelectModal from './SingleModelSelectModal';
 import OllamaModelModal from './OllamaModelModal';
 import CodexOAuthModal from './CodexOAuthModal';
+import ClaudeOAuthModal from './ClaudeOAuthModal';
 import ParamOverrideEditorModal from './ParamOverrideEditorModal';
 import JSONEditor from '../../../common/ui/JSONEditor';
 import SecureVerificationModal from '../../../common/modals/SecureVerificationModal';
@@ -382,6 +383,7 @@ const EditChannelModal = (props) => {
   const [isIonetChannel, setIsIonetChannel] = useState(false);
   const [ionetMetadata, setIonetMetadata] = useState(null);
   const [codexOAuthModalVisible, setCodexOAuthModalVisible] = useState(false);
+  const [claudeOAuthModalVisible, setClaudeOAuthModalVisible] = useState(false);
   const [codexCredentialRefreshing, setCodexCredentialRefreshing] =
     useState(false);
   const [paramOverrideEditorVisible, setParamOverrideEditorVisible] =
@@ -1232,6 +1234,11 @@ const EditChannelModal = (props) => {
     formatJsonField('key');
   };
 
+  const handleClaudeOAuthGenerated = (key) => {
+    handleInputChange('key', key);
+    formatJsonField('key');
+  };
+
   const handleRefreshCodexCredential = async () => {
     if (!isEdit) return;
 
@@ -1546,9 +1553,9 @@ const EditChannelModal = (props) => {
     let localInputs = { ...formValues };
     localInputs.param_override = inputs.param_override;
 
-    if (localInputs.type === 57) {
+    if (localInputs.type === 57 || localInputs.type === 58) {
       if (batch) {
-        showInfo(t('Codex 渠道不支持批量创建'));
+        showInfo(t('OAuth 渠道不支持批量创建'));
         return;
       }
 
@@ -1571,12 +1578,17 @@ const EditChannelModal = (props) => {
           }
           const accessToken = String(parsed.access_token || '').trim();
           const accountId = String(parsed.account_id || '').trim();
+          const refreshToken = String(parsed.refresh_token || '').trim();
           if (!accessToken) {
             showInfo(t('密钥 JSON 必须包含 access_token'));
             return;
           }
-          if (!accountId) {
+          if (localInputs.type === 57 && !accountId) {
             showInfo(t('密钥 JSON 必须包含 account_id'));
+            return;
+          }
+          if (localInputs.type === 58 && !refreshToken) {
+            showInfo(t('密钥 JSON 必须包含 refresh_token'));
             return;
           }
           localInputs.key = JSON.stringify(parsed);
@@ -1785,8 +1797,8 @@ const EditChannelModal = (props) => {
       delete settings.vertex_key_type;
     }
 
-    // type === 1 (OpenAI) 或 type === 14 (Claude): 设置字段透传控制（显式保存布尔值）
-    if (localInputs.type === 1 || localInputs.type === 14) {
+    // type === 1 (OpenAI), type === 14 (Claude) 或 type === 58 (Claude OAuth): 设置字段透传控制（显式保存布尔值）
+    if (localInputs.type === 1 || localInputs.type === 14 || localInputs.type === 58) {
       settings.allow_service_tier = localInputs.allow_service_tier === true;
       // 仅 OpenAI 渠道需要 store / safety_identifier / include_obfuscation
       if (localInputs.type === 1) {
@@ -1796,7 +1808,7 @@ const EditChannelModal = (props) => {
         settings.allow_include_obfuscation =
           localInputs.allow_include_obfuscation === true;
       }
-      if (localInputs.type === 14) {
+      if (localInputs.type === 14 || localInputs.type === 58) {
         settings.allow_inference_geo = localInputs.allow_inference_geo === true;
         settings.allow_speed = localInputs.allow_speed === true;
         settings.claude_beta_query = localInputs.claude_beta_query === true;
@@ -2497,7 +2509,7 @@ const EditChannelModal = (props) => {
                     </>
                   )}
 
-                  {inputs.type === 14 && (
+                  {(inputs.type === 14 || inputs.type === 58) && (
                     <>
                       <div className='mt-4 mb-2 text-sm font-medium text-gray-700'>
                         {t('字段透传控制')}
@@ -2515,7 +2527,7 @@ const EditChannelModal = (props) => {
                     {t('额外设置')}
                   </Text>
 
-                  {inputs.type === 14 && (
+                  {(inputs.type === 14 || inputs.type === 58) && (
                     <Form.Switch field='claude_beta_query' label={t('Claude 强制 beta=true')} checkedText={t('开')} uncheckedText={t('关')} onChange={(value) => handleChannelOtherSettingsChange('claude_beta_query', value)} extraText={t('开启后，该渠道请求 Claude 时将强制追加 ?beta=true（无需客户端手动传参）')} />
                   )}
 
@@ -2635,6 +2647,17 @@ const EditChannelModal = (props) => {
                         className='mb-4 rounded-xl'
                         description={t(
                           '免责声明：仅限个人使用，请勿分发或共享任何凭证。该渠道存在前置条件与使用门槛，请在充分了解流程与风险后使用，并遵守 OpenAI 的相关条款与政策。相关凭证与配置仅限接入 Codex CLI 使用，不适用于其他客户端、平台或渠道。',
+                        )}
+                      />
+                    )}
+
+                    {inputs.type === 58 && (
+                      <Banner
+                        type='info'
+                        closeIcon={null}
+                        className='mb-4 rounded-xl'
+                        description={t(
+                          'Claude(OAuth) 使用订阅 OAuth 凭据直连 Anthropic 协议，不通过本地 Claude CLI 桥接。请妥善保管凭据并遵守 Claude 订阅条款。',
                         )}
                       />
                     )}
@@ -2811,7 +2834,7 @@ const EditChannelModal = (props) => {
                       )
                     ) : (
                       <>
-                        {inputs.type === 57 ? (
+                        {inputs.type === 57 || inputs.type === 58 ? (
                           <>
                             <Form.TextArea
                               field='key'
@@ -2821,7 +2844,9 @@ const EditChannelModal = (props) => {
                                   : t('密钥')
                               }
                               placeholder={t(
-                                '请输入 JSON 格式的 OAuth 凭据，例如：\n{\n  "access_token": "...",\n  "account_id": "..." \n}',
+                                inputs.type === 57
+                                  ? '请输入 JSON 格式的 OAuth 凭据，例如：\n{\n  "access_token": "...",\n  "account_id": "..." \n}'
+                                  : '请输入 JSON 格式的 OAuth 凭据，例如：\n{\n  "access_token": "...",\n  "refresh_token": "..." \n}',
                               )}
                               rules={
                                 isEdit
@@ -2842,7 +2867,9 @@ const EditChannelModal = (props) => {
                                 <div className='flex flex-col gap-2'>
                                   <Text type='tertiary' size='small'>
                                     {t(
-                                      '仅支持 JSON 对象，必须包含 access_token 与 account_id',
+                                      inputs.type === 57
+                                        ? '仅支持 JSON 对象，必须包含 access_token 与 account_id'
+                                        : '仅支持 JSON 对象，必须包含 access_token 与 refresh_token',
                                     )}
                                   </Text>
 
@@ -2852,13 +2879,17 @@ const EditChannelModal = (props) => {
                                       type='primary'
                                       theme='outline'
                                       onClick={() =>
-                                        setCodexOAuthModalVisible(true)
+                                        inputs.type === 57
+                                          ? setCodexOAuthModalVisible(true)
+                                          : setClaudeOAuthModalVisible(true)
                                       }
                                       disabled={isIonetLocked}
                                     >
-                                      {t('Codex 授权')}
+                                      {inputs.type === 57
+                                        ? t('Codex 授权')
+                                        : t('Claude 授权')}
                                     </Button>
-                                    {isEdit && (
+                                    {isEdit && inputs.type === 57 && (
                                       <Button
                                         size='small'
                                         type='primary'
@@ -2902,6 +2933,13 @@ const EditChannelModal = (props) => {
                               visible={codexOAuthModalVisible}
                               onCancel={() => setCodexOAuthModalVisible(false)}
                               onSuccess={handleCodexOAuthGenerated}
+                            />
+                            <ClaudeOAuthModal
+                              visible={claudeOAuthModalVisible}
+                              onCancel={() =>
+                                setClaudeOAuthModalVisible(false)
+                              }
+                              onSuccess={handleClaudeOAuthGenerated}
                             />
                           </>
                         ) : inputs.type === 41 &&

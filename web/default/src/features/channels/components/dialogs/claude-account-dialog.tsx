@@ -39,6 +39,10 @@ type ClaudeAccountPayload = {
   orgId?: string
   orgName?: string
   subscriptionType?: string
+  rateLimitTier?: string
+  expiresAt?: string
+  lastRefresh?: string
+  directOAuth?: boolean
   usageAvailable?: boolean
   usageMessage?: string
 }
@@ -159,13 +163,16 @@ export function ClaudeAccountDialog({
               <Field label='Org ID' value={payload?.orgId} mono />
               <Field label={t('Auth Method')} value={payload?.authMethod} />
               <Field label={t('Provider')} value={payload?.apiProvider} />
+              <Field label={t('Expires At')} value={payload?.expiresAt} />
+              <Field label={t('Last Refresh')} value={payload?.lastRefresh} />
+              <Field label={t('Rate Limit Tier')} value={payload?.rateLimitTier} />
             </div>
           </div>
 
           <div className='rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300'>
             {payload?.usageMessage ||
               t(
-                'Claude Code OAuth can show account and subscription status, but it does not expose subscription quota usage windows.'
+                'Claude OAuth can show authorization status, but it does not expose subscription quota usage windows.'
               )}
           </div>
         </div>
