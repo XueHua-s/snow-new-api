@@ -24,6 +24,7 @@ import {
   IllustrationConstruction,
   IllustrationConstructionDark,
 } from '@douyinfe/semi-illustrations';
+import { isAdmin } from '../../helpers/utils';
 import ScrollableContainer from '../common/ui/ScrollableContainer';
 
 const ApiInfoPanel = ({
@@ -35,6 +36,8 @@ const ApiInfoPanel = ({
   ILLUSTRATION_SIZE,
   t,
 }) => {
+  const canViewChannelPool = isAdmin();
+
   return (
     <Card
       {...CARD_PROPS}
@@ -47,6 +50,22 @@ const ApiInfoPanel = ({
       }
       bodyStyle={{ padding: 0 }}
     >
+      {canViewChannelPool && (
+        <div className='px-3 py-2 border-b bg-white/70'>
+          <Tag
+            prefixIcon={<Gauge size={12} />}
+            size='small'
+            color='white'
+            shape='circle'
+            onClick={() => {
+              window.location.href = '/console/channel';
+            }}
+            className='cursor-pointer hover:opacity-80 text-xs'
+          >
+            {t('号池使用程度')}
+          </Tag>
+        </div>
+      )}
       <ScrollableContainer maxHeight='24rem'>
         {apiInfoData.length > 0 ? (
           apiInfoData.map((api) => (

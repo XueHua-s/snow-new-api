@@ -83,7 +83,7 @@ export const API_ENDPOINTS = {
 // ========== 配置默认值 ==========
 export const DEFAULT_CONFIG = {
   inputs: {
-    model: 'gpt-4o',
+    model: 'gpt-5.5',
     group: '',
     temperature: 0.7,
     top_p: 1,

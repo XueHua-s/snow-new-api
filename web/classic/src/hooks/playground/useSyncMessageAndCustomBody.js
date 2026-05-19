@@ -67,7 +67,7 @@ export const useSyncMessageAndCustomBody = (
         customPayload = JSON.parse(customRequestBody || '{}');
       } catch {
         customPayload = {
-          model: inputs.model || 'gpt-4o',
+          model: inputs.model || 'gpt-5.5',
           messages: [],
           temperature: inputs.temperature || 0.7,
           stream: inputs.stream !== false,
