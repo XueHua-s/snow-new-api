@@ -1,5 +1,22 @@
 # 前端开发规范
 
+## First Read
+
+- 如果从仓库根进入，先阅读 `../../AGENTS.md`。
+- Claude 进入本目录时先阅读 `CLAUDE.md`；Codex 需要技能时读取 `.agents/skills.md`，Claude 读取 `.claude/skills.md`。
+- 本目录不维护第二份技能正文；前端技能统一引用仓库根 `../../skills/`。
+- UI、React 性能、i18n、shadcn/ui 相关任务优先选择对应技能后再改代码。
+
+## Skill Routing
+
+- 前端默认规范：本文件。
+- UI 视觉与组件设计：`../../skills/frontend-design/SKILL.md`
+- 产品设计、信息架构、用户旅程：`../../skills/product-designer/SKILL.md`
+- React 性能、rerender、bundle、async waterfall：`../../skills/vercel-react-best-practices/SKILL.md`
+- i18n key 与 locale 同步：`../../skills/i18n-translate/SKILL.md`
+- shadcn/ui 组件、registry、主题：`../../skills/shadcn-ui/SKILL.md`
+- 从 `web/classic` 同步功能到 `web/default`：`../../skills/classic-to-default-sync/SKILL.md`
+
 本文档定义前端项目的开发规范与最佳实践，供开发与 AI 助手共同遵循。具体依赖与脚本以 `package.json` 为准。
 
 ---
