@@ -1,6 +1,9 @@
 package model
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/QuantumNous/new-api/common"
 
 	"gorm.io/gorm"
@@ -21,6 +24,15 @@ type Vendor struct {
 	CreatedTime int64          `json:"created_time" gorm:"bigint"`
 	UpdatedTime int64          `json:"updated_time" gorm:"bigint"`
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index;uniqueIndex:uk_vendor_name_delete_at,priority:2"`
+}
+
+var requiredVendors = []Vendor{
+	{
+		Name:        "讯飞",
+		Description: "科大讯飞星火模型供应商",
+		Icon:        "Spark.Color",
+		Status:      1,
+	},
 }
 
 // Insert 创建新的供应商记录
@@ -85,4 +97,49 @@ func SearchVendors(keyword string, offset int, limit int) ([]*Vendor, int64, err
 		return nil, 0, err
 	}
 	return vendors, total, nil
+}
+
+func EnsureRequiredVendors() error {
+	for _, seed := range requiredVendors {
+		name := strings.TrimSpace(seed.Name)
+		if name == "" {
+			continue
+		}
+
+		var existing Vendor
+		err := DB.Where("name = ?", name).First(&existing).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			seed.Name = name
+			if seed.Status == 0 {
+				seed.Status = 1
+			}
+			if err := seed.Insert(); err != nil {
+				return err
+			}
+			continue
+		}
+		if err != nil {
+			return err
+		}
+
+		changed := false
+		if strings.TrimSpace(existing.Icon) == "" && strings.TrimSpace(seed.Icon) != "" {
+			existing.Icon = seed.Icon
+			changed = true
+		}
+		if strings.TrimSpace(existing.Description) == "" && strings.TrimSpace(seed.Description) != "" {
+			existing.Description = seed.Description
+			changed = true
+		}
+		if existing.Status == 0 {
+			existing.Status = seed.Status
+			changed = true
+		}
+		if changed {
+			if err := existing.Update(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

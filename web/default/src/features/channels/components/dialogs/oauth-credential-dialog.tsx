@@ -63,6 +63,9 @@ type OAuthCredentialDialogProps = {
   startOAuth: () => Promise<OAuthStartResponse>
   completeOAuth: (input: string) => Promise<OAuthCompleteResponse>
   completeButtonLabel?: string
+  completingLabel?: string
+  successMessage?: string
+  requireKeyResult?: boolean
 }
 
 export function OAuthCredentialDialog({
@@ -78,6 +81,9 @@ export function OAuthCredentialDialog({
   startOAuth,
   completeOAuth,
   completeButtonLabel = 'Generate credential',
+  completingLabel = 'Generating...',
+  successMessage = 'Credential generated',
+  requireKeyResult = true,
 }: OAuthCredentialDialogProps) {
   const { t } = useTranslation()
   const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
@@ -147,12 +153,12 @@ export function OAuthCredentialDialog({
       }
 
       const rawKey = res.data?.key || ''
-      if (!rawKey) {
+      if (requireKeyResult && !rawKey) {
         throw new Error('Missing key in response')
       }
 
-      onKeyGenerated(tryPrettyJson(rawKey))
-      toast.success(t('Credential generated'))
+      onKeyGenerated(requireKeyResult ? tryPrettyJson(rawKey) : '')
+      toast.success(t(successMessage))
       onOpenChange(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('OAuth failed'))
@@ -243,7 +249,7 @@ export function OAuthCredentialDialog({
             {state.isCompleting && (
               <Loader2 className='mr-2 h-4 w-4 animate-spin' />
             )}
-            {state.isCompleting ? t('Generating...') : t(completeButtonLabel)}
+            {state.isCompleting ? t(completingLabel) : t(completeButtonLabel)}
           </Button>
         </DialogFooter>
       </DialogContent>

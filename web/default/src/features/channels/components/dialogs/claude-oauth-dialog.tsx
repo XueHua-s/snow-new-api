@@ -16,28 +16,60 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { completeClaudeOAuth, startClaudeOAuth } from '../../api'
+import {
+  completeClaudeOAuth,
+  completeClaudeOAuthForChannel,
+  startClaudeOAuth,
+  startClaudeOAuthForChannel,
+} from '../../api'
 import { OAuthCredentialDialog } from './oauth-credential-dialog'
 
 type ClaudeOAuthDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onKeyGenerated: (key: string) => void
+  channelId?: number | null
 }
 
-export function ClaudeOAuthDialog(props: ClaudeOAuthDialogProps) {
+export function ClaudeOAuthDialog({
+  channelId,
+  ...props
+}: ClaudeOAuthDialogProps) {
+  const saveToChannel = Boolean(channelId)
+
   return (
     <OAuthCredentialDialog
       {...props}
       title='Claude OAuth Authorization'
-      description='Connect a Claude subscription and insert the OAuth JSON credential into the channel key field.'
-      instructions='1) Open the authorization page and log in to Claude; 2) copy the redirected URL or code; 3) paste it here; 4) generate the credential.'
+      description={
+        saveToChannel
+          ? 'Connect a Claude subscription and save the OAuth credential directly to this channel.'
+          : 'Connect a Claude subscription and generate the OAuth credential for this channel.'
+      }
+      instructions='1) Open the authorization page and log in to Claude; 2) copy the redirected URL or code; 3) paste it here; 4) confirm authorization.'
       inputLabel='Authorization code'
-      inputPlaceholder='Paste redirected URL or authorization code'
-      tip='The result is a JSON credential containing access_token and refresh_token. It is used directly against Anthropic OAuth endpoints, not through a local CLI bridge.'
-      startOAuth={startClaudeOAuth}
-      completeOAuth={completeClaudeOAuth}
-      completeButtonLabel='Generate and insert'
+      inputPlaceholder='Paste redirected URL or authorization code with state'
+      tip='Claude(OAuth) credentials are created only through OAuth and are used directly against Anthropic OAuth endpoints, not through a local CLI bridge.'
+      startOAuth={() =>
+        saveToChannel
+          ? startClaudeOAuthForChannel(channelId!)
+          : startClaudeOAuth()
+      }
+      completeOAuth={(input) =>
+        saveToChannel
+          ? completeClaudeOAuthForChannel(channelId!, input)
+          : completeClaudeOAuth(input)
+      }
+      completeButtonLabel={
+        saveToChannel ? 'Authorize and save' : 'Generate credential'
+      }
+      completingLabel={saveToChannel ? 'Saving...' : 'Generating...'}
+      successMessage={
+        saveToChannel
+          ? 'Claude OAuth credential saved'
+          : 'Claude OAuth credential generated'
+      }
+      requireKeyResult={!saveToChannel}
     />
   )
 }

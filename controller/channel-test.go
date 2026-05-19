@@ -87,7 +87,7 @@ func testChannel(channel *model.Channel, testModel string, endpointType string, 
 				testModel = strings.TrimSpace(models[0])
 			}
 			if testModel == "" {
-				testModel = "gpt-4o-mini"
+				testModel = "gpt-5.5"
 			}
 		}
 	}

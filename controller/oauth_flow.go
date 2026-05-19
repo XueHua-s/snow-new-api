@@ -43,7 +43,7 @@ type oauthFlowConfig struct {
 	channelLabel  string
 	logName       string
 	createFlow    func() (oauthStartFlow, error)
-	buildKey      func(ctx context.Context, code string, verifier string, proxy string) (*oauthCredentialPayload, error)
+	buildKey      func(ctx context.Context, code string, state string, verifier string, proxy string) (*oauthCredentialPayload, error)
 }
 
 func startOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
@@ -118,7 +118,7 @@ func completeOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	payload, err := cfg.buildKey(ctx, code, verifier, channelProxy)
+	payload, err := cfg.buildKey(ctx, code, state, verifier, channelProxy)
 	if err != nil {
 		common.SysError("failed to exchange " + cfg.logName + " authorization code: " + err.Error())
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "授权码交换失败，请重试"})

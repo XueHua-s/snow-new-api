@@ -41,6 +41,9 @@ const OAuthCredentialModal = ({
   instructions,
   inputPlaceholder,
   tip,
+  completeButtonText = '生成并填入',
+  successText = '已生成授权凭据',
+  requiresKeyResult = true,
 }) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -86,12 +89,12 @@ const OAuthCredentialModal = ({
       }
 
       const key = res?.data?.data?.key || '';
-      if (!key) {
+      if (requiresKeyResult && !key) {
         throw new Error(t('响应缺少凭据'));
       }
 
-      onSuccess && onSuccess(key);
-      showSuccess(t('已生成授权凭据'));
+      onSuccess && onSuccess(requiresKeyResult ? key : res?.data?.data);
+      showSuccess(t(successText));
       onCancel && onCancel();
     } catch (error) {
       showError(error?.message || t('授权失败'));
@@ -125,7 +128,7 @@ const OAuthCredentialModal = ({
             onClick={completeOAuth}
             loading={loading}
           >
-            {t('生成并填入')}
+            {t(completeButtonText)}
           </Button>
         </Space>
       }

@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -89,6 +90,7 @@ func init() {
 	}
 	openAIModelsMap = make(map[string]dto.OpenAIModels)
 	for _, aiModel := range openAIModels {
+		aiModel = normalizeModelOwner(aiModel)
 		openAIModelsMap[aiModel.Id] = aiModel
 	}
 	channelId2Models = make(map[int][]string)
@@ -107,6 +109,16 @@ func init() {
 	openAIModels = lo.UniqBy(openAIModels, func(m dto.OpenAIModels) string {
 		return m.Id
 	})
+	for i := range openAIModels {
+		openAIModels[i] = normalizeModelOwner(openAIModels[i])
+	}
+}
+
+func normalizeModelOwner(model dto.OpenAIModels) dto.OpenAIModels {
+	if strings.HasPrefix(model.Id, "claude-") {
+		model.OwnedBy = "anthropic"
+	}
+	return model
 }
 
 func ListModels(c *gin.Context, modelType int) {

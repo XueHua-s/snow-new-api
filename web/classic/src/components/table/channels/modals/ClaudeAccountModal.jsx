@@ -18,8 +18,16 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Button, Typography, Spin, Tag, Descriptions } from '@douyinfe/semi-ui';
-import { API, showError } from '../../../../helpers';
+import {
+  Modal,
+  Button,
+  Typography,
+  Spin,
+  Tag,
+  Descriptions,
+  Collapse,
+} from '@douyinfe/semi-ui';
+import { API, copy, showError, showSuccess } from '../../../../helpers';
 import { MOBILE_BREAKPOINT } from '../../../../hooks/common/useIsMobile';
 
 const { Text } = Typography;
@@ -27,6 +35,34 @@ const { Text } = Typography;
 const getText = (value) => {
   if (value === null || value === undefined || value === '') return '-';
   return String(value);
+};
+
+const AccountInfoValue = ({ t, value, onCopy, monospace = false }) => {
+  const tt = typeof t === 'function' ? t : (v) => v;
+  const text = getText(value);
+  const hasValue = text !== '-';
+
+  return (
+    <div className='flex min-w-0 items-start justify-between gap-2'>
+      <div
+        className={`min-w-0 flex-1 break-all text-xs leading-5 text-semi-color-text-1 ${
+          monospace ? 'font-mono' : ''
+        }`}
+      >
+        {hasValue ? text : '-'}
+      </div>
+      <Button
+        size='small'
+        type='tertiary'
+        theme='borderless'
+        className='shrink-0 px-1 text-xs'
+        disabled={!hasValue}
+        onClick={() => onCopy?.(text)}
+      >
+        {tt('复制')}
+      </Button>
+    </div>
+  );
 };
 
 const isMobileViewport = () =>
@@ -50,10 +86,10 @@ const getClaudeAccountModalLayout = () => {
   }
 
   return {
-    width: 720,
+    width: 900,
     style: {
       top: 24,
-      maxWidth: 'min(720px, 92vw)',
+      maxWidth: 'min(900px, 92vw)',
     },
     bodyStyle: {
       maxHeight: 'calc(100vh - 172px)',
@@ -65,65 +101,164 @@ const getClaudeAccountModalLayout = () => {
 
 const ClaudeAccountView = ({ t, record, payload, onRefresh }) => {
   const tt = typeof t === 'function' ? t : (v) => v;
+  const [showRawJson, setShowRawJson] = useState(false);
   const data = payload?.data?.data ?? payload?.data ?? {};
   const isLoggedIn = Boolean(data?.loggedIn);
+  const upstreamStatus = payload?.upstream_status;
+  const providerLabel = data?.apiProvider || 'Claude(OAuth)';
+  const displayMessage = payload?.message ? getText(payload.message) : '';
+  const errorMessage =
+    payload?.success === false ? displayMessage || tt('获取账号信息失败') : '';
+  const rawText =
+    typeof data === 'string' ? data : JSON.stringify(data ?? payload, null, 2);
+
+  const handleCopy = async (text) => {
+    if (!text) return;
+    const ok = await copy(text);
+    if (ok) showSuccess(tt('已复制'));
+  };
 
   return (
     <div className='flex flex-col gap-4'>
-      {payload?.success === false && (
-        <Text type='danger'>{payload?.message || tt('获取账号信息失败')}</Text>
+      {errorMessage && (
+        <div className='rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
+          {errorMessage}
+        </div>
       )}
 
-      <div className='rounded-lg border border-gray-100 bg-gray-50 p-3'>
-        <div className='mb-3 flex flex-wrap items-center gap-2'>
-          <Tag color={isLoggedIn ? 'green' : 'grey'}>
-            {isLoggedIn ? tt('已登录') : tt('未登录')}
-          </Tag>
-          <Tag color='blue'>{getText(data?.subscriptionType)}</Tag>
-          {payload?.upstream_status && (
-            <Tag color='white'>HTTP {payload.upstream_status}</Tag>
-          )}
+      <div className='rounded-xl border border-semi-color-border bg-semi-color-bg-0 p-3'>
+        <div className='flex flex-wrap items-start justify-between gap-2'>
+          <div className='min-w-0'>
+            <div className='text-xs font-medium text-semi-color-text-2'>
+              {tt('Claude 帐号')}
+            </div>
+            <div className='mt-2 flex flex-wrap items-center gap-2'>
+              <Tag
+                color={isLoggedIn ? 'green' : 'grey'}
+                type='light'
+                shape='circle'
+                size='large'
+                className='font-semibold'
+              >
+                {isLoggedIn ? tt('已授权') : tt('未授权')}
+              </Tag>
+              <Tag color='blue' type='light' shape='circle'>
+                {getText(providerLabel)}
+              </Tag>
+              <Tag color='grey' type='light' shape='circle'>
+                {tt('上游状态码：')}
+                {upstreamStatus ?? '-'}
+              </Tag>
+            </div>
+          </div>
+          <Button
+            size='small'
+            type='tertiary'
+            theme='outline'
+            onClick={onRefresh}
+          >
+            {tt('刷新')}
+          </Button>
         </div>
-        <Descriptions>
-          <Descriptions.Item itemKey={tt('邮箱')}>
-            {getText(data?.email)}
-          </Descriptions.Item>
-          <Descriptions.Item itemKey={tt('组织')}>
-            {getText(data?.orgName)}
-          </Descriptions.Item>
-          <Descriptions.Item itemKey='Org ID'>
-            <Text code copyable>
-              {getText(data?.orgId)}
-            </Text>
-          </Descriptions.Item>
-          <Descriptions.Item itemKey={tt('认证方式')}>
-            {getText(data?.authMethod)}
-          </Descriptions.Item>
-          <Descriptions.Item itemKey={tt('供应商')}>
-            {getText(data?.apiProvider)}
-          </Descriptions.Item>
-          <Descriptions.Item itemKey={tt('过期时间')}>
-            {getText(data?.expiresAt)}
-          </Descriptions.Item>
-          <Descriptions.Item itemKey={tt('上次刷新')}>
-            {getText(data?.lastRefresh)}
-          </Descriptions.Item>
-          <Descriptions.Item itemKey={tt('速率层级')}>
-            {getText(data?.rateLimitTier)}
-          </Descriptions.Item>
-        </Descriptions>
+
+        <div className='mt-2 rounded-lg bg-semi-color-fill-0 px-3 py-2'>
+          <Descriptions>
+            <Descriptions.Item itemKey={tt('邮箱')}>
+              <AccountInfoValue
+                t={tt}
+                value={data?.email}
+                onCopy={handleCopy}
+              />
+            </Descriptions.Item>
+            <Descriptions.Item itemKey={tt('组织')}>
+              <AccountInfoValue
+                t={tt}
+                value={data?.orgName}
+                onCopy={handleCopy}
+              />
+            </Descriptions.Item>
+            <Descriptions.Item itemKey='Org ID'>
+              <AccountInfoValue
+                t={tt}
+                value={data?.orgId}
+                onCopy={handleCopy}
+                monospace
+              />
+            </Descriptions.Item>
+            <Descriptions.Item itemKey={tt('认证方式')}>
+              <AccountInfoValue
+                t={tt}
+                value={data?.authMethod}
+                onCopy={handleCopy}
+              />
+            </Descriptions.Item>
+            <Descriptions.Item itemKey={tt('订阅类型')}>
+              <AccountInfoValue
+                t={tt}
+                value={data?.subscriptionType}
+                onCopy={handleCopy}
+              />
+            </Descriptions.Item>
+            <Descriptions.Item itemKey={tt('过期时间')}>
+              <AccountInfoValue
+                t={tt}
+                value={data?.expiresAt}
+                onCopy={handleCopy}
+              />
+            </Descriptions.Item>
+            <Descriptions.Item itemKey={tt('上次刷新')}>
+              <AccountInfoValue
+                t={tt}
+                value={data?.lastRefresh}
+                onCopy={handleCopy}
+              />
+            </Descriptions.Item>
+            <Descriptions.Item itemKey={tt('速率层级')}>
+              <AccountInfoValue
+                t={tt}
+                value={data?.rateLimitTier}
+                onCopy={handleCopy}
+              />
+            </Descriptions.Item>
+          </Descriptions>
+        </div>
+
+        <div className='mt-2 text-xs text-semi-color-text-2'>
+          {tt('渠道：')}
+          {record?.name || '-'} ({tt('编号：')}
+          {record?.id || '-'})
+        </div>
       </div>
 
-      <div className='rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800'>
+      <div className='rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800'>
         {data?.usageMessage ||
           tt('Claude OAuth 可以显示授权状态，但协议未暴露订阅额度用量窗口。')}
       </div>
 
-      <div className='flex justify-end'>
-        <Button size='small' type='primary' theme='outline' onClick={onRefresh}>
-          {tt('刷新')}
-        </Button>
-      </div>
+      <Collapse
+        activeKey={showRawJson ? ['raw-json'] : []}
+        onChange={(activeKey) => {
+          const keys = Array.isArray(activeKey) ? activeKey : [activeKey];
+          setShowRawJson(keys.includes('raw-json'));
+        }}
+      >
+        <Collapse.Panel header={tt('原始 JSON')} itemKey='raw-json'>
+          <div className='mb-2 flex justify-end'>
+            <Button
+              size='small'
+              type='primary'
+              theme='outline'
+              onClick={() => handleCopy(rawText)}
+              disabled={!rawText}
+            >
+              {tt('复制')}
+            </Button>
+          </div>
+          <pre className='max-h-[50vh] overflow-y-auto rounded-lg bg-semi-color-fill-0 p-3 text-xs text-semi-color-text-0'>
+            {rawText}
+          </pre>
+        </Collapse.Panel>
+      </Collapse>
     </div>
   );
 };

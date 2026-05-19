@@ -295,12 +295,37 @@ export async function startClaudeOAuth(): Promise<ClaudeOAuthStartResponse> {
   return res.data
 }
 
+export async function startClaudeOAuthForChannel(
+  channelId: number
+): Promise<ClaudeOAuthStartResponse> {
+  const config: ExtendedApiConfig = { skipBusinessError: true }
+  const res = await api.post(
+    `/api/channel/${channelId}/claude/oauth/start`,
+    {},
+    config
+  )
+  return res.data
+}
+
 export async function completeClaudeOAuth(
   input: string
 ): Promise<ClaudeOAuthCompleteResponse> {
   const config: ExtendedApiConfig = { skipBusinessError: true }
   const res = await api.post(
     '/api/channel/claude/oauth/complete',
+    { input },
+    config
+  )
+  return res.data
+}
+
+export async function completeClaudeOAuthForChannel(
+  channelId: number,
+  input: string
+): Promise<ClaudeOAuthCompleteResponse> {
+  const config: ExtendedApiConfig = { skipBusinessError: true }
+  const res = await api.post(
+    `/api/channel/${channelId}/claude/oauth/complete`,
     { input },
     config
   )

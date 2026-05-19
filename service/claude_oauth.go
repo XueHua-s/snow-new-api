@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -178,12 +179,12 @@ func RefreshClaudeOAuthTokenWithProxy(ctx context.Context, refreshToken string, 
 	return refreshClaudeOAuthToken(ctx, client, claudeOAuthTokenURL, refreshToken, scopes)
 }
 
-func ExchangeClaudeOAuthAuthorizationCodeWithProxy(ctx context.Context, code string, verifier string, proxyURL string) (*ClaudeOAuthTokenResult, error) {
+func ExchangeClaudeOAuthAuthorizationCodeWithProxy(ctx context.Context, code string, state string, verifier string, proxyURL string) (*ClaudeOAuthTokenResult, error) {
 	client, err := getCodexOAuthHTTPClient(proxyURL)
 	if err != nil {
 		return nil, err
 	}
-	return exchangeClaudeOAuthAuthorizationCode(ctx, client, claudeOAuthTokenURL, code, verifier, claudeOAuthRedirectURI)
+	return exchangeClaudeOAuthAuthorizationCode(ctx, client, claudeOAuthTokenURL, code, state, verifier, claudeOAuthRedirectURI)
 }
 
 func refreshClaudeOAuthToken(ctx context.Context, client *http.Client, tokenURL string, refreshToken string, scopes []string) (*ClaudeOAuthTokenResult, error) {
@@ -215,17 +216,22 @@ func refreshClaudeOAuthToken(ctx context.Context, client *http.Client, tokenURL 
 	}
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("claude oauth refresh failed: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
 	var payload struct {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 		ExpiresIn    int    `json:"expires_in"`
 		Scope        string `json:"scope"`
 	}
-	if err := common.DecodeJson(resp.Body, &payload); err != nil {
+	if err := common.Unmarshal(body, &payload); err != nil {
 		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("claude oauth refresh failed: status=%d", resp.StatusCode)
 	}
 
 	accessToken := strings.TrimSpace(payload.AccessToken)
@@ -255,10 +261,12 @@ func exchangeClaudeOAuthAuthorizationCode(
 	client *http.Client,
 	tokenURL string,
 	code string,
+	state string,
 	verifier string,
 	redirectURI string,
 ) (*ClaudeOAuthTokenResult, error) {
 	c := strings.TrimSpace(code)
+	s := strings.TrimSpace(state)
 	v := strings.TrimSpace(verifier)
 	if c == "" {
 		return nil, errors.New("empty authorization code")
@@ -273,6 +281,9 @@ func exchangeClaudeOAuthAuthorizationCode(
 	form.Set("code", c)
 	form.Set("code_verifier", v)
 	form.Set("redirect_uri", redirectURI)
+	if s != "" {
+		form.Set("state", s)
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -287,17 +298,22 @@ func exchangeClaudeOAuthAuthorizationCode(
 	}
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("claude oauth code exchange failed: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
 	var payload struct {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 		ExpiresIn    int    `json:"expires_in"`
 		Scope        string `json:"scope"`
 	}
-	if err := common.DecodeJson(resp.Body, &payload); err != nil {
+	if err := common.Unmarshal(body, &payload); err != nil {
 		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("claude oauth code exchange failed: status=%d", resp.StatusCode)
 	}
 	if strings.TrimSpace(payload.AccessToken) == "" || strings.TrimSpace(payload.RefreshToken) == "" || payload.ExpiresIn <= 0 {
 		return nil, errors.New("claude oauth token response missing fields")

@@ -56,7 +56,8 @@ func CompleteCodexOAuthForChannel(c *gin.Context) {
 	completeOAuthFlow(c, channelID, codexOAuthFlow)
 }
 
-func buildCodexOAuthKey(ctx context.Context, code string, verifier string, proxy string) (*oauthCredentialPayload, error) {
+func buildCodexOAuthKey(ctx context.Context, code string, state string, verifier string, proxy string) (*oauthCredentialPayload, error) {
+	_ = state
 	tokenRes, err := service.ExchangeCodexAuthorizationCodeWithProxy(ctx, code, verifier, proxy)
 	if err != nil {
 		return nil, err

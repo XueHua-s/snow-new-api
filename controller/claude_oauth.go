@@ -53,8 +53,8 @@ func CompleteClaudeOAuthForChannel(c *gin.Context) {
 	completeOAuthFlow(c, channelID, claudeOAuthFlow)
 }
 
-func buildClaudeOAuthKey(ctx context.Context, code string, verifier string, proxy string) (*oauthCredentialPayload, error) {
-	tokenRes, err := service.ExchangeClaudeOAuthAuthorizationCodeWithProxy(ctx, code, verifier, proxy)
+func buildClaudeOAuthKey(ctx context.Context, code string, state string, verifier string, proxy string) (*oauthCredentialPayload, error) {
+	tokenRes, err := service.ExchangeClaudeOAuthAuthorizationCodeWithProxy(ctx, code, state, verifier, proxy)
 	if err != nil {
 		return nil, err
 	}

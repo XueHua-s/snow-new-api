@@ -80,7 +80,7 @@ export const CHANNEL_TYPE_CONFIGS: Record<number, ChannelTypeConfig> = {
     defaultBaseUrl: 'https://api.anthropic.com',
     hints: {
       key: 'Format: sk-ant-...',
-      models: 'claude-3-opus,claude-3-sonnet,claude-3-haiku',
+      models: 'claude-haiku-4-5,claude-sonnet-4-5,claude-opus-4-5',
     },
   },
   58: {
@@ -90,7 +90,7 @@ export const CHANNEL_TYPE_CONFIGS: Record<number, ChannelTypeConfig> = {
     defaultBaseUrl: 'https://api.anthropic.com',
     hints: {
       key: 'OAuth JSON credential',
-      models: 'claude-haiku-4-5,claude-sonnet-4-5,claude-opus-4-7',
+      models: 'claude-haiku-4-5,claude-sonnet-4-5,claude-opus-4-5',
     },
   },
   24: {
