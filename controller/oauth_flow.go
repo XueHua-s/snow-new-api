@@ -2,6 +2,9 @@ package controller
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,7 +22,8 @@ import (
 )
 
 type oauthCompleteRequest struct {
-	Input string `json:"input"`
+	Input     string `json:"input"`
+	FlowToken string `json:"flow_token"`
 }
 
 type oauthStartFlow struct {
@@ -32,6 +36,16 @@ type oauthCredentialPayload struct {
 	EncodedKey string
 	Data       gin.H
 }
+
+type oauthFlowTokenPayload struct {
+	SessionPrefix string `json:"session_prefix"`
+	ChannelID     int    `json:"channel_id"`
+	State         string `json:"state"`
+	Verifier      string `json:"verifier"`
+	CreatedAt     int64  `json:"created_at"`
+}
+
+var oauthFlowTokenTTL = time.Hour
 
 // oauthFlowConfig keeps provider knowledge at the edge of the generic OAuth
 // flow. The shared controller owns state validation, session cleanup, channel
@@ -58,16 +72,24 @@ func startOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 	}
 
 	session := sessions.Default(c)
+	createdAt := time.Now().Unix()
 	session.Set(oauthSessionKey(cfg, channelID, "state"), flow.State)
 	session.Set(oauthSessionKey(cfg, channelID, "verifier"), flow.Verifier)
-	session.Set(oauthSessionKey(cfg, channelID, "created_at"), time.Now().Unix())
+	session.Set(oauthSessionKey(cfg, channelID, "created_at"), createdAt)
 	_ = session.Save()
+
+	flowToken, err := createOAuthFlowToken(cfg, channelID, flow.State, flow.Verifier, createdAt)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
 		"data": gin.H{
 			"authorize_url": flow.AuthorizeURL,
+			"flow_token":    flowToken,
 		},
 	})
 }
@@ -106,6 +128,12 @@ func completeOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 	session := sessions.Default(c)
 	expectedState, _ := session.Get(oauthSessionKey(cfg, channelID, "state")).(string)
 	verifier, _ := session.Get(oauthSessionKey(cfg, channelID, "verifier")).(string)
+	if flowToken, tokenErr := parseOAuthFlowToken(req.FlowToken, cfg, channelID); tokenErr == nil && flowToken.State == state {
+		expectedState = flowToken.State
+		verifier = flowToken.Verifier
+	} else if strings.TrimSpace(req.FlowToken) != "" && tokenErr != nil {
+		common.SysError("failed to parse " + cfg.logName + " oauth flow token: " + tokenErr.Error())
+	}
 	if strings.TrimSpace(expectedState) == "" || strings.TrimSpace(verifier) == "" {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "oauth flow not started or session expired"})
 		return
@@ -243,4 +271,62 @@ func parseOAuthStateFragment(fragment string) string {
 
 func oauthSessionKey(cfg oauthFlowConfig, channelID int, field string) string {
 	return fmt.Sprintf("%s_oauth_%s_%d", cfg.sessionPrefix, field, channelID)
+}
+
+func createOAuthFlowToken(cfg oauthFlowConfig, channelID int, state string, verifier string, createdAt int64) (string, error) {
+	payload := oauthFlowTokenPayload{
+		SessionPrefix: cfg.sessionPrefix,
+		ChannelID:     channelID,
+		State:         strings.TrimSpace(state),
+		Verifier:      strings.TrimSpace(verifier),
+		CreatedAt:     createdAt,
+	}
+	if payload.State == "" || payload.Verifier == "" {
+		return "", errors.New("oauth flow token missing state or verifier")
+	}
+	payloadBytes, err := common.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	encodedPayload := base64.RawURLEncoding.EncodeToString(payloadBytes)
+	return encodedPayload + "." + signOAuthFlowToken(encodedPayload), nil
+}
+
+func parseOAuthFlowToken(raw string, cfg oauthFlowConfig, channelID int) (*oauthFlowTokenPayload, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, errors.New("empty flow token")
+	}
+	encodedPayload, encodedSig, ok := strings.Cut(raw, ".")
+	if !ok || encodedPayload == "" || encodedSig == "" {
+		return nil, errors.New("invalid flow token format")
+	}
+	expectedSig := signOAuthFlowToken(encodedPayload)
+	if !hmac.Equal([]byte(encodedSig), []byte(expectedSig)) {
+		return nil, errors.New("invalid flow token signature")
+	}
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(encodedPayload)
+	if err != nil {
+		return nil, err
+	}
+	var payload oauthFlowTokenPayload
+	if err := common.Unmarshal(payloadBytes, &payload); err != nil {
+		return nil, err
+	}
+	if payload.SessionPrefix != cfg.sessionPrefix || payload.ChannelID != channelID {
+		return nil, errors.New("flow token does not match oauth provider or channel")
+	}
+	if strings.TrimSpace(payload.State) == "" || strings.TrimSpace(payload.Verifier) == "" {
+		return nil, errors.New("flow token missing state or verifier")
+	}
+	if payload.CreatedAt <= 0 || time.Since(time.Unix(payload.CreatedAt, 0)) > oauthFlowTokenTTL {
+		return nil, errors.New("flow token expired")
+	}
+	return &payload, nil
+}
+
+func signOAuthFlowToken(encodedPayload string) string {
+	mac := hmac.New(sha256.New, []byte(common.SessionSecret))
+	_, _ = mac.Write([]byte(encodedPayload))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }

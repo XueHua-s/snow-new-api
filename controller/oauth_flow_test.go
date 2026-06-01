@@ -1,6 +1,11 @@
 package controller
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/QuantumNous/new-api/common"
+)
 
 func TestParseOAuthAuthorizationInput(t *testing.T) {
 	tests := []struct {
@@ -57,5 +62,45 @@ func TestParseOAuthAuthorizationInput(t *testing.T) {
 				t.Fatalf("parseOAuthAuthorizationInput() = (%q, %q), want (%q, %q)", code, state, tt.wantCode, tt.wantState)
 			}
 		})
+	}
+}
+
+func TestOAuthFlowTokenRoundTrip(t *testing.T) {
+	oldSecret := common.SessionSecret
+	common.SessionSecret = "oauth-flow-token-test-secret"
+	defer func() {
+		common.SessionSecret = oldSecret
+	}()
+
+	cfg := oauthFlowConfig{sessionPrefix: "claude"}
+	token, err := createOAuthFlowToken(cfg, 5, "state-123", "verifier-456", time.Now().Unix())
+	if err != nil {
+		t.Fatalf("createOAuthFlowToken returned error: %v", err)
+	}
+
+	payload, err := parseOAuthFlowToken(token, cfg, 5)
+	if err != nil {
+		t.Fatalf("parseOAuthFlowToken returned error: %v", err)
+	}
+	if payload.State != "state-123" || payload.Verifier != "verifier-456" || payload.ChannelID != 5 {
+		t.Fatalf("payload = %#v", payload)
+	}
+}
+
+func TestOAuthFlowTokenRejectsWrongChannel(t *testing.T) {
+	oldSecret := common.SessionSecret
+	common.SessionSecret = "oauth-flow-token-test-secret"
+	defer func() {
+		common.SessionSecret = oldSecret
+	}()
+
+	cfg := oauthFlowConfig{sessionPrefix: "claude"}
+	token, err := createOAuthFlowToken(cfg, 5, "state-123", "verifier-456", time.Now().Unix())
+	if err != nil {
+		t.Fatalf("createOAuthFlowToken returned error: %v", err)
+	}
+
+	if _, err := parseOAuthFlowToken(token, cfg, 6); err == nil {
+		t.Fatal("expected wrong channel to be rejected")
 	}
 }

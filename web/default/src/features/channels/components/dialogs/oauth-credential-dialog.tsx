@@ -39,6 +39,7 @@ type OAuthStartResponse = {
   message?: string
   data?: {
     authorize_url?: string
+    flow_token?: string
   }
 }
 
@@ -61,7 +62,10 @@ type OAuthCredentialDialogProps = {
   inputPlaceholder: string
   tip: string
   startOAuth: () => Promise<OAuthStartResponse>
-  completeOAuth: (input: string) => Promise<OAuthCompleteResponse>
+  completeOAuth: (
+    input: string,
+    flowToken?: string
+  ) => Promise<OAuthCompleteResponse>
   completeButtonLabel?: string
   completingLabel?: string
   successMessage?: string
@@ -90,6 +94,7 @@ export function OAuthCredentialDialog({
 
   const [state, setState] = useState({
     authorizeUrl: '',
+    flowToken: '',
     callbackUrl: '',
     isStarting: false,
     isCompleting: false,
@@ -99,6 +104,7 @@ export function OAuthCredentialDialog({
     if (!open) {
       setState({
         authorizeUrl: '',
+        flowToken: '',
         callbackUrl: '',
         isStarting: false,
         isCompleting: false,
@@ -125,7 +131,11 @@ export function OAuthCredentialDialog({
         throw new Error('Missing authorize_url in response')
       }
 
-      setState((prev) => ({ ...prev, authorizeUrl: url }))
+      setState((prev) => ({
+        ...prev,
+        authorizeUrl: url,
+        flowToken: res.data?.flow_token || '',
+      }))
       try {
         window.open(url, '_blank', 'noopener,noreferrer')
         toast.success(t('Opened authorization page'))
@@ -147,7 +157,10 @@ export function OAuthCredentialDialog({
     if (!state.callbackUrl.trim()) return
     setState((prev) => ({ ...prev, isCompleting: true }))
     try {
-      const res = await completeOAuth(state.callbackUrl.trim())
+      const res = await completeOAuth(
+        state.callbackUrl.trim(),
+        state.flowToken || undefined
+      )
       if (!res.success) {
         throw new Error(res.message || 'OAuth failed')
       }

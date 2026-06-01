@@ -48,6 +48,7 @@ const OAuthCredentialModal = ({
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [authorizeUrl, setAuthorizeUrl] = useState('');
+  const [flowToken, setFlowToken] = useState('');
   const [input, setInput] = useState('');
 
   const startOAuth = async () => {
@@ -55,13 +56,14 @@ const OAuthCredentialModal = ({
     try {
       const res = await API.post(startPath, {}, { skipErrorHandler: true });
       if (!res?.data?.success) {
-        throw new Error(t('启动授权失败'));
+        throw new Error(res?.data?.message || t('启动授权失败'));
       }
       const url = res?.data?.data?.authorize_url || '';
       if (!url) {
         throw new Error(t('响应缺少授权链接'));
       }
       setAuthorizeUrl(url);
+      setFlowToken(res?.data?.data?.flow_token || '');
       window.open(url, '_blank', 'noopener,noreferrer');
       showSuccess(t('已打开授权页面'));
     } catch (error) {
@@ -81,11 +83,11 @@ const OAuthCredentialModal = ({
     try {
       const res = await API.post(
         completePath,
-        { input },
+        { input, flow_token: flowToken || undefined },
         { skipErrorHandler: true },
       );
       if (!res?.data?.success) {
-        throw new Error(t('授权失败'));
+        throw new Error(res?.data?.message || t('授权失败'));
       }
 
       const key = res?.data?.data?.key || '';
@@ -106,6 +108,7 @@ const OAuthCredentialModal = ({
   useEffect(() => {
     if (!visible) return;
     setAuthorizeUrl('');
+    setFlowToken('');
     setInput('');
   }, [visible]);
 

@@ -278,12 +278,13 @@ export async function startCodexOAuth(): Promise<CodexOAuthStartResponse> {
 }
 
 export async function completeCodexOAuth(
-  input: string
+  input: string,
+  flowToken?: string
 ): Promise<CodexOAuthCompleteResponse> {
   const config: ExtendedApiConfig = { skipBusinessError: true }
   const res = await api.post(
     '/api/channel/codex/oauth/complete',
-    { input },
+    { input, flow_token: flowToken },
     config
   )
   return res.data
@@ -308,12 +309,13 @@ export async function startClaudeOAuthForChannel(
 }
 
 export async function completeClaudeOAuth(
-  input: string
+  input: string,
+  flowToken?: string
 ): Promise<ClaudeOAuthCompleteResponse> {
   const config: ExtendedApiConfig = { skipBusinessError: true }
   const res = await api.post(
     '/api/channel/claude/oauth/complete',
-    { input },
+    { input, flow_token: flowToken },
     config
   )
   return res.data
@@ -321,12 +323,13 @@ export async function completeClaudeOAuth(
 
 export async function completeClaudeOAuthForChannel(
   channelId: number,
-  input: string
+  input: string,
+  flowToken?: string
 ): Promise<ClaudeOAuthCompleteResponse> {
   const config: ExtendedApiConfig = { skipBusinessError: true }
   const res = await api.post(
     `/api/channel/${channelId}/claude/oauth/complete`,
-    { input },
+    { input, flow_token: flowToken },
     config
   )
   return res.data

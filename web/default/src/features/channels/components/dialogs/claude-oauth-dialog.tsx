@@ -55,10 +55,10 @@ export function ClaudeOAuthDialog({
           ? startClaudeOAuthForChannel(channelId!)
           : startClaudeOAuth()
       }
-      completeOAuth={(input) =>
+      completeOAuth={(input, flowToken) =>
         saveToChannel
-          ? completeClaudeOAuthForChannel(channelId!, input)
-          : completeClaudeOAuth(input)
+          ? completeClaudeOAuthForChannel(channelId!, input, flowToken)
+          : completeClaudeOAuth(input, flowToken)
       }
       completeButtonLabel={
         saveToChannel ? 'Authorize and save' : 'Generate credential'
