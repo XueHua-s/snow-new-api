@@ -23,6 +23,7 @@ const (
 	claudeOAuthClientID     = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 	claudeOAuthAuthorizeURL = "https://claude.ai/oauth/authorize"
 	claudeOAuthTokenURL     = "https://console.anthropic.com/v1/oauth/token"
+	claudeOAuthPlatformURL  = "https://platform.claude.com/v1/oauth/token"
 	claudeOAuthRedirectURI  = "https://console.anthropic.com/oauth/code/callback"
 	claudeOAuthScope        = "org:create_api_key user:profile user:inference"
 )
@@ -176,7 +177,11 @@ func RefreshClaudeOAuthTokenWithProxy(ctx context.Context, refreshToken string, 
 	if err != nil {
 		return nil, err
 	}
-	return refreshClaudeOAuthToken(ctx, client, claudeOAuthTokenURL, refreshToken, scopes)
+	res, err := refreshClaudeOAuthToken(ctx, client, claudeOAuthPlatformURL, refreshToken, scopes, true)
+	if err == nil {
+		return res, nil
+	}
+	return refreshClaudeOAuthToken(ctx, client, claudeOAuthTokenURL, refreshToken, scopes, false)
 }
 
 func ExchangeClaudeOAuthAuthorizationCodeWithProxy(ctx context.Context, code string, state string, verifier string, proxyURL string) (*ClaudeOAuthTokenResult, error) {
@@ -184,10 +189,14 @@ func ExchangeClaudeOAuthAuthorizationCodeWithProxy(ctx context.Context, code str
 	if err != nil {
 		return nil, err
 	}
-	return exchangeClaudeOAuthAuthorizationCode(ctx, client, claudeOAuthTokenURL, code, state, verifier, claudeOAuthRedirectURI)
+	res, err := exchangeClaudeOAuthAuthorizationCode(ctx, client, claudeOAuthPlatformURL, code, state, verifier, claudeOAuthRedirectURI, true)
+	if err == nil {
+		return res, nil
+	}
+	return exchangeClaudeOAuthAuthorizationCode(ctx, client, claudeOAuthTokenURL, code, state, verifier, claudeOAuthRedirectURI, false)
 }
 
-func refreshClaudeOAuthToken(ctx context.Context, client *http.Client, tokenURL string, refreshToken string, scopes []string) (*ClaudeOAuthTokenResult, error) {
+func refreshClaudeOAuthToken(ctx context.Context, client *http.Client, tokenURL string, refreshToken string, scopes []string, jsonBody bool) (*ClaudeOAuthTokenResult, error) {
 	rt := strings.TrimSpace(refreshToken)
 	if rt == "" {
 		return nil, errors.New("empty refresh_token")
@@ -203,12 +212,28 @@ func refreshClaudeOAuthToken(ctx context.Context, client *http.Client, tokenURL 
 	form.Set("refresh_token", rt)
 	form.Set("client_id", claudeOAuthClientID)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+	requestBody := strings.NewReader(form.Encode())
+	contentType := "application/x-www-form-urlencoded"
+	if jsonBody {
+		payload, err := common.Marshal(map[string]any{
+			"grant_type":    "refresh_token",
+			"refresh_token": rt,
+			"client_id":     claudeOAuthClientID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		requestBody = strings.NewReader(string(payload))
+		contentType = "application/json"
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, requestBody)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", ClaudeOAuthUserAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -264,6 +289,7 @@ func exchangeClaudeOAuthAuthorizationCode(
 	state string,
 	verifier string,
 	redirectURI string,
+	jsonBody bool,
 ) (*ClaudeOAuthTokenResult, error) {
 	c := strings.TrimSpace(code)
 	s := strings.TrimSpace(state)
@@ -285,12 +311,34 @@ func exchangeClaudeOAuthAuthorizationCode(
 		form.Set("state", s)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+	requestBody := strings.NewReader(form.Encode())
+	contentType := "application/x-www-form-urlencoded"
+	if jsonBody {
+		payload := map[string]any{
+			"grant_type":    "authorization_code",
+			"client_id":     claudeOAuthClientID,
+			"code":          c,
+			"code_verifier": v,
+			"redirect_uri":  redirectURI,
+		}
+		if s != "" {
+			payload["state"] = s
+		}
+		encoded, err := common.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+		requestBody = strings.NewReader(string(encoded))
+		contentType = "application/json"
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, requestBody)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", ClaudeOAuthUserAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
