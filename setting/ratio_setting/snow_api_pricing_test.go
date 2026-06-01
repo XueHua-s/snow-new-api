@@ -49,6 +49,7 @@ func TestSnowAPIOpenModelPricing(t *testing.T) {
 		{model: "claude-opus-4-5-20251101", input: 0.355, output: 1.775, cacheRead: 0.035, cacheWrite: ptrFloat64(0.444)},
 		{model: "claude-opus-4-6", input: 2.5, output: 12.5, cacheRead: 0.25, cacheWrite: ptrFloat64(3.125)},
 		{model: "claude-opus-4-7", input: 2.5, output: 12.5, cacheRead: 0.25, cacheWrite: ptrFloat64(0)},
+		{model: "claude-opus-4-8", input: 2.5, output: 12.5, cacheRead: 0.25, cacheWrite: ptrFloat64(0)},
 	}
 
 	for _, tt := range tests {

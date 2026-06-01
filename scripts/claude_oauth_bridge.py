@@ -29,6 +29,7 @@ ALLOWED_MODELS = {
     "claude-opus-4-5-20251101",
     "claude-opus-4-6",
     "claude-opus-4-7",
+    "claude-opus-4-8",
 }
 
 
