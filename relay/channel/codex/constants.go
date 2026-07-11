@@ -7,11 +7,15 @@ import (
 
 var baseModelList = []string{
 	"gpt-5.3-codex",
+	"gpt-5.3-codex-spark",
 	"gpt-5.4",
 	"gpt-5.4-fast",
 	"gpt-5.4-mini",
 	"gpt-5.5",
 	"gpt-5.5-fast",
+	"gpt-5.6-sol",
+	"gpt-5.6-terra",
+	"gpt-5.6-luna",
 }
 
 var ModelList = withCompactModelSuffix(baseModelList)

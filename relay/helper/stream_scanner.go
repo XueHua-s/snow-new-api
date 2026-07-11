@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/bytedance/gopkg/util/gopool"
@@ -32,6 +33,24 @@ func getScannerBufferSize() int {
 		return constant.StreamScannerMaxBufferMB << 20
 	}
 	return DefaultMaxScannerBufferSize
+}
+
+func copyCodexSSEHeaders(c *gin.Context, resp *http.Response) {
+	if c == nil || c.Writer == nil || resp == nil {
+		return
+	}
+	// codex
+	for _, name := range []string{"X-Reasoning-Included", "X-Codex-Turn-State"} {
+		values := resp.Header.Values(name)
+		if !service.ShouldCopyUpstreamHeader(c, name, values) {
+			continue
+		}
+		for _, value := range values {
+			if value != "" {
+				c.Writer.Header().Add(name, value)
+			}
+		}
+	}
 }
 
 func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo, dataHandler func(data string, sr *StreamResult)) {
@@ -110,6 +129,7 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 
 	scanner.Buffer(make([]byte, InitialScannerBufferSize), getScannerBufferSize())
 	scanner.Split(bufio.ScanLines)
+	copyCodexSSEHeaders(c, resp)
 	SetEventStreamHeaders(c)
 
 	ctx, cancel := context.WithCancel(context.Background())
