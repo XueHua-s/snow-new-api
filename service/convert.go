@@ -468,6 +468,8 @@ func StreamResponseOpenAI2Claude(openAIResponse *dto.ChatCompletionsStreamRespon
 			oaiUsage := openAIResponse.Usage
 			if oaiUsage == nil {
 				oaiUsage = info.ClaudeConvertInfo.Usage
+			}
+			if oaiUsage == nil {
 				// Some upstreams emit finish_reason first, then send a final usage-only chunk.
 				// Defer closing until usage is available so the final message_delta carries it.
 				return claudeResponses
