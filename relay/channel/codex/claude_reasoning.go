@@ -57,9 +57,10 @@ func normalizeClaudeReasoningEffort(effort string) string {
 		return "xhigh"
 	case "max":
 		return "max"
-	case "ultracode":
-		// Claude Code's ultracode mode is sent to the API as xhigh effort.
-		return "xhigh"
+	case "ultra", "ultracode":
+		// The current Codex CLI exposes Ultra but normalizes it to Max on the
+		// wire before sending a Responses API request to the ChatGPT backend.
+		return "max"
 	default:
 		// auto/adaptive/default and unknown future values should preserve the
 		// OpenAI model default instead of causing an upstream validation error.

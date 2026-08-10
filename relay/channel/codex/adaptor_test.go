@@ -159,6 +159,18 @@ func TestConvertClaudeRequestMapsClaudeCodeThinkingToResponsesEffort(t *testing.
 			wantEffort:   "max",
 		},
 		{
+			name:         "codex ultra is normalized to wire max",
+			thinking:     &dto.Thinking{Type: "adaptive"},
+			outputConfig: `{"effort":"ultra"}`,
+			wantEffort:   "max",
+		},
+		{
+			name:         "claude ultracode is normalized to wire max",
+			thinking:     &dto.Thinking{Type: "adaptive"},
+			outputConfig: `{"effort":"ultracode"}`,
+			wantEffort:   "max",
+		},
+		{
 			name:         "effort works without thinking object",
 			outputConfig: `{"effort":"low"}`,
 			wantEffort:   "low",
@@ -302,9 +314,9 @@ func TestDoResponseAggregatesForcedResponsesStreamBackToClaudeJSON(t *testing.T)
 	ctx.Set(contextKeyCodexForcedUpstreamStream, true)
 
 	info := &relaycommon.RelayInfo{
-		IsStream:       true,
-		RelayMode:      relayconstant.RelayModeResponses,
-		RelayFormat:    types.RelayFormatClaude,
+		IsStream:        true,
+		RelayMode:       relayconstant.RelayModeResponses,
+		RelayFormat:     types.RelayFormatClaude,
 		OriginModelName: "claude-opus-5",
 		ChannelMeta: &relaycommon.ChannelMeta{
 			UpstreamModelName: "gpt-5.6-sol",
@@ -316,7 +328,10 @@ func TestDoResponseAggregatesForcedResponsesStreamBackToClaudeJSON(t *testing.T)
 		`data: {"type":"response.created","response":{"id":"resp_forced","object":"response","created_at":1779200000,"model":"gpt-5.6-sol"}}`,
 		``,
 		`event: response.output_item.done`,
-		`data: {"type":"response.output_item.done","output_index":0,"item":{"id":"msg_forced","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"OK"}]}}`,
+		`data: {"type":"response.output_item.done","output_index":0,"item":{"id":"reasoning_forced","type":"reasoning","status":"completed"}}`,
+		``,
+		`event: response.output_item.done`,
+		`data: {"type":"response.output_item.done","output_index":1,"item":{"id":"msg_forced","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"OK"}]}}`,
 		``,
 		`event: response.completed`,
 		`data: {"type":"response.completed","response":{"id":"resp_forced","object":"response","created_at":1779200000,"model":"gpt-5.6-sol","output":[],"usage":{"input_tokens":26,"output_tokens":2,"total_tokens":28}}}`,

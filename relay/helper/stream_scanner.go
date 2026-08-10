@@ -40,7 +40,14 @@ func copyCodexSSEHeaders(c *gin.Context, resp *http.Response) {
 		return
 	}
 	// codex
-	for _, name := range []string{"X-Reasoning-Included", "X-Codex-Turn-State"} {
+	for _, name := range []string{
+		"X-Reasoning-Included",
+		"X-Codex-Turn-State",
+		"OpenAI-Model",
+		"X-Models-Etag",
+		"X-Codex-Safety-Buffering-Enabled",
+		"X-Codex-Safety-Buffering-Faster-Model",
+	} {
 		values := resp.Header.Values(name)
 		if !service.ShouldCopyUpstreamHeader(c, name, values) {
 			continue

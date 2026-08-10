@@ -81,6 +81,29 @@ func TestStreamScannerHandler_NilInputs(t *testing.T) {
 	StreamScannerHandler(c, &http.Response{Body: io.NopCloser(strings.NewReader(""))}, info, nil)
 }
 
+func TestCopyCodexSSEHeadersPreservesCurrentProtocolMetadata(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	resp := &http.Response{Header: make(http.Header)}
+	resp.Header.Set("X-Reasoning-Included", "true")
+	resp.Header.Set("X-Codex-Turn-State", "turn-state")
+	resp.Header.Set("OpenAI-Model", "gpt-5.6-sol")
+	resp.Header.Set("X-Models-Etag", "models-etag")
+	resp.Header.Set("X-Codex-Safety-Buffering-Enabled", "true")
+	resp.Header.Set("X-Codex-Safety-Buffering-Faster-Model", "gpt-5.6-luna")
+
+	copyCodexSSEHeaders(c, resp)
+
+	require.Equal(t, "true", recorder.Header().Get("X-Reasoning-Included"))
+	require.Equal(t, "turn-state", recorder.Header().Get("X-Codex-Turn-State"))
+	require.Equal(t, "gpt-5.6-sol", recorder.Header().Get("OpenAI-Model"))
+	require.Equal(t, "models-etag", recorder.Header().Get("X-Models-Etag"))
+	require.Equal(t, "true", recorder.Header().Get("X-Codex-Safety-Buffering-Enabled"))
+	require.Equal(t, "gpt-5.6-luna", recorder.Header().Get("X-Codex-Safety-Buffering-Faster-Model"))
+}
+
 func TestStreamScannerHandler_EmptyBody(t *testing.T) {
 	t.Parallel()
 

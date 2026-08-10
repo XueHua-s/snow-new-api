@@ -3,9 +3,28 @@ package dto
 import (
 	"testing"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 )
+
+func TestResponsesStreamOptionsPreserveCodexReasoningSummaryDelivery(t *testing.T) {
+	t.Parallel()
+
+	var request OpenAIResponsesRequest
+	require.NoError(t, common.Unmarshal([]byte(`{
+		"model":"gpt-5.6-sol",
+		"stream":true,
+		"stream_options":{"reasoning_summary_delivery":"sequential_cutoff"}
+	}`), &request))
+
+	require.NotNil(t, request.StreamOptions)
+	require.Equal(t, "sequential_cutoff", request.StreamOptions.ReasoningSummaryDelivery)
+	encoded, err := common.Marshal(request)
+	require.NoError(t, err)
+	require.Equal(t, "sequential_cutoff", gjson.GetBytes(encoded, "stream_options.reasoning_summary_delivery").String())
+}
 
 func TestMediaContentFileSourceUsesFilenameMimeType(t *testing.T) {
 	t.Parallel()

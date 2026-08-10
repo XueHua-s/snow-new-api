@@ -246,7 +246,8 @@ type StreamOptions struct {
 	IncludeUsage bool `json:"include_usage,omitempty"`
 	// IncludeObfuscation is only for /v1/responses stream payload.
 	// This field is filtered by default and can be enabled via channel setting allow_include_obfuscation.
-	IncludeObfuscation bool `json:"include_obfuscation,omitempty"`
+	IncludeObfuscation       bool   `json:"include_obfuscation,omitempty"`
+	ReasoningSummaryDelivery string `json:"reasoning_summary_delivery,omitempty"`
 }
 
 func (r *GeneralOpenAIRequest) GetMaxTokens() uint {
