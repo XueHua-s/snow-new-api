@@ -1,6 +1,7 @@
 package codex
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -118,6 +119,114 @@ func TestConvertClaudeRequestConvertsMessagesToResponses(t *testing.T) {
 	require.Len(t, input, 1)
 	require.Equal(t, "user", input[0]["role"])
 	require.Equal(t, "hello from anthropic protocol", input[0]["content"])
+}
+
+func TestConvertClaudeRequestMapsClaudeCodeThinkingToResponsesEffort(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		thinking     *dto.Thinking
+		outputConfig string
+		wantEffort   string
+	}{
+		{
+			name:         "disabled overrides configured effort",
+			thinking:     &dto.Thinking{Type: "disabled"},
+			outputConfig: `{"effort":"high"}`,
+			wantEffort:   "none",
+		},
+		{
+			name:         "adaptive uses configured effort",
+			thinking:     &dto.Thinking{Type: "adaptive"},
+			outputConfig: `{"effort":"xhigh"}`,
+			wantEffort:   "xhigh",
+		},
+		{
+			name:         "adaptive auto preserves model default",
+			thinking:     &dto.Thinking{Type: "adaptive"},
+			outputConfig: `{"effort":"auto"}`,
+		},
+		{
+			name:       "smart composer default budget maps to medium",
+			thinking:   &dto.Thinking{Type: "enabled", BudgetTokens: common.GetPointer(8192)},
+			wantEffort: "medium",
+		},
+		{
+			name:         "configured effort takes precedence over budget",
+			thinking:     &dto.Thinking{Type: "enabled", BudgetTokens: common.GetPointer(8192)},
+			outputConfig: `{"effort":"max"}`,
+			wantEffort:   "max",
+		},
+		{
+			name:         "effort works without thinking object",
+			outputConfig: `{"effort":"low"}`,
+			wantEffort:   "low",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			info := &relaycommon.RelayInfo{
+				RelayFormat:     types.RelayFormatClaude,
+				OriginModelName: "gpt-5.6-sol",
+				ChannelMeta: &relaycommon.ChannelMeta{
+					UpstreamModelName: "gpt-5.6-sol",
+				},
+			}
+			request := &dto.ClaudeRequest{
+				Model:        "gpt-5.6-sol",
+				Messages:     []dto.ClaudeMessage{{Role: "user", Content: "hello"}},
+				Thinking:     tt.thinking,
+				OutputConfig: json.RawMessage(tt.outputConfig),
+			}
+
+			converted, err := (&Adaptor{}).ConvertClaudeRequest(nil, info, request)
+
+			require.NoError(t, err)
+			responsesReq, ok := converted.(dto.OpenAIResponsesRequest)
+			require.True(t, ok)
+			if tt.wantEffort == "" {
+				require.Nil(t, responsesReq.Reasoning)
+				require.Empty(t, info.ReasoningEffort)
+				return
+			}
+			require.NotNil(t, responsesReq.Reasoning)
+			require.Equal(t, tt.wantEffort, responsesReq.Reasoning.Effort)
+			require.Equal(t, tt.wantEffort, info.ReasoningEffort)
+		})
+	}
+}
+
+func TestClaudeThinkingBudgetToCodexEffort(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		budget int
+		want   string
+	}{
+		{budget: 0, want: "none"},
+		{budget: 1, want: "minimal"},
+		{budget: 1024, want: "minimal"},
+		{budget: 1025, want: "low"},
+		{budget: 4096, want: "low"},
+		{budget: 4097, want: "medium"},
+		{budget: 8192, want: "medium"},
+		{budget: 10240, want: "medium"},
+		{budget: 10241, want: "high"},
+		{budget: 20480, want: "high"},
+		{budget: 20481, want: "xhigh"},
+		{budget: 24576, want: "xhigh"},
+		{budget: 24577, want: "max"},
+		{budget: 31999, want: "max"},
+	}
+
+	for _, tt := range tests {
+		require.Equal(t, tt.want, claudeThinkingBudgetToCodexEffort(tt.budget))
+	}
 }
 
 func TestDoResponseConvertsResponsesBackToChatCompletions(t *testing.T) {
