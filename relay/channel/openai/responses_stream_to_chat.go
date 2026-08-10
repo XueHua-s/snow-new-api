@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -32,6 +33,8 @@ func OaiResponsesStreamToChatHandler(c *gin.Context, info *relaycommon.RelayInfo
 	scanner.Buffer(make([]byte, helper.InitialScannerBufferSize), helper.DefaultMaxScannerBufferSize)
 
 	var completed *dto.OpenAIResponsesResponse
+	outputItems := make(map[int]dto.ResponsesOutput)
+	nextOutputIndex := 0
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if !strings.HasPrefix(line, "data:") {
@@ -49,6 +52,17 @@ func OaiResponsesStreamToChatHandler(c *gin.Context, info *relaycommon.RelayInfo
 		}
 
 		switch event.Type {
+		case "response.output_item.done":
+			if event.Item != nil {
+				outputIndex := nextOutputIndex
+				if event.OutputIndex != nil {
+					outputIndex = *event.OutputIndex
+				}
+				outputItems[outputIndex] = *event.Item
+				if outputIndex >= nextOutputIndex {
+					nextOutputIndex = outputIndex + 1
+				}
+			}
 		case "response.completed":
 			if event.Response != nil {
 				completed = event.Response
@@ -67,6 +81,20 @@ func OaiResponsesStreamToChatHandler(c *gin.Context, info *relaycommon.RelayInfo
 	}
 	if completed == nil {
 		return nil, types.NewOpenAIError(fmt.Errorf("responses stream ended without response.completed"), types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
+	}
+	// The ChatGPT Codex backend currently omits output from the
+	// response.completed payload. Rebuild it from the complete output-item
+	// events while retaining the normal Responses API payload when present.
+	if len(completed.Output) == 0 && len(outputItems) > 0 {
+		indices := make([]int, 0, len(outputItems))
+		for index := range outputItems {
+			indices = append(indices, index)
+		}
+		sort.Ints(indices)
+		completed.Output = make([]dto.ResponsesOutput, 0, len(indices))
+		for _, index := range indices {
+			completed.Output = append(completed.Output, outputItems[index])
+		}
 	}
 
 	body, err := common.Marshal(completed)
