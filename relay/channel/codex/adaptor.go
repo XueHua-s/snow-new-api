@@ -22,6 +22,20 @@ import (
 type Adaptor struct {
 }
 
+const contextKeyCodexForcedUpstreamStream = "codex_forced_upstream_stream"
+
+func isCodexUpstreamStreamForced(c *gin.Context) bool {
+	if c == nil {
+		return false
+	}
+	forced, exists := c.Get(contextKeyCodexForcedUpstreamStream)
+	if !exists {
+		return false
+	}
+	value, _ := forced.(bool)
+	return value
+}
+
 func (a *Adaptor) ConvertGeminiRequest(c *gin.Context, info *relaycommon.RelayInfo, request *dto.GeminiChatRequest) (any, error) {
 	return nil, errors.New("codex channel: endpoint not supported")
 }
@@ -41,6 +55,15 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, info *relaycommon.RelayIn
 	if effort := claudeReasoningEffortForCodex(request); effort != "" {
 		aiRequest.ReasoningEffort = effort
 		info.ReasoningEffort = effort
+	}
+	if !info.IsStream {
+		// The ChatGPT Codex backend requires stream=true. Keep the downstream
+		// mode in RelayInfo and mark the request so DoResponse can aggregate the
+		// upstream SSE stream back into a non-streaming Claude response.
+		aiRequest.Stream = common.GetPointer(true)
+		if c != nil {
+			c.Set(contextKeyCodexForcedUpstreamStream, true)
+		}
 	}
 	if info.SupportStreamOptions && info.IsStream {
 		aiRequest.StreamOptions = &dto.StreamOptions{
@@ -155,6 +178,10 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	if info.RelayMode == relayconstant.RelayModeResponsesCompact {
 		return openai.OaiResponsesCompactionHandler(c, resp)
 	}
+	if isCodexUpstreamStreamForced(c) {
+		info.IsStream = false
+		return openai.OaiResponsesStreamToChatHandler(c, info, resp)
+	}
 
 	if info.RelayFormat == types.RelayFormatOpenAI ||
 		info.RelayFormat == types.RelayFormatClaude ||
@@ -230,7 +257,7 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	// Clients may omit it or include parameters like `application/json; charset=utf-8`,
 	// which can be rejected by the upstream. Force the exact media type.
 	req.Set("Content-Type", "application/json")
-	if info.IsStream {
+	if info.IsStream || isCodexUpstreamStreamForced(c) {
 		req.Set("Accept", "text/event-stream")
 	} else if req.Get("Accept") == "" {
 		req.Set("Accept", "application/json")

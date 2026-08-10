@@ -201,6 +201,37 @@ func TestConvertClaudeRequestMapsClaudeCodeThinkingToResponsesEffort(t *testing.
 	}
 }
 
+func TestConvertClaudeRequestForcesUpstreamStreamForNonStreamingClaude(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+
+	stream := false
+	info := &relaycommon.RelayInfo{
+		RelayFormat:     types.RelayFormatClaude,
+		OriginModelName: "gpt-5.6-sol",
+		ChannelMeta: &relaycommon.ChannelMeta{
+			UpstreamModelName: "gpt-5.6-sol",
+		},
+	}
+
+	converted, err := (&Adaptor{}).ConvertClaudeRequest(ctx, info, &dto.ClaudeRequest{
+		Model:  "gpt-5.6-sol",
+		Stream: &stream,
+		Messages: []dto.ClaudeMessage{
+			{Role: "user", Content: "hello"},
+		},
+	})
+
+	require.NoError(t, err)
+	responsesReq, ok := converted.(dto.OpenAIResponsesRequest)
+	require.True(t, ok)
+	require.NotNil(t, responsesReq.Stream)
+	require.True(t, *responsesReq.Stream)
+	require.False(t, info.IsStream)
+	require.True(t, isCodexUpstreamStreamForced(ctx))
+}
+
 func TestClaudeThinkingBudgetToCodexEffort(t *testing.T) {
 	t.Parallel()
 
@@ -262,6 +293,57 @@ func TestDoResponseConvertsResponsesBackToChatCompletions(t *testing.T) {
 	require.Len(t, chatResp.Choices, 1)
 	require.Equal(t, "assistant", chatResp.Choices[0].Message.Role)
 	require.Equal(t, "hello", chatResp.Choices[0].Message.StringContent())
+}
+
+func TestDoResponseAggregatesForcedResponsesStreamBackToClaudeJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set(contextKeyCodexForcedUpstreamStream, true)
+
+	info := &relaycommon.RelayInfo{
+		IsStream:       true,
+		RelayMode:      relayconstant.RelayModeResponses,
+		RelayFormat:    types.RelayFormatClaude,
+		OriginModelName: "claude-opus-5",
+		ChannelMeta: &relaycommon.ChannelMeta{
+			UpstreamModelName: "gpt-5.6-sol",
+		},
+	}
+
+	streamBody := strings.Join([]string{
+		`event: response.created`,
+		`data: {"type":"response.created","response":{"id":"resp_forced","object":"response","created_at":1779200000,"model":"gpt-5.6-sol"}}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","response":{"id":"resp_forced","object":"response","created_at":1779200000,"model":"gpt-5.6-sol","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"OK"}]}],"usage":{"input_tokens":26,"output_tokens":2,"total_tokens":28}}}`,
+		``,
+		`data: [DONE]`,
+		``,
+	}, "\n")
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Header: http.Header{
+			"Content-Type": []string{"text/event-stream"},
+		},
+		Body: io.NopCloser(strings.NewReader(streamBody)),
+	}
+
+	usage, handlerErr := (&Adaptor{}).DoResponse(ctx, resp, info)
+
+	require.Nil(t, handlerErr)
+	require.False(t, info.IsStream)
+	require.Equal(t, 26, usage.(*dto.Usage).PromptTokens)
+	require.Equal(t, 2, usage.(*dto.Usage).CompletionTokens)
+	require.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
+
+	var claudeResp dto.ClaudeResponse
+	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &claudeResp))
+	require.Equal(t, "message", claudeResp.Type)
+	require.Equal(t, "assistant", claudeResp.Role)
+	require.Equal(t, "gpt-5.6-sol", claudeResp.Model)
+	require.Len(t, claudeResp.Content, 1)
+	require.Equal(t, "OK", claudeResp.Content[0].GetText())
 }
 
 func TestGetRequestURLAllowsOpenCodeProtocols(t *testing.T) {
