@@ -55,10 +55,9 @@ import type { ApiKey } from '@/features/keys/types'
 import { useApiInfo } from '../../hooks/use-status-data'
 import { AnnouncementsPanel } from './announcements-panel'
 import { ApiInfoPanel } from './api-info-panel'
-import { FAQPanel } from './faq-panel'
 import { PerformanceHealthPanel } from './performance-health-panel'
+import { ServerStatusPanel } from './server-status-panel'
 import { SummaryCards } from './summary-cards'
-import { UptimePanel } from './uptime-panel'
 
 const SETUP_GUIDE_VISIBILITY_STORAGE_KEY =
   'dashboard_overview_setup_guide_expanded'
@@ -715,7 +714,7 @@ export function OverviewDashboard() {
 
       <SummaryCards />
 
-      <CardStaggerContainer className='grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]'>
+      <CardStaggerContainer className='grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]'>
         <div className='grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2'>
           {isAdmin && (
             <CardStaggerItem className='lg:col-span-2'>
@@ -728,12 +727,9 @@ export function OverviewDashboard() {
           <CardStaggerItem>
             <AnnouncementsPanel />
           </CardStaggerItem>
-          <CardStaggerItem>
-            <FAQPanel />
-          </CardStaggerItem>
         </div>
         <CardStaggerItem>
-          <UptimePanel />
+          <ServerStatusPanel />
         </CardStaggerItem>
       </CardStaggerContainer>
     </div>

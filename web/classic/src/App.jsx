@@ -55,6 +55,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const About = lazy(() => import('./pages/About'));
 const UserAgreement = lazy(() => import('./pages/UserAgreement'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const ChannelStatus = lazy(() => import('./pages/ChannelStatus'));
 
 function DynamicOAuth2Callback() {
   const { provider } = useParams();
@@ -137,6 +138,16 @@ function App() {
             <AdminRoute>
               <Channel />
             </AdminRoute>
+          }
+        />
+        <Route
+          path='/console/channel-status'
+          element={
+            <PrivateRoute>
+              <Suspense fallback={<Loading></Loading>}>
+                <ChannelStatus />
+              </Suspense>
+            </PrivateRoute>
           }
         />
         <Route

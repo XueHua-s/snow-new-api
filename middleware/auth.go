@@ -179,6 +179,61 @@ func AdminAuth() func(c *gin.Context) {
 	}
 }
 
+// webSocketSessionAuth validates a dashboard session without the New-Api-User
+// header, which the browser WebSocket API cannot set. WebSocket upgraders must
+// separately enforce their origin policy.
+func webSocketSessionAuth(minRole int) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		username, usernameOK := session.Get("username").(string)
+		role, roleOK := session.Get("role").(int)
+		id, idOK := session.Get("id").(int)
+		status, statusOK := session.Get("status").(int)
+
+		if !usernameOK || !roleOK || !idOK || !statusOK {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthNotLoggedIn),
+			})
+			c.Abort()
+			return
+		}
+		if status == common.UserStatusDisabled {
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthUserBanned),
+			})
+			c.Abort()
+			return
+		}
+		if role < minRole || !validUserInfo(username, role) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
+			})
+			c.Abort()
+			return
+		}
+
+		c.Header("Auth-Version", "864b7076dbcd0a3c01b5520316720ebf")
+		c.Set("username", username)
+		c.Set("role", role)
+		c.Set("id", id)
+		c.Set("group", session.Get("group"))
+		c.Set("user_group", session.Get("group"))
+		c.Set("use_access_token", false)
+		c.Next()
+	}
+}
+
+func WebSocketUserAuth() func(c *gin.Context) {
+	return webSocketSessionAuth(common.RoleCommonUser)
+}
+
+func WebSocketAdminAuth() func(c *gin.Context) {
+	return webSocketSessionAuth(common.RoleAdminUser)
+}
+
 func RootAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		authHelper(c, common.RoleRootUser)

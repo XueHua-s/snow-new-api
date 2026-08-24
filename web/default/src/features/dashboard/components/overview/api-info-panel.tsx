@@ -20,8 +20,6 @@ import { useState, useCallback } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Gauge, Route } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/stores/auth-store'
-import { ROLE } from '@/lib/roles'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useApiInfo } from '@/features/dashboard/hooks/use-status-data'
@@ -36,9 +34,6 @@ import { ApiInfoItemComponent } from './api-info-item'
 export function ApiInfoPanel() {
   const { t } = useTranslation()
   const { items: list, loading } = useApiInfo()
-  const canViewChannelPool = useAuthStore(
-    (state) => (state.auth.user?.role ?? 0) >= ROLE.ADMIN
-  )
   const [pingStatus, setPingStatus] = useState<PingStatusMap>({})
 
   const handleTest = useCallback(async (url: string) => {
@@ -61,17 +56,15 @@ export function ApiInfoPanel() {
       }
       description={t('Configured routes and latency checks')}
       headerActions={
-        canViewChannelPool ? (
-          <Button
-            variant='outline'
-            size='sm'
-            className='h-7 gap-1.5 px-2 text-xs'
-            render={<Link to='/channels' />}
-          >
-            <Gauge data-icon='inline-start' />
-            {t('号池使用程度')}
-          </Button>
-        ) : undefined
+        <Button
+          variant='outline'
+          size='sm'
+          className='h-7 gap-1.5 px-2 text-xs'
+          render={<Link to='/channel-status' />}
+        >
+          <Gauge data-icon='inline-start' />
+          {t('Channel request status')}
+        </Button>
       }
       loading={loading}
       empty={!list.length}
