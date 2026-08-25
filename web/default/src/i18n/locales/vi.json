@@ -4524,6 +4524,17 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Codex channel usage": "Mức sử dụng kênh Codex",
+    "Redacted": "Đã ẩn dữ liệu",
+    "OAuth channels only. Expand a channel to view base and additional usage windows.": "Chỉ hiển thị kênh OAuth. Mở rộng kênh để xem cửa sổ cơ bản và bổ sung.",
+    "Temporarily unavailable": "Tạm thời không khả dụng",
+    "Upstream status:": "Trạng thái thượng nguồn:",
+    "5 hours": "5 giờ",
+    "Updated at": "Cập nhật lúc",
+    "Unable to load Codex OAuth channel usage.": "Không thể tải mức sử dụng kênh Codex OAuth.",
+    "No Codex OAuth channels": "Không có kênh Codex OAuth",
+    "API key and quota-based channels are not shown here.": "Kênh API key và kênh dựa trên hạn mức không hiển thị ở đây.",
+    "OAuth usage for this channel is temporarily unavailable.": "Mức sử dụng OAuth của kênh này tạm thời không khả dụng."
   }
 }

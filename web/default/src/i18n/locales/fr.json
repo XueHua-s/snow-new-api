@@ -4524,6 +4524,17 @@
     "Zero retention": "Aucune rétention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Codex channel usage": "Utilisation des canaux Codex",
+    "Redacted": "Données masquées",
+    "OAuth channels only. Expand a channel to view base and additional usage windows.": "Canaux OAuth uniquement. Développez un canal pour voir les fenêtres de base et supplémentaires.",
+    "Temporarily unavailable": "Temporairement indisponible",
+    "Upstream status:": "Statut amont :",
+    "5 hours": "5 heures",
+    "Updated at": "Mis à jour à",
+    "Unable to load Codex OAuth channel usage.": "Impossible de charger l’utilisation des canaux OAuth Codex.",
+    "No Codex OAuth channels": "Aucun canal OAuth Codex",
+    "API key and quota-based channels are not shown here.": "Les canaux à clé API et à quota ne sont pas affichés ici.",
+    "OAuth usage for this channel is temporarily unavailable.": "L’utilisation OAuth de ce canal est temporairement indisponible."
   }
 }

@@ -22,6 +22,7 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.POST("/setup", controller.PostSetup)
 		apiRouter.GET("/status", controller.GetStatus)
 		apiRouter.GET("/channel-status/ws", middleware.WebSocketUserAuth(), controller.GetChannelStatusWebSocket)
+		apiRouter.GET("/channel-status/codex-usage", middleware.UserAuth(), controller.GetChannelStatusCodexUsage)
 		apiRouter.GET("/uptime/status", controller.GetUptimeKumaStatus)
 		apiRouter.GET("/models", middleware.UserAuth(), controller.DashboardListModels)
 		apiRouter.GET("/status/test", middleware.AdminAuth(), controller.TestStatus)

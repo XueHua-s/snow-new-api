@@ -3731,6 +3731,27 @@
     "累计上传": "Total envoyé",
     "渠道请求状态": "État des requêtes de canal",
     "无法连接渠道请求状态服务": "Impossible de se connecter au service d’état des requêtes de canal",
-    "当前可用模型": "Modèles disponibles"
+    "当前可用模型": "Modèles disponibles",
+    "5小时": "5 heures",
+    "Codex 渠道用量": "Utilisation des canaux Codex",
+    "上游状态码：": "Statut amont : ",
+    "仅展示 OAuth 渠道；展开查看基础额度与附加能力窗口": "Canaux OAuth uniquement. Développez un canal pour voir les fenêtres de base et supplémentaires.",
+    "受限": "Limité",
+    "基础额度": "Limites de base",
+    "已脱敏": "Données masquées",
+    "当前帐号的基础额度窗口": "Fenêtres de limite de base du compte actuel",
+    "待确认": "En attente",
+    "按模型或能力拆分的附加计费能力窗口": "Fenêtres supplémentaires réparties par modèle ou fonctionnalité",
+    "无法获取 Codex OAuth 渠道用量": "Impossible de charger l’utilisation des canaux OAuth Codex",
+    "普通 API Key 与额度类渠道不会显示在这里": "Les canaux à clé API et à quota ne sont pas affichés ici",
+    "暂不可用": "Temporairement indisponible",
+    "暂无 Codex OAuth 渠道": "Aucun canal OAuth Codex",
+    "更新于": "Mis à jour à",
+    "未识别": "Non identifié",
+    "窗口：": "Fenêtre : ",
+    "该渠道的 OAuth 用量暂时无法获取，请稍后刷新": "L’utilisation OAuth de ce canal est temporairement indisponible. Actualisez plus tard.",
+    "距离重置：": "Réinitialisation dans : ",
+    "重置时间：": "Heure de réinitialisation : ",
+    "附加额度": "Limites supplémentaires"
   }
 }

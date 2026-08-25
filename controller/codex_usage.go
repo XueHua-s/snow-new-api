@@ -42,69 +42,11 @@ func GetCodexChannelUsage(c *gin.Context) {
 		return
 	}
 
-	oauthKey, err := codex.ParseOAuthKey(strings.TrimSpace(ch.Key))
-	if err != nil {
-		common.SysError("failed to parse oauth key: " + err.Error())
-		c.JSON(http.StatusOK, gin.H{"success": false, "message": "解析凭证失败，请检查渠道配置"})
-		return
-	}
-	accessToken := strings.TrimSpace(oauthKey.AccessToken)
-	accountID := strings.TrimSpace(oauthKey.AccountID)
-	if accessToken == "" {
-		c.JSON(http.StatusOK, gin.H{"success": false, "message": "codex channel: access_token is required"})
-		return
-	}
-	if accountID == "" {
-		c.JSON(http.StatusOK, gin.H{"success": false, "message": "codex channel: account_id is required"})
-		return
-	}
-
-	client, err := service.NewProxyHttpClient(ch.GetSetting().Proxy)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
-	defer cancel()
-
-	statusCode, body, err := service.FetchCodexWhamUsage(ctx, client, ch.GetBaseURL(), accessToken, accountID)
+	statusCode, body, err := fetchCodexChannelUsage(c.Request.Context(), ch)
 	if err != nil {
 		common.SysError("failed to fetch codex usage: " + err.Error())
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "获取用量信息失败，请稍后重试"})
 		return
-	}
-
-	if (statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden) && strings.TrimSpace(oauthKey.RefreshToken) != "" {
-		refreshCtx, refreshCancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
-		defer refreshCancel()
-
-		res, refreshErr := service.RefreshCodexOAuthTokenWithProxy(refreshCtx, oauthKey.RefreshToken, ch.GetSetting().Proxy)
-		if refreshErr == nil {
-			oauthKey.AccessToken = res.AccessToken
-			oauthKey.RefreshToken = res.RefreshToken
-			oauthKey.LastRefresh = time.Now().Format(time.RFC3339)
-			oauthKey.Expired = res.ExpiresAt.Format(time.RFC3339)
-			if strings.TrimSpace(oauthKey.Type) == "" {
-				oauthKey.Type = "codex"
-			}
-
-			encoded, encErr := common.Marshal(oauthKey)
-			if encErr == nil {
-				_ = model.DB.Model(&model.Channel{}).Where("id = ?", ch.Id).Update("key", string(encoded)).Error
-				model.InitChannelCache()
-				service.ResetProxyClientCache()
-			}
-
-			ctx2, cancel2 := context.WithTimeout(c.Request.Context(), 15*time.Second)
-			defer cancel2()
-			statusCode, body, err = service.FetchCodexWhamUsage(ctx2, client, ch.GetBaseURL(), oauthKey.AccessToken, accountID)
-			if err != nil {
-				common.SysError("failed to fetch codex usage after refresh: " + err.Error())
-				c.JSON(http.StatusOK, gin.H{"success": false, "message": "获取用量信息失败，请稍后重试"})
-				return
-			}
-		}
 	}
 
 	var payload any
@@ -123,4 +65,80 @@ func GetCodexChannelUsage(c *gin.Context) {
 		resp["message"] = fmt.Sprintf("upstream status: %d", statusCode)
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+// fetchCodexChannelUsage owns the OAuth refresh-and-retry contract shared by
+// the channel detail dialog and the sanitized channel-status summary.
+func fetchCodexChannelUsage(ctx context.Context, ch *model.Channel) (int, []byte, error) {
+	oauthKey, err := codex.ParseOAuthKey(strings.TrimSpace(ch.Key))
+	if err != nil {
+		return 0, nil, fmt.Errorf("parse oauth key: %w", err)
+	}
+	accessToken := strings.TrimSpace(oauthKey.AccessToken)
+	accountID := strings.TrimSpace(oauthKey.AccountID)
+	if accessToken == "" {
+		return 0, nil, fmt.Errorf("codex channel: access_token is required")
+	}
+	if accountID == "" {
+		return 0, nil, fmt.Errorf("codex channel: account_id is required")
+	}
+
+	client, err := service.NewProxyHttpClient(ch.GetSetting().Proxy)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	fetchCtx, fetchCancel := context.WithTimeout(ctx, 15*time.Second)
+	statusCode, body, err := service.FetchCodexWhamUsage(
+		fetchCtx,
+		client,
+		ch.GetBaseURL(),
+		accessToken,
+		accountID,
+	)
+	fetchCancel()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	shouldRefresh := statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden
+	if !shouldRefresh || strings.TrimSpace(oauthKey.RefreshToken) == "" {
+		return statusCode, body, nil
+	}
+
+	refreshCtx, refreshCancel := context.WithTimeout(ctx, 10*time.Second)
+	res, refreshErr := service.RefreshCodexOAuthTokenWithProxy(
+		refreshCtx,
+		oauthKey.RefreshToken,
+		ch.GetSetting().Proxy,
+	)
+	refreshCancel()
+	if refreshErr != nil {
+		return statusCode, body, nil
+	}
+
+	oauthKey.AccessToken = res.AccessToken
+	oauthKey.RefreshToken = res.RefreshToken
+	oauthKey.LastRefresh = time.Now().Format(time.RFC3339)
+	oauthKey.Expired = res.ExpiresAt.Format(time.RFC3339)
+	if strings.TrimSpace(oauthKey.Type) == "" {
+		oauthKey.Type = "codex"
+	}
+
+	encoded, encodeErr := common.Marshal(oauthKey)
+	if encodeErr == nil {
+		_ = model.DB.Model(&model.Channel{}).Where("id = ?", ch.Id).Update("key", string(encoded)).Error
+		model.InitChannelCache()
+		service.ResetProxyClientCache()
+	}
+
+	retryCtx, retryCancel := context.WithTimeout(ctx, 15*time.Second)
+	defer retryCancel()
+	return service.FetchCodexWhamUsage(
+		retryCtx,
+		client,
+		ch.GetBaseURL(),
+		oauthKey.AccessToken,
+		accountID,
+	)
 }

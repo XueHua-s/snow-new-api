@@ -4524,6 +4524,17 @@
     "Zero retention": "零数据保留",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Codex channel usage": "Codex 渠道用量",
+    "Redacted": "已脱敏",
+    "OAuth channels only. Expand a channel to view base and additional usage windows.": "仅展示 OAuth 渠道；展开查看基础额度与附加能力窗口。",
+    "Temporarily unavailable": "暂不可用",
+    "Upstream status:": "上游状态码：",
+    "5 hours": "5小时",
+    "Updated at": "更新于",
+    "Unable to load Codex OAuth channel usage.": "无法获取 Codex OAuth 渠道用量。",
+    "No Codex OAuth channels": "暂无 Codex OAuth 渠道",
+    "API key and quota-based channels are not shown here.": "普通 API Key 与额度类渠道不会显示在这里。",
+    "OAuth usage for this channel is temporarily unavailable.": "该渠道的 OAuth 用量暂时无法获取。"
   }
 }

@@ -61,6 +61,35 @@ export type ChannelStatusConnection =
   | 'connecting'
   | 'reconnecting'
 
+export type CodexUsageWindow = {
+  used_percent: number
+  reset_at: number
+  reset_after_seconds: number
+  limit_window_seconds: number
+}
+
+export type CodexUsageGroup = {
+  name?: string
+  metered_feature?: string
+  five_hour_window?: CodexUsageWindow
+  weekly_window?: CodexUsageWindow
+}
+
+export type CodexChannelUsage = {
+  name: string
+  plan_type?: string
+  available?: boolean
+  upstream_status?: number
+  base_limit: CodexUsageGroup
+  additional_limits: CodexUsageGroup[]
+  error?: string
+}
+
+export type CodexChannelUsagePayload = {
+  channels: CodexChannelUsage[]
+  updated_at: number
+}
+
 export type ChannelStatusFamily = {
   family: string
   models: ChannelStatusModel[]

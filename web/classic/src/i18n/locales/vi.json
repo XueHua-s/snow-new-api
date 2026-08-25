@@ -4263,6 +4263,27 @@
     "累计上传": "Tổng tải lên",
     "渠道请求状态": "Trạng thái yêu cầu kênh",
     "无法连接渠道请求状态服务": "Không thể kết nối dịch vụ trạng thái yêu cầu kênh",
-    "当前可用模型": "Mô hình khả dụng"
+    "当前可用模型": "Mô hình khả dụng",
+    "5小时": "5 giờ",
+    "Codex 渠道用量": "Mức sử dụng kênh Codex",
+    "上游状态码：": "Trạng thái thượng nguồn: ",
+    "仅展示 OAuth 渠道；展开查看基础额度与附加能力窗口": "Chỉ hiển thị kênh OAuth. Mở rộng kênh để xem cửa sổ cơ bản và bổ sung.",
+    "受限": "Bị giới hạn",
+    "基础额度": "Giới hạn cơ bản",
+    "已脱敏": "Đã ẩn dữ liệu",
+    "当前帐号的基础额度窗口": "Cửa sổ giới hạn cơ bản của tài khoản hiện tại",
+    "待确认": "Đang chờ",
+    "按模型或能力拆分的附加计费能力窗口": "Cửa sổ bổ sung theo mô hình hoặc tính năng",
+    "无法获取 Codex OAuth 渠道用量": "Không thể tải mức sử dụng kênh Codex OAuth",
+    "普通 API Key 与额度类渠道不会显示在这里": "Kênh API key và kênh dựa trên hạn mức không hiển thị ở đây",
+    "暂不可用": "Tạm thời không khả dụng",
+    "暂无 Codex OAuth 渠道": "Không có kênh Codex OAuth",
+    "更新于": "Cập nhật lúc",
+    "未识别": "Không xác định",
+    "窗口：": "Cửa sổ: ",
+    "该渠道的 OAuth 用量暂时无法获取，请稍后刷新": "Mức sử dụng OAuth của kênh này tạm thời không khả dụng. Vui lòng làm mới sau.",
+    "距离重置：": "Đặt lại sau: ",
+    "重置时间：": "Thời gian đặt lại: ",
+    "附加额度": "Giới hạn bổ sung"
   }
 }

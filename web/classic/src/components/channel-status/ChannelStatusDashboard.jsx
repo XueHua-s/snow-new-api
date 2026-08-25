@@ -30,6 +30,7 @@ import {
 import { Activity, Clock3, Gauge, Radio, Timer, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useChannelStatusSocket } from '../../hooks/channel-status/useChannelStatusSocket';
+import CodexChannelUsageSection from './CodexChannelUsageSection';
 import {
   CHANNEL_STATUS_WINDOWS,
   formatTTFT,
@@ -292,6 +293,8 @@ const ChannelStatusDashboard = () => {
           accent='var(--semi-color-warning)'
         />
       </div>
+
+      <CodexChannelUsageSection />
 
       <div className='mb-3 mt-5 text-sm font-semibold text-semi-color-text-1'>
         {t('分组 / 模型状态')}

@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SectionPageLayout } from '@/components/layout'
+import { CodexChannelUsageSection } from './components/codex-channel-usage-section'
 import { ModelStatusCard } from './components/model-status-card'
 import { useChannelStatusSocket } from './hooks/use-channel-status-socket'
 import { CHANNEL_STATUS_WINDOWS, formatTTFT, groupModels } from './lib'
@@ -216,6 +217,8 @@ export function ChannelStatus() {
               accent='bg-amber-500/10 text-amber-600 dark:text-amber-300'
             />
           </div>
+
+          <CodexChannelUsageSection />
 
           <div className='text-muted-foreground pt-2 text-sm font-semibold'>
             {t('Group and model status')}

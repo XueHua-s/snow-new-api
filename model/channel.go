@@ -1051,6 +1051,18 @@ func GetChannelsByType(startIdx int, num int, idSort bool, channelType int) ([]*
 	return channels, err
 }
 
+// GetChannelsByTypeWithKey returns the complete credential-bearing channels
+// needed by server-side provider integrations. Callers must never serialize
+// the returned models directly.
+func GetChannelsByTypeWithKey(channelType int) ([]*Channel, error) {
+	var channels []*Channel
+	err := DB.Where("type = ?", channelType).
+		Order("priority desc").
+		Order("id asc").
+		Find(&channels).Error
+	return channels, err
+}
+
 // Count channels of specific type
 func CountChannelsByType(channelType int) (int64, error) {
 	var count int64
