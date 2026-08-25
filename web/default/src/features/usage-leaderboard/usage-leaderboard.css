@@ -100,21 +100,6 @@
   opacity: 0.45;
 }
 
-.usage-leaderboard-default .lb-default-aurora {
-  position: absolute;
-  inset: -70% -35%;
-  z-index: -1;
-  background: conic-gradient(
-    from 0deg,
-    transparent,
-    rgb(59 130 246 / 25%),
-    rgb(6 182 212 / 19%),
-    rgb(124 58 237 / 20%),
-    transparent 62%
-  );
-  animation: lb-default-aurora-spin 12s linear infinite;
-}
-
 .usage-leaderboard-default .lb-default-grid {
   position: absolute;
   inset: 0;
@@ -809,7 +794,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .usage-leaderboard-default .lb-default-aurora,
   .usage-leaderboard-default .lb-default-sweep,
   .usage-leaderboard-default .lb-default-flame,
   .usage-leaderboard-default .lb-default-particle,

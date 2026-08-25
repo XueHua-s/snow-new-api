@@ -89,7 +89,6 @@ function DeclarationCard(props: {
 
   return (
     <div className='lb-default-declaration relative isolate min-h-[126px] overflow-hidden rounded-2xl p-4'>
-      <div className='lb-default-aurora' aria-hidden />
       <div className='lb-default-grid' aria-hidden />
       <div className='lb-default-sweep' aria-hidden />
       <Flame

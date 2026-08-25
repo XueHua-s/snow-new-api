@@ -62,7 +62,6 @@ function DeclarationCard({ callout, period }) {
 
   return (
     <div className='lb-declaration relative isolate overflow-hidden rounded-2xl p-4'>
-      <div className='lb-declaration-aurora' aria-hidden='true' />
       <div className='lb-declaration-grid' aria-hidden='true' />
       <div className='lb-declaration-sweep' aria-hidden='true' />
       <Flame

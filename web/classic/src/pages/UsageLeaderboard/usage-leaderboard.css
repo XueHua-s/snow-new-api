@@ -635,21 +635,6 @@ html.dark .usage-leaderboard-page .lb-declaration {
     inset 0 0 30px rgb(124 58 237 / 12%);
 }
 
-.usage-leaderboard-page .lb-declaration-aurora {
-  position: absolute;
-  inset: -70% -35%;
-  z-index: -1;
-  background: conic-gradient(
-    from 0deg,
-    transparent,
-    rgb(59 130 246 / 25%),
-    rgb(6 182 212 / 19%),
-    rgb(124 58 237 / 20%),
-    transparent 62%
-  );
-  animation: lb-aurora-spin 12s linear infinite;
-}
-
 .usage-leaderboard-page .lb-declaration-grid {
   position: absolute;
   inset: 0;
@@ -1001,7 +986,6 @@ html.dark .usage-leaderboard-page .lb-declaration {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .usage-leaderboard-page .lb-declaration-aurora,
   .usage-leaderboard-page .lb-declaration-sweep,
   .usage-leaderboard-page .lb-declaration-flame,
   .usage-leaderboard-page .lb-particle,
