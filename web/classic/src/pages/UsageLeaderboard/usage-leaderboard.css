@@ -61,11 +61,18 @@
 }
 
 .usage-leaderboard-page .lb-tab-active {
-  background: linear-gradient(115deg, #3b82f6 0%, #2563eb 52%, #06b6d4 100%);
+  color: var(--semi-color-primary);
+  background: var(--semi-color-primary-light-default);
   box-shadow:
-    0 7px 18px rgb(37 99 235 / 25%),
-    inset 0 1px 0 rgb(255 255 255 / 34%);
+    inset 0 0 0 1px
+      color-mix(in srgb, var(--semi-color-primary) 18%, transparent),
+    0 5px 14px color-mix(in srgb, var(--semi-color-primary) 12%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 42%);
   transform: translateY(-1px);
+}
+
+.usage-leaderboard-page .lb-tab-active:hover {
+  background: var(--semi-color-primary-light-hover);
 }
 
 .usage-leaderboard-page .lb-stat-card,
