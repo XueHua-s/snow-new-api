@@ -26,16 +26,19 @@ export const useCodexChannelUsage = () => {
   const [error, setError] = useState('');
   const requestRef = useRef(0);
 
-  const refresh = useCallback(async () => {
+  const load = useCallback(async (forceRefresh = false) => {
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
     setLoading(true);
     setError('');
 
     try {
-      const response = await API.get('/api/channel-status/codex-usage', {
-        skipErrorHandler: true,
-      });
+      const response = await API.get(
+        `/api/channel-status/codex-usage${forceRefresh ? '?refresh=true' : ''}`,
+        {
+          skipErrorHandler: true,
+        },
+      );
       if (requestRef.current !== requestId) return;
       if (!response?.data?.success) {
         throw new Error(response?.data?.message || 'request failed');
@@ -51,12 +54,14 @@ export const useCodexChannelUsage = () => {
     }
   }, []);
 
+  const refresh = useCallback(() => load(true), [load]);
+
   useEffect(() => {
-    refresh().catch(() => {});
+    load().catch(() => {});
     return () => {
       requestRef.current += 1;
     };
-  }, [refresh]);
+  }, [load]);
 
   return { data, loading, error, refresh };
 };

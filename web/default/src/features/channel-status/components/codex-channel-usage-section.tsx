@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { KeyRound, RefreshCw, ShieldCheck } from 'lucide-react'
+import { KeyRound, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
@@ -328,17 +328,9 @@ export function CodexChannelUsageSection() {
               <KeyRound className='size-4.5' />
             </div>
             <div>
-              <div className='flex flex-wrap items-center gap-3'>
-                <h2 id='codex-channel-usage-title' className='font-bold'>
-                  {t('Codex channel usage')}
-                </h2>
-                <StatusBadge
-                  label={t('Redacted')}
-                  icon={ShieldCheck}
-                  variant='success'
-                  copyable={false}
-                />
-              </div>
+              <h2 id='codex-channel-usage-title' className='font-bold'>
+                {t('Codex channel usage')}
+              </h2>
               <p className='text-muted-foreground mt-1 text-xs'>
                 {t(
                   'OAuth channels only. Expand a channel to view base and additional usage windows.'
@@ -354,7 +346,7 @@ export function CodexChannelUsageSection() {
               type='button'
               variant='outline'
               size='sm'
-              onClick={() => query.refetch()}
+              onClick={() => query.refresh().catch(() => {})}
               disabled={query.isFetching}
             >
               <RefreshCw

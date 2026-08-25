@@ -16,14 +16,32 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getCodexChannelUsage } from '../api'
 
+const CODEX_CHANNEL_USAGE_QUERY_KEY = ['channel-status', 'codex-usage'] as const
+
 export function useCodexChannelUsage() {
-  return useQuery({
-    queryKey: ['channel-status', 'codex-usage'],
-    queryFn: getCodexChannelUsage,
+  const queryClient = useQueryClient()
+  const query = useQuery({
+    queryKey: CODEX_CHANNEL_USAGE_QUERY_KEY,
+    queryFn: () => getCodexChannelUsage(),
     staleTime: 30 * 1000,
     refetchOnWindowFocus: false,
   })
+
+  const refresh = () =>
+    queryClient.fetchQuery({
+      queryKey: CODEX_CHANNEL_USAGE_QUERY_KEY,
+      queryFn: () => getCodexChannelUsage(true),
+      staleTime: 0,
+    })
+
+  return {
+    data: query.data,
+    isError: query.isError,
+    isFetching: query.isFetching,
+    isLoading: query.isLoading,
+    refresh,
+  }
 }

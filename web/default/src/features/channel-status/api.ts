@@ -25,9 +25,11 @@ type CodexChannelUsageResponse = {
   data: CodexChannelUsagePayload
 }
 
-export async function getCodexChannelUsage(): Promise<CodexChannelUsagePayload> {
+export async function getCodexChannelUsage(
+  forceRefresh = false
+): Promise<CodexChannelUsagePayload> {
   const response = await api.get<CodexChannelUsageResponse>(
-    '/api/channel-status/codex-usage'
+    `/api/channel-status/codex-usage${forceRefresh ? '?refresh=true' : ''}`
   )
   if (!response.data.success) {
     throw new Error(response.data.message || 'Failed to fetch Codex usage')

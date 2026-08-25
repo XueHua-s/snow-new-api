@@ -28,7 +28,7 @@ import {
   Skeleton,
   Tag,
 } from '@douyinfe/semi-ui';
-import { KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
+import { KeyRound, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCodexChannelUsage } from '../../hooks/channel-status/useCodexChannelUsage';
 
@@ -322,17 +322,9 @@ const CodexChannelUsageSection = () => {
             <div>
               <div
                 id='codex-channel-usage-title'
-                className='flex flex-wrap items-center gap-2 text-base font-bold text-semi-color-text-0'
+                className='text-base font-bold text-semi-color-text-0'
               >
                 {t('Codex 渠道用量')}
-                <Tag
-                  prefixIcon={<ShieldCheck size={12} />}
-                  color='green'
-                  type='light'
-                  shape='circle'
-                >
-                  {t('已脱敏')}
-                </Tag>
               </div>
               <div className='mt-1 text-xs text-semi-color-text-2'>
                 {t('仅展示 OAuth 渠道；展开查看基础额度与附加能力窗口')}

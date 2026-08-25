@@ -252,11 +252,11 @@ func fetchChannelStatusCodexUsageItem(
 // loadChannelStatusCodexUsage serializes refreshes and briefly caches only the
 // sanitized DTO. This prevents concurrent page views from multiplying OAuth
 // requests while ensuring credentials and account identity never enter cache.
-func loadChannelStatusCodexUsage(ctx context.Context) (channelStatusCodexUsagePayload, error) {
+func loadChannelStatusCodexUsage(ctx context.Context, forceRefresh bool) (channelStatusCodexUsagePayload, error) {
 	channelStatusCodexUsageCache.Lock()
 	defer channelStatusCodexUsageCache.Unlock()
 
-	if channelStatusCodexUsageCache.payload != nil && time.Now().Before(channelStatusCodexUsageCache.expiresAt) {
+	if !forceRefresh && channelStatusCodexUsageCache.payload != nil && time.Now().Before(channelStatusCodexUsageCache.expiresAt) {
 		return *channelStatusCodexUsageCache.payload, nil
 	}
 
@@ -305,7 +305,8 @@ func loadChannelStatusCodexUsage(ctx context.Context) (channelStatusCodexUsagePa
 }
 
 func GetChannelStatusCodexUsage(c *gin.Context) {
-	payload, err := loadChannelStatusCodexUsage(c.Request.Context())
+	forceRefresh := strings.EqualFold(strings.TrimSpace(c.Query("refresh")), "true")
+	payload, err := loadChannelStatusCodexUsage(c.Request.Context(), forceRefresh)
 	if err != nil {
 		common.ApiError(c, err)
 		return

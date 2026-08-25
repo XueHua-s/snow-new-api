@@ -3883,7 +3883,6 @@
     "仅展示 OAuth 渠道；展开查看基础额度与附加能力窗口": "OAuth channels only. Expand a channel to view base and additional usage windows.",
     "受限": "Limited",
     "基础额度": "Base limits",
-    "已脱敏": "Redacted",
     "当前帐号的基础额度窗口": "Base usage windows for the current account",
     "待确认": "Pending",
     "按模型或能力拆分的附加计费能力窗口": "Additional metered capability windows split by model or feature",
