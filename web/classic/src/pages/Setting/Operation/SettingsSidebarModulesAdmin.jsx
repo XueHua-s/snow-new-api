@@ -48,6 +48,7 @@ export default function SettingsSidebarModulesAdmin(props) {
     console: {
       enabled: true,
       detail: true,
+      leaderboard: true,
       token: true,
       log: true,
       midjourney: true,
@@ -109,6 +110,7 @@ export default function SettingsSidebarModulesAdmin(props) {
       console: {
         enabled: true,
         detail: true,
+        leaderboard: true,
         token: true,
         log: true,
         midjourney: true,
@@ -182,6 +184,7 @@ export default function SettingsSidebarModulesAdmin(props) {
           console: {
             enabled: true,
             detail: true,
+            leaderboard: true,
             token: true,
             log: true,
             midjourney: true,
@@ -225,6 +228,11 @@ export default function SettingsSidebarModulesAdmin(props) {
       description: t('数据管理和日志查看'),
       modules: [
         { key: 'detail', title: t('数据看板'), description: t('系统数据统计') },
+        {
+          key: 'leaderboard',
+          title: t('内卷排行'),
+          description: t('Token 与消费额度冲榜分析'),
+        },
         { key: 'token', title: t('令牌管理'), description: t('API令牌管理') },
         { key: 'log', title: t('使用日志'), description: t('API使用记录') },
         {

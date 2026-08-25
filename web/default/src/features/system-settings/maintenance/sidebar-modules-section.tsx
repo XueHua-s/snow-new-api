@@ -92,6 +92,10 @@ export function SidebarModulesSection({
         title: t('Dashboard'),
         description: t('Aggregated usage metrics and trend charts.'),
       },
+      leaderboard: {
+        title: t('Grind Leaderboard'),
+        description: t('Motivational user rankings by Tokens and spending.'),
+      },
       token: {
         title: t('Token management'),
         description: t('Create, revoke, and audit API tokens.'),

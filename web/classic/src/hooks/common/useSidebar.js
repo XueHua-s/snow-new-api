@@ -34,6 +34,7 @@ export const DEFAULT_ADMIN_CONFIG = {
   console: {
     enabled: true,
     detail: true,
+    leaderboard: true,
     token: true,
     log: true,
     midjourney: true,

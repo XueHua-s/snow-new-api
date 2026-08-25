@@ -82,6 +82,11 @@ export function SidebarModulesCard() {
           description: t('System data statistics'),
         },
         {
+          key: 'leaderboard',
+          title: t('Grind Leaderboard'),
+          description: t('Compare Token and spending rankings'),
+        },
+        {
           key: 'token',
           title: t('Token Management'),
           description: t('API token management'),

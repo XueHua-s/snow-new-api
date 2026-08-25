@@ -80,6 +80,7 @@ import {
   Package,
   Server,
   CalendarClock,
+  Crown,
 } from 'lucide-react';
 import {
   SiAtlassian,
@@ -123,6 +124,8 @@ export function getLucideIcon(key, selected = false) {
   switch (key) {
     case 'detail':
       return <LayoutDashboard {...commonProps} color={iconColor} />;
+    case 'leaderboard':
+      return <Crown {...commonProps} color={iconColor} />;
     case 'playground':
       return <TerminalSquare {...commonProps} color={iconColor} />;
     case 'chat':

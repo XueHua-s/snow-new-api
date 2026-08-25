@@ -33,6 +33,7 @@ import {
   CreditCard,
   ListTodo,
   Settings,
+  Crown,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { WORKSPACE_IDS } from '@/components/layout/lib/workspace-registry'
@@ -80,6 +81,11 @@ export function useSidebarData(): SidebarData {
             title: t('Dashboard'),
             url: '/dashboard/models',
             icon: LayoutDashboard,
+          },
+          {
+            title: t('Grind Leaderboard'),
+            url: '/usage-leaderboard',
+            icon: Crown,
           },
           {
             title: t('API Keys'),

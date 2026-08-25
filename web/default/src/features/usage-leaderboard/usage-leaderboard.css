@@ -1,0 +1,774 @@
+.usage-leaderboard-default.lb-default-shell {
+  container-type: inline-size;
+}
+
+.usage-leaderboard-default .lb-default-control {
+  background:
+    radial-gradient(circle at 8% 0%, rgb(37 99 235 / 8%), transparent 32%),
+    color-mix(in oklch, var(--card) 94%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--primary) 18%, var(--border)),
+    0 8px 24px rgb(37 99 235 / 6%);
+}
+
+.usage-leaderboard-default .lb-default-segmented {
+  background: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.usage-leaderboard-default .lb-default-tab {
+  border: 0;
+  background: transparent;
+  outline: none;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.usage-leaderboard-default .lb-default-tab:focus-visible {
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 22%);
+}
+
+.usage-leaderboard-default .lb-default-tab-active {
+  background: linear-gradient(115deg, #3b82f6 0%, #2563eb 52%, #06b6d4 100%);
+  box-shadow:
+    0 7px 18px rgb(37 99 235 / 25%),
+    inset 0 1px 0 rgb(255 255 255 / 34%);
+  transform: translateY(-1px);
+}
+
+.usage-leaderboard-default .lb-default-card {
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 4px 16px rgb(15 23 42 / 5%);
+}
+
+.usage-leaderboard-default .lb-default-declaration {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(59 130 246 / 25%), transparent 34%),
+    radial-gradient(circle at 88% 88%, rgb(124 58 237 / 21%), transparent 36%),
+    linear-gradient(135deg, rgb(239 246 255 / 98%), rgb(245 243 255 / 90%));
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 30%),
+    0 10px 28px rgb(37 99 235 / 13%),
+    inset 0 1px 0 rgb(255 255 255 / 78%),
+    inset 0 0 24px rgb(124 58 237 / 8%);
+}
+
+.dark .usage-leaderboard-default .lb-default-declaration {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(37 99 235 / 25%), transparent 35%),
+    radial-gradient(circle at 88% 88%, rgb(124 58 237 / 20%), transparent 38%),
+    linear-gradient(135deg, rgb(15 23 42 / 96%), rgb(30 27 75 / 78%));
+  box-shadow:
+    inset 0 0 0 1px rgb(96 165 250 / 34%),
+    0 0 28px rgb(37 99 235 / 16%),
+    inset 0 1px 0 rgb(255 255 255 / 8%),
+    inset 0 0 30px rgb(124 58 237 / 12%);
+}
+
+.usage-leaderboard-default .lb-default-declaration::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    110deg,
+    transparent 12%,
+    rgb(59 130 246 / 42%) 38%,
+    rgb(124 58 237 / 40%) 55%,
+    transparent 82%
+  );
+  filter: blur(14px);
+  opacity: 0.45;
+}
+
+.usage-leaderboard-default .lb-default-aurora {
+  position: absolute;
+  inset: -70% -35%;
+  z-index: -1;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgb(59 130 246 / 25%),
+    rgb(6 182 212 / 19%),
+    rgb(124 58 237 / 20%),
+    transparent 62%
+  );
+  animation: lb-default-aurora-spin 12s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgb(59 130 246 / 20%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(124 58 237 / 18%) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to right, black, transparent 78%);
+}
+
+.usage-leaderboard-default .lb-default-sweep {
+  position: absolute;
+  inset: -35% auto -35% -45%;
+  width: 32%;
+  transform: rotate(12deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 68%),
+    transparent
+  );
+  filter: blur(4px);
+  animation: lb-default-sweep 4.8s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-flame {
+  z-index: 1;
+  color: rgb(124 58 237 / 17%);
+  filter: drop-shadow(0 0 12px rgb(37 99 235 / 25%));
+  animation: lb-default-flame-pulse 2.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-particle {
+  position: absolute;
+  left: var(--lb-x);
+  top: var(--lb-y);
+  width: var(--lb-size);
+  height: var(--lb-size);
+  border-radius: 999px;
+  background: #eff6ff;
+  box-shadow:
+    0 0 7px 2px rgb(59 130 246 / 68%),
+    0 0 14px 3px rgb(124 58 237 / 30%);
+  animation: lb-default-particle-float 3.4s ease-in-out var(--lb-delay) infinite;
+}
+
+.usage-leaderboard-default .lb-default-live-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 0 rgb(37 99 235 / 55%);
+  animation: lb-default-live-pulse 1.9s ease-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-hero {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(59 130 246 / 18%), transparent 34%),
+    radial-gradient(circle at 86% 80%, rgb(6 182 212 / 14%), transparent 36%),
+    linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--card) 90%, #dbeafe),
+      color-mix(in oklch, var(--card) 94%, #cffafe)
+    );
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 26%),
+    0 12px 34px rgb(37 99 235 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 65%);
+}
+
+.dark .usage-leaderboard-default .lb-default-hero {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(37 99 235 / 24%), transparent 36%),
+    radial-gradient(circle at 86% 80%, rgb(6 182 212 / 16%), transparent 38%),
+    linear-gradient(135deg, rgb(15 23 42 / 96%), rgb(17 24 39 / 96%));
+  box-shadow:
+    inset 0 0 0 1px rgb(96 165 250 / 26%),
+    0 12px 34px rgb(37 99 235 / 14%),
+    inset 0 1px 0 rgb(255 255 255 / 7%);
+}
+
+.usage-leaderboard-default .lb-default-hero-badge {
+  background: rgb(37 99 235 / 8%);
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 22%),
+    0 0 18px rgb(37 99 235 / 7%);
+}
+
+.usage-leaderboard-default .lb-default-hero-orbit {
+  position: absolute;
+  top: -155px;
+  right: -88px;
+  width: 310px;
+  height: 310px;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 24%),
+    0 0 0 30px rgb(37 99 235 / 5%),
+    0 0 0 68px rgb(6 182 212 / 4%);
+  animation: lb-default-orbit-spin 18s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-hero-orbit::before,
+.usage-leaderboard-default .lb-default-hero-orbit::after {
+  content: '';
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #60a5fa;
+  box-shadow: 0 0 14px 5px rgb(59 130 246 / 35%);
+}
+
+.usage-leaderboard-default .lb-default-hero-orbit::before {
+  top: 28px;
+  left: 42px;
+}
+
+.usage-leaderboard-default .lb-default-hero-orbit::after {
+  right: 22px;
+  bottom: 64px;
+  background: #22d3ee;
+  box-shadow: 0 0 14px 5px rgb(34 211 238 / 28%);
+}
+
+.usage-leaderboard-default .lb-default-hero-streak {
+  position: absolute;
+  inset: -40% auto -40% -32%;
+  width: 22%;
+  transform: rotate(14deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 55%),
+    transparent
+  );
+  filter: blur(4px);
+  animation: lb-default-hero-streak 7s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-hero-spark {
+  position: absolute;
+  left: var(--lb-x);
+  top: var(--lb-y);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #93c5fd;
+  box-shadow: 0 0 8px 2px rgb(59 130 246 / 55%);
+  animation: lb-default-hero-spark 4s ease-in-out var(--lb-delay) infinite;
+}
+
+.usage-leaderboard-default .lb-default-champion-card {
+  box-shadow:
+    inset 0 0 0 1px rgb(245 158 11 / 24%),
+    0 10px 30px rgb(37 99 235 / 9%),
+    inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+.usage-leaderboard-default .lb-default-crown-orb {
+  box-shadow:
+    0 8px 22px rgb(245 158 11 / 25%),
+    inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+.usage-leaderboard-default .lb-default-crown-ring {
+  position: absolute;
+  inset: -7px;
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px rgb(245 158 11 / 46%);
+  animation: lb-default-crown-ring 2.5s ease-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-crown-icon {
+  filter: drop-shadow(0 0 7px rgb(255 247 237 / 60%));
+  animation: lb-default-crown-float 2.8s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-stat-champion {
+  box-shadow:
+    inset 0 0 0 1px rgb(245 158 11 / 38%),
+    0 8px 26px rgb(245 158 11 / 16%);
+}
+
+.usage-leaderboard-default .lb-default-stat-chase {
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 26%),
+    0 6px 22px rgb(37 99 235 / 10%);
+}
+
+.usage-leaderboard-default .lb-default-stat-data {
+  box-shadow:
+    inset 0 0 0 1px rgb(124 58 237 / 22%),
+    0 6px 22px rgb(124 58 237 / 9%);
+}
+
+.usage-leaderboard-default .lb-default-stat-target {
+  box-shadow:
+    inset 0 0 0 1px rgb(6 182 212 / 24%),
+    0 6px 22px rgb(6 182 212 / 9%);
+}
+
+.usage-leaderboard-default .lb-default-stat-glint {
+  position: absolute;
+  top: -65%;
+  left: -34%;
+  width: 26%;
+  height: 230%;
+  transform: rotate(16deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 58%),
+    transparent
+  );
+  animation: lb-default-stat-glint 6.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-chart-card::before {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.usage-leaderboard-default .lb-default-chart-podium::before {
+  inset: -120px -80px auto auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(245 158 11 / 16%),
+    rgb(59 130 246 / 5%) 45%,
+    transparent 70%
+  );
+  animation: lb-default-breathe 5.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-chart-roadmap::before {
+  inset: -90px auto auto -100px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(6 182 212 / 16%),
+    rgb(37 99 235 / 7%) 44%,
+    transparent 70%
+  );
+  animation: lb-default-drift 6s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-chart-race::before {
+  inset: -45% -12%;
+  background: conic-gradient(
+    from 90deg,
+    transparent,
+    rgb(37 99 235 / 7%),
+    rgb(124 58 237 / 9%),
+    transparent 56%
+  );
+  filter: blur(28px);
+  animation: lb-default-aurora-spin 18s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-chart-arena {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background-image:
+    linear-gradient(rgb(37 99 235 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(37 99 235 / 4%) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(black, black);
+}
+
+.usage-leaderboard-default .lb-default-chart-badge {
+  background: rgb(37 99 235 / 8%);
+  box-shadow: inset 0 0 0 1px rgb(59 130 246 / 20%);
+}
+
+.usage-leaderboard-default .lb-default-chart-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2563eb;
+  animation: lb-default-live-pulse 1.9s ease-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-divider::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(37 99 235 / 35%),
+    rgb(6 182 212 / 25%),
+    transparent
+  );
+}
+
+.usage-leaderboard-default .lb-default-sprint-row,
+.usage-leaderboard-default .lb-default-energy-track,
+.usage-leaderboard-default .lb-default-milestone,
+.usage-leaderboard-default .lb-default-position-card {
+  box-shadow: inset 0 0 0 1px rgb(59 130 246 / 22%);
+}
+
+.usage-leaderboard-default .lb-default-sprint-row {
+  animation: lb-default-sprint-pulse 3.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-sprint-scan {
+  position: absolute;
+  inset: 0 auto 0 -26%;
+  width: 20%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(96 165 250 / 30%),
+    transparent
+  );
+  animation: lb-default-sprint-scan 3.8s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-roadmap-zap {
+  filter: drop-shadow(0 0 8px rgb(37 99 235 / 34%));
+  animation: lb-default-flame-pulse 2.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-energy-fill {
+  position: relative;
+  min-width: 4px;
+  overflow: hidden;
+  box-shadow: 0 0 13px rgb(37 99 235 / 42%);
+}
+
+.usage-leaderboard-default .lb-default-energy-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgb(255 255 255 / 62%) 50%,
+    transparent 74%
+  );
+  transform: translateX(-100%);
+  animation: lb-default-energy-flow 2.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-energy-target {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: #22d3ee;
+  animation: lb-default-target-pulse 1.7s ease-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-milestone {
+  background: linear-gradient(
+    105deg,
+    transparent,
+    rgb(37 99 235 / 6%),
+    transparent
+  );
+  background-size: 220% 100%;
+  animation: lb-default-milestone-flow 5s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-state {
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 20%),
+    0 10px 30px rgb(37 99 235 / 8%);
+}
+
+.usage-leaderboard-default .lb-default-state::before {
+  content: '';
+  position: absolute;
+  inset: -60% 10%;
+  background: conic-gradient(
+    transparent,
+    rgb(37 99 235 / 12%),
+    rgb(124 58 237 / 10%),
+    transparent 60%
+  );
+  filter: blur(24px);
+  animation: lb-default-aurora-spin 16s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-state > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes lb-default-aurora-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lb-default-sweep {
+  0%,
+  24% {
+    transform: translateX(0) rotate(12deg);
+    opacity: 0;
+  }
+  42% {
+    opacity: 0.75;
+  }
+  68%,
+  100% {
+    transform: translateX(560%) rotate(12deg);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-default-flame-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.96);
+    opacity: 0.68;
+  }
+  50% {
+    transform: translateY(-3px) scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes lb-default-particle-float {
+  0%,
+  100% {
+    transform: translate3d(0, 4px, 0) scale(0.75);
+    opacity: 0.28;
+  }
+  50% {
+    transform: translate3d(5px, -7px, 0) scale(1.15);
+    opacity: 0.95;
+  }
+}
+
+@keyframes lb-default-live-pulse {
+  70% {
+    box-shadow: 0 0 0 7px rgb(249 115 22 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(249 115 22 / 0%);
+  }
+}
+
+@keyframes lb-default-breathe {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes lb-default-orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lb-default-hero-streak {
+  0%,
+  30% {
+    transform: translateX(0) rotate(14deg);
+    opacity: 0;
+  }
+  48% {
+    opacity: 0.65;
+  }
+  72%,
+  100% {
+    transform: translateX(720%) rotate(14deg);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-default-hero-spark {
+  0%,
+  100% {
+    transform: translateY(4px) scale(0.72);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateY(-8px) scale(1.2);
+    opacity: 0.95;
+  }
+}
+
+@keyframes lb-default-crown-ring {
+  0% {
+    transform: scale(0.88);
+    opacity: 0;
+  }
+  45% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.16);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-default-crown-float {
+  0%,
+  100% {
+    transform: translateY(1px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+
+@keyframes lb-default-stat-glint {
+  0%,
+  42% {
+    transform: translateX(0) rotate(16deg);
+    opacity: 0;
+  }
+  55% {
+    opacity: 0.7;
+  }
+  74%,
+  100% {
+    transform: translateX(650%) rotate(16deg);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-default-drift {
+  0%,
+  100% {
+    transform: translate3d(-5px, 4px, 0) scale(0.95);
+  }
+  50% {
+    transform: translate3d(12px, -8px, 0) scale(1.08);
+  }
+}
+
+@keyframes lb-default-sprint-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgb(59 130 246 / 24%),
+      0 0 0 rgb(37 99 235 / 0%);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgb(96 165 250 / 42%),
+      0 0 18px rgb(37 99 235 / 12%);
+  }
+}
+
+@keyframes lb-default-sprint-scan {
+  to {
+    transform: translateX(660%);
+  }
+}
+
+@keyframes lb-default-energy-flow {
+  0%,
+  18% {
+    transform: translateX(-120%);
+  }
+  72%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes lb-default-target-pulse {
+  70% {
+    box-shadow: 0 0 0 8px rgb(34 211 238 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(34 211 238 / 0%);
+  }
+}
+
+@keyframes lb-default-milestone-flow {
+  0%,
+  100% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 0 50%;
+  }
+}
+
+@container (min-width: 620px) {
+  .usage-leaderboard-default .lb-default-momentum-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 900px) {
+  .usage-leaderboard-default .lb-default-hero-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .usage-leaderboard-default .lb-default-chart-header {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .usage-leaderboard-default .lb-default-chart-body {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .usage-leaderboard-default .lb-default-chart-roadmap .lb-default-chart-body {
+    padding-right: 1.125rem;
+    padding-bottom: 1.125rem;
+    padding-left: 1.125rem;
+  }
+}
+
+@container (min-width: 1060px) {
+  .usage-leaderboard-default .lb-default-momentum-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .usage-leaderboard-default .lb-default-main-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-leaderboard-default .lb-default-aurora,
+  .usage-leaderboard-default .lb-default-sweep,
+  .usage-leaderboard-default .lb-default-flame,
+  .usage-leaderboard-default .lb-default-particle,
+  .usage-leaderboard-default .lb-default-live-dot,
+  .usage-leaderboard-default .lb-default-hero-orbit,
+  .usage-leaderboard-default .lb-default-hero-streak,
+  .usage-leaderboard-default .lb-default-hero-spark,
+  .usage-leaderboard-default .lb-default-crown-ring,
+  .usage-leaderboard-default .lb-default-crown-icon,
+  .usage-leaderboard-default .lb-default-stat-glint,
+  .usage-leaderboard-default .lb-default-chart-card::before,
+  .usage-leaderboard-default .lb-default-chart-badge-dot,
+  .usage-leaderboard-default .lb-default-sprint-row,
+  .usage-leaderboard-default .lb-default-sprint-scan,
+  .usage-leaderboard-default .lb-default-roadmap-zap,
+  .usage-leaderboard-default .lb-default-energy-fill::after,
+  .usage-leaderboard-default .lb-default-energy-target,
+  .usage-leaderboard-default .lb-default-milestone,
+  .usage-leaderboard-default .lb-default-state::before {
+    animation: none !important;
+  }
+}

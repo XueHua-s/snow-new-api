@@ -1,0 +1,976 @@
+.usage-leaderboard-page {
+  --lb-border: var(--semi-color-border);
+  --lb-surface: var(--semi-color-bg-1);
+  --lb-muted: var(--semi-color-fill-0);
+  --lb-primary: var(--semi-color-primary, #2563eb);
+  --lb-blue: #2563eb;
+  --lb-cyan: #06b6d4;
+  --lb-violet: #7c3aed;
+  --lb-gold: #f59e0b;
+}
+
+.usage-leaderboard-page .lb-shell {
+  container-type: inline-size;
+}
+
+.usage-leaderboard-page .lb-main-grid,
+.usage-leaderboard-page .lb-main-chart,
+.usage-leaderboard-page .lb-main-roadmap,
+.usage-leaderboard-page .lb-chart-card,
+.usage-leaderboard-page .lb-chart-arena {
+  min-width: 0;
+  width: 100%;
+}
+
+.usage-leaderboard-page .lb-control-surface {
+  background: radial-gradient(
+      circle at 8% 0%,
+      rgb(37 99 235 / 8%),
+      transparent 32%
+    ),
+    color-mix(in srgb, var(--lb-surface) 94%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--lb-primary) 18%, var(--lb-border)),
+    0 8px 24px rgb(37 99 235 / 6%);
+  backdrop-filter: blur(16px);
+}
+
+.usage-leaderboard-page .lb-segmented {
+  background: var(--lb-muted);
+  box-shadow: inset 0 0 0 1px var(--lb-border);
+}
+
+.usage-leaderboard-page .lb-tab {
+  border: 0;
+  background: transparent;
+  outline: none;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.usage-leaderboard-page .lb-tab:not(.lb-tab-active):hover {
+  color: var(--semi-color-text-0);
+  background: var(--semi-color-fill-1);
+}
+
+.usage-leaderboard-page .lb-tab:focus-visible {
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 22%);
+}
+
+.usage-leaderboard-page .lb-tab-active {
+  background: linear-gradient(115deg, #3b82f6 0%, #2563eb 52%, #06b6d4 100%);
+  box-shadow:
+    0 7px 18px rgb(37 99 235 / 25%),
+    inset 0 1px 0 rgb(255 255 255 / 34%);
+  transform: translateY(-1px);
+}
+
+.usage-leaderboard-page .lb-stat-card,
+.usage-leaderboard-page .lb-chart-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--lb-surface);
+  box-shadow:
+    inset 0 0 0 1px var(--lb-border),
+    0 4px 16px rgb(15 23 42 / 5%);
+}
+
+.usage-leaderboard-page .lb-chart-card .semi-card-header {
+  position: relative;
+  z-index: 2;
+  border-bottom: 0 !important;
+  padding: 16px 16px 6px !important;
+}
+
+.usage-leaderboard-page .lb-chart-card .semi-card-body {
+  position: relative;
+  z-index: 2;
+  padding: 10px 12px 14px !important;
+}
+
+.usage-leaderboard-page .lb-chart-roadmap .semi-card-body {
+  padding: 10px 16px 16px !important;
+}
+
+.usage-leaderboard-page .lb-chart-card::before,
+.usage-leaderboard-page .lb-stat-card::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.usage-leaderboard-page .lb-chart-podium::before {
+  inset: -120px -80px auto auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(245 158 11 / 16%),
+    rgb(59 130 246 / 5%) 45%,
+    transparent 70%
+  );
+  animation: lb-hero-breathe 5.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-chart-roadmap::before {
+  inset: -90px auto auto -100px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(6 182 212 / 16%),
+    rgb(37 99 235 / 7%) 44%,
+    transparent 70%
+  );
+  animation: lb-roadmap-drift 6s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-chart-race::before {
+  inset: -45% -12%;
+  background: conic-gradient(
+    from 90deg,
+    transparent,
+    rgb(37 99 235 / 7%),
+    rgb(124 58 237 / 9%),
+    transparent 56%
+  );
+  filter: blur(28px);
+  animation: lb-aurora-spin 18s linear infinite;
+}
+
+.usage-leaderboard-page .lb-stat-champion::after {
+  inset: -45px -35px auto auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(245 158 11 / 18%), transparent 68%);
+  animation: lb-hero-breathe 4.8s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-stat-chase::after {
+  inset: auto -42px -56px auto;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(37 99 235 / 16%), transparent 66%);
+  animation: lb-roadmap-drift 5.5s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-stat-data::after {
+  inset: -55px auto auto 35%;
+  width: 150px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(124 58 237 / 15%), transparent 68%);
+  animation: lb-data-drift 6s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-stat-target::after {
+  inset: auto -50px -58px auto;
+  width: 145px;
+  height: 145px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(6 182 212 / 16%), transparent 68%);
+  animation: lb-target-drift 5.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-state-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--lb-surface);
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 20%),
+    0 10px 30px rgb(37 99 235 / 8%);
+}
+
+.usage-leaderboard-page .lb-state-card::before {
+  content: '';
+  position: absolute;
+  inset: -60% 10%;
+  pointer-events: none;
+  background: conic-gradient(
+    transparent,
+    rgb(37 99 235 / 12%),
+    rgb(124 58 237 / 10%),
+    transparent 60%
+  );
+  filter: blur(24px);
+  animation: lb-aurora-spin 16s linear infinite;
+}
+
+.usage-leaderboard-page .lb-state-card .semi-card-body {
+  position: relative;
+  z-index: 1;
+}
+
+.usage-leaderboard-page .lb-soft-border {
+  box-shadow: inset 0 0 0 1px var(--lb-border);
+}
+
+.usage-leaderboard-page .lb-soft-divider {
+  position: relative;
+}
+
+.usage-leaderboard-page .lb-soft-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(37 99 235 / 35%),
+    rgb(6 182 212 / 25%),
+    transparent
+  );
+}
+
+.usage-leaderboard-page .lb-hero {
+  background: radial-gradient(
+      circle at 12% 18%,
+      rgb(59 130 246 / 18%),
+      transparent 34%
+    ),
+    radial-gradient(circle at 86% 80%, rgb(6 182 212 / 14%), transparent 36%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--lb-surface) 90%, #dbeafe),
+      color-mix(in srgb, var(--lb-surface) 94%, #cffafe)
+    );
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 26%),
+    0 12px 34px rgb(37 99 235 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 65%);
+}
+
+html.dark .usage-leaderboard-page .lb-hero {
+  background: radial-gradient(
+      circle at 12% 18%,
+      rgb(37 99 235 / 24%),
+      transparent 36%
+    ),
+    radial-gradient(circle at 86% 80%, rgb(6 182 212 / 16%), transparent 38%),
+    linear-gradient(135deg, rgb(15 23 42 / 96%), rgb(17 24 39 / 96%));
+  box-shadow:
+    inset 0 0 0 1px rgb(96 165 250 / 26%),
+    0 12px 34px rgb(37 99 235 / 14%),
+    inset 0 1px 0 rgb(255 255 255 / 7%);
+}
+
+.usage-leaderboard-page .lb-hero-badge {
+  background: rgb(37 99 235 / 8%);
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 22%),
+    0 0 18px rgb(37 99 235 / 7%);
+}
+
+.usage-leaderboard-page .lb-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto 8% -80% 18%;
+  z-index: -1;
+  height: 190%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(37 99 235 / 16%), transparent 62%);
+  filter: blur(16px);
+  animation: lb-hero-breathe 5s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-hero-orbit {
+  position: absolute;
+  top: -155px;
+  right: -88px;
+  width: 310px;
+  height: 310px;
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 24%),
+    0 0 0 30px rgb(37 99 235 / 5%),
+    0 0 0 68px rgb(6 182 212 / 4%);
+  border-radius: 50%;
+  animation: lb-orbit-spin 18s linear infinite;
+}
+
+.usage-leaderboard-page .lb-hero-orbit::before,
+.usage-leaderboard-page .lb-hero-orbit::after {
+  content: '';
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #60a5fa;
+  box-shadow: 0 0 14px 5px rgb(59 130 246 / 35%);
+}
+
+.usage-leaderboard-page .lb-hero-orbit::before {
+  top: 28px;
+  left: 42px;
+}
+
+.usage-leaderboard-page .lb-hero-orbit::after {
+  right: 22px;
+  bottom: 64px;
+  background: #22d3ee;
+  box-shadow: 0 0 14px 5px rgb(34 211 238 / 28%);
+}
+
+.usage-leaderboard-page .lb-hero-streak {
+  position: absolute;
+  inset: -40% auto -40% -32%;
+  width: 22%;
+  transform: rotate(14deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 55%),
+    transparent
+  );
+  filter: blur(4px);
+  animation: lb-hero-streak 7s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-hero-spark {
+  position: absolute;
+  left: var(--lb-x);
+  top: var(--lb-y);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #93c5fd;
+  box-shadow: 0 0 8px 2px rgb(59 130 246 / 55%);
+  animation: lb-hero-spark 4s ease-in-out var(--lb-delay) infinite;
+}
+
+.usage-leaderboard-page .lb-champion-card {
+  position: relative;
+  box-shadow:
+    inset 0 0 0 1px rgb(245 158 11 / 24%),
+    0 10px 30px rgb(37 99 235 / 9%),
+    inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+.usage-leaderboard-page .lb-hero-self-champion .lb-champion-card {
+  box-shadow:
+    0 0 26px rgb(245 158 11 / 20%),
+    inset 0 1px 0 rgb(255 255 255 / 62%);
+}
+
+.usage-leaderboard-page .lb-crown-orb {
+  box-shadow:
+    0 8px 22px rgb(249 115 22 / 28%),
+    inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+.usage-leaderboard-page .lb-crown-ring {
+  position: absolute;
+  inset: -7px;
+  border: 1px solid rgb(245 158 11 / 46%);
+  border-radius: 18px;
+  animation: lb-crown-ring 2.5s ease-out infinite;
+}
+
+.usage-leaderboard-page .lb-crown-icon {
+  filter: drop-shadow(0 0 7px rgb(255 247 237 / 60%));
+  animation: lb-crown-float 2.8s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-stat-champion {
+  box-shadow:
+    inset 0 0 0 1px rgb(245 158 11 / 38%),
+    0 8px 26px rgb(245 158 11 / 16%);
+}
+
+.usage-leaderboard-page .lb-stat-chase,
+.usage-leaderboard-page .lb-stat-target,
+.usage-leaderboard-page .lb-stat-data {
+  background: var(--lb-surface);
+}
+
+.usage-leaderboard-page .lb-stat-chase {
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 26%),
+    0 6px 22px rgb(37 99 235 / 10%);
+}
+
+.usage-leaderboard-page .lb-stat-data {
+  box-shadow:
+    inset 0 0 0 1px rgb(124 58 237 / 22%),
+    0 6px 22px rgb(124 58 237 / 9%);
+}
+
+.usage-leaderboard-page .lb-stat-target {
+  box-shadow:
+    inset 0 0 0 1px rgb(6 182 212 / 24%),
+    0 6px 22px rgb(6 182 212 / 9%);
+}
+
+.usage-leaderboard-page .lb-stat-glint {
+  position: absolute;
+  top: -65%;
+  left: -34%;
+  width: 26%;
+  height: 230%;
+  transform: rotate(16deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 58%),
+    transparent
+  );
+  animation: lb-stat-glint 6.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-chart-arena {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(var(--lb-surface), var(--lb-surface)) padding-box,
+    radial-gradient(circle at 12% 10%, rgb(59 130 246 / 20%), transparent 34%)
+      border-box;
+}
+
+.usage-leaderboard-page .lb-chart-arena::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgb(37 99 235 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(37 99 235 / 4%) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 12% 18%, black, transparent 58%);
+}
+
+.usage-leaderboard-page .lb-chart-arena > * {
+  position: relative;
+  z-index: 1;
+}
+
+.usage-leaderboard-page .lb-chart-badge {
+  background: rgb(37 99 235 / 8%);
+  box-shadow: inset 0 0 0 1px rgb(59 130 246 / 20%);
+}
+
+.usage-leaderboard-page .lb-chart-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 0 rgb(37 99 235 / 45%);
+  animation: lb-live-pulse 1.9s ease-out infinite;
+}
+
+.usage-leaderboard-page .lb-sprint-row {
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 24%),
+    inset 0 0 18px rgb(37 99 235 / 8%),
+    0 0 0 0 rgb(37 99 235 / 0%);
+  animation: lb-sprint-pulse 3.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-sprint-scan {
+  position: absolute;
+  inset: 0 auto 0 -26%;
+  width: 20%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(96 165 250 / 30%),
+    transparent
+  );
+  animation: lb-sprint-scan 3.8s linear infinite;
+}
+
+.usage-leaderboard-page .lb-position-card::after {
+  content: '';
+  position: absolute;
+  right: -32px;
+  bottom: -52px;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(37 99 235 / 18%), transparent 64%);
+  animation: lb-hero-breathe 3.8s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-roadmap-flame {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 8px rgb(37 99 235 / 34%));
+  animation: lb-flame-pulse 2.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-energy-track {
+  box-shadow: inset 0 1px 3px rgb(15 23 42 / 12%);
+}
+
+.usage-leaderboard-page .lb-energy-fill {
+  position: relative;
+  overflow: hidden;
+  min-width: 4px;
+  box-shadow: 0 0 13px rgb(37 99 235 / 42%);
+  transition: width 500ms ease;
+}
+
+.usage-leaderboard-page .lb-energy-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgb(255 255 255 / 62%) 50%,
+    transparent 74%
+  );
+  transform: translateX(-100%);
+  animation: lb-energy-flow 2.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-energy-target {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: #22d3ee;
+  box-shadow: 0 0 0 0 rgb(34 211 238 / 54%);
+  animation: lb-target-pulse 1.7s ease-out infinite;
+}
+
+.usage-leaderboard-page .lb-milestone {
+  background: linear-gradient(
+    105deg,
+    transparent,
+    rgb(37 99 235 / 6%),
+    transparent
+  );
+  background-size: 220% 100%;
+  animation: lb-milestone-flow 5s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-declaration {
+  min-height: 126px;
+  background: radial-gradient(
+      circle at 12% 18%,
+      rgb(59 130 246 / 25%),
+      transparent 34%
+    ),
+    radial-gradient(circle at 88% 88%, rgb(124 58 237 / 21%), transparent 36%),
+    linear-gradient(135deg, rgb(239 246 255 / 98%), rgb(245 243 255 / 90%));
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 30%),
+    0 10px 28px rgb(37 99 235 / 13%),
+    inset 0 1px 0 rgb(255 255 255 / 78%),
+    inset 0 0 24px rgb(124 58 237 / 8%);
+}
+
+.usage-leaderboard-page .lb-declaration::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    110deg,
+    transparent 12%,
+    rgb(59 130 246 / 42%) 38%,
+    rgb(124 58 237 / 40%) 55%,
+    transparent 82%
+  );
+  filter: blur(14px);
+  opacity: 0.45;
+}
+
+html.dark .usage-leaderboard-page .lb-declaration {
+  background: radial-gradient(
+      circle at 12% 18%,
+      rgb(37 99 235 / 25%),
+      transparent 35%
+    ),
+    radial-gradient(circle at 88% 88%, rgb(124 58 237 / 20%), transparent 38%),
+    linear-gradient(135deg, rgb(15 23 42 / 96%), rgb(30 27 75 / 78%));
+  box-shadow:
+    inset 0 0 0 1px rgb(96 165 250 / 34%),
+    0 0 28px rgb(37 99 235 / 16%),
+    inset 0 1px 0 rgb(255 255 255 / 8%),
+    inset 0 0 30px rgb(124 58 237 / 12%);
+}
+
+.usage-leaderboard-page .lb-declaration-aurora {
+  position: absolute;
+  inset: -70% -35%;
+  z-index: -1;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgb(59 130 246 / 25%),
+    rgb(6 182 212 / 19%),
+    rgb(124 58 237 / 20%),
+    transparent 62%
+  );
+  animation: lb-aurora-spin 12s linear infinite;
+}
+
+.usage-leaderboard-page .lb-declaration-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.22;
+  background-image: linear-gradient(rgb(59 130 246 / 20%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(124 58 237 / 18%) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to right, black, transparent 78%);
+}
+
+.usage-leaderboard-page .lb-declaration-sweep {
+  position: absolute;
+  inset: -35% auto -35% -45%;
+  width: 32%;
+  transform: rotate(12deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 68%),
+    transparent
+  );
+  filter: blur(4px);
+  animation: lb-sweep 4.8s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-declaration-flame {
+  z-index: 1;
+  color: rgb(124 58 237 / 17%);
+  filter: drop-shadow(0 0 12px rgb(37 99 235 / 25%));
+  animation: lb-flame-pulse 2.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-page .lb-declaration-copy {
+  color: var(--semi-color-text-0);
+  text-shadow: 0 1px 12px rgb(37 99 235 / 14%);
+}
+
+.usage-leaderboard-page .lb-particle {
+  position: absolute;
+  left: var(--lb-x);
+  top: var(--lb-y);
+  width: var(--lb-size);
+  height: var(--lb-size);
+  border-radius: 999px;
+  background: #eff6ff;
+  box-shadow:
+    0 0 7px 2px rgb(59 130 246 / 68%),
+    0 0 14px 3px rgb(124 58 237 / 30%);
+  animation: lb-particle-float 3.4s ease-in-out var(--lb-delay) infinite;
+}
+
+.usage-leaderboard-page .lb-live-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 0 rgb(37 99 235 / 55%);
+  animation: lb-live-pulse 1.9s ease-out infinite;
+}
+
+@keyframes lb-aurora-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lb-sweep {
+  0%,
+  24% {
+    transform: translateX(0) rotate(12deg);
+    opacity: 0;
+  }
+  42% {
+    opacity: 0.75;
+  }
+  68%,
+  100% {
+    transform: translateX(560%) rotate(12deg);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-flame-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.96);
+    opacity: 0.68;
+  }
+  50% {
+    transform: translateY(-3px) scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes lb-particle-float {
+  0%,
+  100% {
+    transform: translate3d(0, 4px, 0) scale(0.75);
+    opacity: 0.28;
+  }
+  50% {
+    transform: translate3d(5px, -7px, 0) scale(1.15);
+    opacity: 0.95;
+  }
+}
+
+@keyframes lb-live-pulse {
+  70% {
+    box-shadow: 0 0 0 7px rgb(249 115 22 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(249 115 22 / 0%);
+  }
+}
+
+@keyframes lb-hero-breathe {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes lb-orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lb-hero-streak {
+  0%,
+  30% {
+    transform: translateX(0) rotate(14deg);
+    opacity: 0;
+  }
+  48% {
+    opacity: 0.65;
+  }
+  72%,
+  100% {
+    transform: translateX(720%) rotate(14deg);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-hero-spark {
+  0%,
+  100% {
+    transform: translateY(4px) scale(0.72);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateY(-8px) scale(1.2);
+    opacity: 0.95;
+  }
+}
+
+@keyframes lb-crown-ring {
+  0% {
+    transform: scale(0.88);
+    opacity: 0;
+  }
+  45% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.16);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-crown-float {
+  0%,
+  100% {
+    transform: translateY(1px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+
+@keyframes lb-stat-glint {
+  0%,
+  42% {
+    transform: translateX(0) rotate(16deg);
+    opacity: 0;
+  }
+  55% {
+    opacity: 0.7;
+  }
+  74%,
+  100% {
+    transform: translateX(650%) rotate(16deg);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-roadmap-drift {
+  0%,
+  100% {
+    transform: translate3d(-5px, 4px, 0) scale(0.95);
+  }
+  50% {
+    transform: translate3d(12px, -8px, 0) scale(1.08);
+  }
+}
+
+@keyframes lb-data-drift {
+  0%,
+  100% {
+    transform: translateX(-12px) scale(0.92);
+  }
+  50% {
+    transform: translateX(18px) scale(1.1);
+  }
+}
+
+@keyframes lb-target-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 4px, 0) scale(0.9);
+  }
+  50% {
+    transform: translate3d(-14px, -9px, 0) scale(1.12);
+  }
+}
+
+@keyframes lb-sprint-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgb(59 130 246 / 24%),
+      inset 0 0 18px rgb(37 99 235 / 8%),
+      0 0 0 0 rgb(37 99 235 / 0%);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgb(96 165 250 / 42%),
+      inset 0 0 24px rgb(37 99 235 / 12%),
+      0 0 18px rgb(37 99 235 / 12%);
+  }
+}
+
+@keyframes lb-sprint-scan {
+  to {
+    transform: translateX(660%);
+  }
+}
+
+@keyframes lb-energy-flow {
+  0%,
+  18% {
+    transform: translateX(-120%);
+  }
+  72%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes lb-target-pulse {
+  70% {
+    box-shadow: 0 0 0 8px rgb(34 211 238 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(34 211 238 / 0%);
+  }
+}
+
+@keyframes lb-milestone-flow {
+  0%,
+  100% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 0 50%;
+  }
+}
+
+@container (min-width: 620px) {
+  .usage-leaderboard-page .lb-momentum-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 900px) {
+  .usage-leaderboard-page .lb-hero-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .usage-leaderboard-page .lb-chart-card .semi-card-header {
+    padding: 18px 20px 7px !important;
+  }
+
+  .usage-leaderboard-page .lb-chart-card .semi-card-body {
+    padding: 11px 16px 16px !important;
+  }
+
+  .usage-leaderboard-page .lb-chart-roadmap .semi-card-body {
+    padding: 11px 18px 18px !important;
+  }
+}
+
+@container (min-width: 1060px) {
+  .usage-leaderboard-page .lb-momentum-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .usage-leaderboard-page .lb-main-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .usage-leaderboard-page .lb-main-chart {
+    grid-column: span 3 / span 3;
+  }
+
+  .usage-leaderboard-page .lb-main-roadmap {
+    grid-column: span 2 / span 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-leaderboard-page .lb-declaration-aurora,
+  .usage-leaderboard-page .lb-declaration-sweep,
+  .usage-leaderboard-page .lb-declaration-flame,
+  .usage-leaderboard-page .lb-particle,
+  .usage-leaderboard-page .lb-live-dot,
+  .usage-leaderboard-page .lb-hero::after,
+  .usage-leaderboard-page .lb-hero-orbit,
+  .usage-leaderboard-page .lb-hero-streak,
+  .usage-leaderboard-page .lb-hero-spark,
+  .usage-leaderboard-page .lb-crown-ring,
+  .usage-leaderboard-page .lb-crown-icon,
+  .usage-leaderboard-page .lb-stat-glint,
+  .usage-leaderboard-page .lb-stat-card::after,
+  .usage-leaderboard-page .lb-chart-card::before,
+  .usage-leaderboard-page .lb-chart-badge-dot,
+  .usage-leaderboard-page .lb-sprint-row,
+  .usage-leaderboard-page .lb-sprint-scan,
+  .usage-leaderboard-page .lb-position-card::after,
+  .usage-leaderboard-page .lb-roadmap-flame,
+  .usage-leaderboard-page .lb-energy-fill::after,
+  .usage-leaderboard-page .lb-energy-target,
+  .usage-leaderboard-page .lb-milestone,
+  .usage-leaderboard-page .lb-state-card::before {
+    animation: none !important;
+  }
+}
