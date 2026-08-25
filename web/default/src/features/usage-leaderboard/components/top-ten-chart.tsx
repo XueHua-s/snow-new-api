@@ -163,7 +163,6 @@ export const TopTenChart = memo(function TopTenChart(props: TopTenChartProps) {
       description={t(
         'Gold, silver, bronze—and your position highlighted in theme blue.'
       )}
-      badge={t('Live site-wide race')}
       variant='podium'
     >
       <div className='lb-default-chart-arena h-[390px] rounded-xl sm:h-[430px]'>

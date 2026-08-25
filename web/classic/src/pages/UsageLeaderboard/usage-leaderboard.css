@@ -458,20 +458,6 @@ html.dark .usage-leaderboard-page .lb-hero {
   z-index: 1;
 }
 
-.usage-leaderboard-page .lb-chart-badge {
-  background: rgb(37 99 235 / 8%);
-  box-shadow: inset 0 0 0 1px rgb(59 130 246 / 20%);
-}
-
-.usage-leaderboard-page .lb-chart-badge-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #2563eb;
-  box-shadow: 0 0 0 0 rgb(37 99 235 / 45%);
-  animation: lb-live-pulse 1.9s ease-out infinite;
-}
-
 .usage-leaderboard-page .lb-sprint-row {
   box-shadow:
     inset 0 0 0 1px rgb(59 130 246 / 24%),
@@ -518,10 +504,49 @@ html.dark .usage-leaderboard-page .lb-hero {
 
 .usage-leaderboard-page .lb-energy-fill {
   position: relative;
+  display: block;
+  height: 100%;
   overflow: hidden;
+  isolation: isolate;
   min-width: 4px;
-  box-shadow: 0 0 13px rgb(37 99 235 / 42%);
+  background: radial-gradient(
+      circle at 18% 72%,
+      rgb(255 255 255 / 52%) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 68% 34%,
+      rgb(255 255 255 / 40%) 0 1.5px,
+      transparent 2.5px
+    ),
+    linear-gradient(90deg, #2563eb, #3b82f6 52%, #22d3ee);
+  background-size:
+    29px 18px,
+    37px 22px,
+    180% 100%;
+  box-shadow:
+    inset 0 1px 2px rgb(255 255 255 / 48%),
+    inset 0 -2px 3px rgb(30 64 175 / 24%),
+    0 0 13px rgb(37 99 235 / 42%);
   transition: width 500ms ease;
+  animation: lb-energy-liquid 3.6s ease-in-out infinite alternate;
+}
+
+.usage-leaderboard-page .lb-energy-fill::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -2px;
+  left: -16px;
+  width: calc(100% + 32px);
+  height: 7px;
+  background: radial-gradient(
+      ellipse at 50% 0%,
+      rgb(255 255 255 / 48%) 0 38%,
+      transparent 43%
+    )
+    0 0 / 18px 7px repeat-x;
+  animation: lb-energy-wave 1.6s linear infinite;
 }
 
 .usage-leaderboard-page .lb-energy-fill::after {
@@ -891,6 +916,27 @@ html.dark .usage-leaderboard-page .lb-declaration {
   }
 }
 
+@keyframes lb-energy-liquid {
+  from {
+    background-position:
+      0 0,
+      0 0,
+      0% 50%;
+  }
+  to {
+    background-position:
+      15px -4px,
+      -12px 3px,
+      100% 50%;
+  }
+}
+
+@keyframes lb-energy-wave {
+  to {
+    transform: translateX(18px);
+  }
+}
+
 @keyframes lb-target-pulse {
   70% {
     box-shadow: 0 0 0 8px rgb(34 211 238 / 0%);
@@ -969,11 +1015,12 @@ html.dark .usage-leaderboard-page .lb-declaration {
   .usage-leaderboard-page .lb-stat-glint,
   .usage-leaderboard-page .lb-stat-card::after,
   .usage-leaderboard-page .lb-chart-card::before,
-  .usage-leaderboard-page .lb-chart-badge-dot,
   .usage-leaderboard-page .lb-sprint-row,
   .usage-leaderboard-page .lb-sprint-scan,
   .usage-leaderboard-page .lb-position-card::after,
   .usage-leaderboard-page .lb-roadmap-flame,
+  .usage-leaderboard-page .lb-energy-fill,
+  .usage-leaderboard-page .lb-energy-fill::before,
   .usage-leaderboard-page .lb-energy-fill::after,
   .usage-leaderboard-page .lb-energy-target,
   .usage-leaderboard-page .lb-milestone,

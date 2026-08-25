@@ -4303,7 +4303,6 @@
     "先别盯着王冠，先抹掉眼前这段差距。每跨一名，王座就更近一步。": "Đừng chỉ nhìn ngôi vương—hãy xóa khoảng cách gần nhất trước. Vượt từng cột mốc, ngai vàng sẽ gần hơn.",
     "全榜都在仰望你。趁追兵还没贴近，再把纪录往前推一步。": "Cả bảng đang ngước nhìn bạn. Hãy thêm một thành tích trước khi đối thủ áp sát.",
     "全站占比": "Tỷ trọng toàn hệ thống",
-    "全站实时竞速": "Cuộc đua toàn hệ thống theo thời gian thực",
     "内卷值": "Điểm cày cuốc",
     "内卷排行": "Bảng xếp hạng cày cuốc",
     "再前进 {{gap}}，你就能杀入前十。": "Tiến thêm {{gap}} để lọt vào Top 10.",
@@ -4347,7 +4346,6 @@
     "距离上一名只差 {{gap}}，下一席已经进入射程。": "Chỉ còn {{gap}} tới hạng kế tiếp. Vị trí tiếp theo đã trong tầm với.",
     "距离下一里程碑": "Khoảng cách tới cột mốc tiếp theo",
     "重新加载": "Thử lại",
-    "金银铜标记前三，你的位置用主题蓝高亮。": "金银铜标记前三，你的位置用主题蓝高亮。",
-    "领先轨迹持续生成": "领先轨迹持续生成"
+    "金银铜标记前三，你的位置用主题蓝高亮。": "金银铜标记前三，你的位置用主题蓝高亮。"
   }
 }

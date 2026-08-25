@@ -101,7 +101,6 @@ export const TrendChart = memo(function TrendChart({ board, metric, period }) {
       description={t(
         'Top 5 加上你：谁在加速、谁在守势、差距在哪一刻拉开，一眼看清。',
       )}
-      badge={t('领先轨迹持续生成')}
       variant='race'
     >
       <div className='lb-chart-arena lb-chart-arena-trend h-[360px] rounded-xl'>

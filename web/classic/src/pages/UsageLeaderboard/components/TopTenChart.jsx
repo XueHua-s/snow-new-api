@@ -145,7 +145,6 @@ export const TopTenChart = memo(function TopTenChart({
         metric: metric === 'tokens' ? ' Token ' : t('消费额度'),
       })}
       description={t('金银铜标记前三，你的位置用主题蓝高亮。')}
-      badge={t('全站实时竞速')}
       variant='podium'
     >
       <div className='lb-chart-arena lb-chart-arena-bars h-[420px] rounded-xl'>

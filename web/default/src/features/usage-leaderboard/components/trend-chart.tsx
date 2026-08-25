@@ -113,7 +113,6 @@ export const TrendChart = memo(function TrendChart(props: TrendChartProps) {
       description={t(
         'Top 5 plus you: see who accelerated, who held pace, and where the gap opened.'
       )}
-      badge={t('Lead paths generating live')}
       variant='race'
     >
       <div className='lb-default-chart-arena h-[320px] rounded-xl sm:h-[380px]'>
