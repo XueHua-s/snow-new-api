@@ -145,11 +145,16 @@ func TestChannelStatusWebSocketSnapshotAndHeartbeat(t *testing.T) {
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/channel-status/ws?window=60"
 	headers := http.Header{}
 	headers.Set("Origin", server.URL)
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, headers)
+	dialer := *websocket.DefaultDialer
+	dialer.Subprotocols = []string{"new-api-bearer", "test-access-token"}
+	conn, _, err := dialer.Dial(wsURL, headers)
 	if err != nil {
 		t.Fatalf("dial websocket: %v", err)
 	}
 	defer conn.Close()
+	if conn.Subprotocol() != "new-api-bearer" {
+		t.Fatalf("subprotocol = %q, want new-api-bearer", conn.Subprotocol())
+	}
 	if err = conn.SetReadDeadline(time.Now().Add(3 * time.Second)); err != nil {
 		t.Fatalf("set read deadline: %v", err)
 	}

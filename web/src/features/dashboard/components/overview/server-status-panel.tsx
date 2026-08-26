@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ReactNode } from 'react'
 import {
   Box,
   Cpu,
@@ -26,8 +25,9 @@ import {
   Radio,
   Server,
 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
+
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -42,6 +42,8 @@ import {
   type ServerTelemetryConnection,
   type TelemetryHealth,
 } from '@/features/dashboard/server-telemetry'
+import { cn } from '@/lib/utils'
+
 import { PanelWrapper } from '../ui/panel-wrapper'
 
 const CONNECTION_STYLES: Record<ServerTelemetryConnection, string> = {
@@ -152,11 +154,11 @@ export function ServerStatusPanel() {
     >
       {snapshot && (
         <ScrollArea className='h-[34rem]'>
-          <div className='grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2'>
+          <div className='grid grid-cols-1 gap-3 p-3 sm:grid-cols-2'>
             <StatusBlock
               icon={<Cpu className='size-3.5' />}
               title={t('Processor')}
-              className='sm:col-span-2 xl:col-span-1 2xl:col-span-2'
+              className='sm:col-span-2'
             >
               <div className='flex flex-wrap items-end justify-between gap-2'>
                 <div>
@@ -179,7 +181,7 @@ export function ServerStatusPanel() {
                 className='mt-2'
                 aria-label={t('Total CPU usage')}
               />
-              <div className='mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6 xl:grid-cols-3 2xl:grid-cols-6'>
+              <div className='mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6'>
                 {snapshot.cpu.cores.map((core) => (
                   <Metric
                     key={core.id}
@@ -226,7 +228,7 @@ export function ServerStatusPanel() {
             <StatusBlock
               icon={<Server className='size-3.5' />}
               title={t('Docker container status')}
-              className='sm:col-span-2 xl:col-span-1 2xl:col-span-2'
+              className='sm:col-span-2'
             >
               <div className='flex flex-wrap items-center justify-between gap-2'>
                 <div className='text-sm font-semibold'>
@@ -240,7 +242,7 @@ export function ServerStatusPanel() {
                   {healthLabel(snapshot.docker.health, t)}
                 </Badge>
               </div>
-              <div className='mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4'>
+              <div className='mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4'>
                 <Metric
                   label={t('Running')}
                   value={`${snapshot.docker.runningContainers} / ${snapshot.docker.totalContainers}`}

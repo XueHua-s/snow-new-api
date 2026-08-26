@@ -226,6 +226,7 @@ func orderedChannelStatusGroups(groups []string) []string {
 var channelStatusUpgrader = websocket.Upgrader{
 	HandshakeTimeout: 5 * time.Second,
 	CheckOrigin:      isChannelStatusOriginAllowed,
+	Subprotocols:     []string{"new-api-bearer"},
 }
 
 func isChannelStatusOriginAllowed(r *http.Request) bool {

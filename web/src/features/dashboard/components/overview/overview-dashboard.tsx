@@ -750,7 +750,7 @@ export function OverviewDashboard() {
             'grid grid-cols-1 gap-4',
             showLeftContentPanels &&
               showUptimePanel &&
-              'xl:grid-cols-[minmax(0,1fr)_28rem]'
+              'xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)]'
           )}
         >
           {showLeftContentPanels && (
@@ -768,7 +768,7 @@ export function OverviewDashboard() {
             </div>
           )}
           {showUptimePanel && (
-            <CardStaggerItem>
+            <CardStaggerItem className='min-w-0'>
               <ServerStatusPanel />
             </CardStaggerItem>
           )}
