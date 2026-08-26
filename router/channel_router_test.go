@@ -37,6 +37,24 @@ func TestChannelStatusRoutesRegisterWithoutConflict(t *testing.T) {
 	})
 }
 
+func TestChannelBaseRoutesRegisterWithAndWithoutTrailingSlash(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	registerChannelRoutes(engine.Group("/api"))
+
+	routes := make(map[string]struct{})
+	for _, route := range engine.Routes() {
+		routes[route.Method+" "+route.Path] = struct{}{}
+	}
+
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodPut} {
+		for _, path := range []string{"/api/channel", "/api/channel/"} {
+			_, exists := routes[method+" "+path]
+			assert.True(t, exists, "%s %s should be registered", method, path)
+		}
+	}
+}
+
 func assertChannelRoutePermission(t *testing.T, method string, path string, permission authz.Permission, handler any) {
 	t.Helper()
 	for _, route := range channelPermissionRoutes {

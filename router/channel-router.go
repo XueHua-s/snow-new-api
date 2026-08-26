@@ -29,10 +29,16 @@ func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 	)
 
 	for _, route := range channelPermissionRoutes {
-		channelRoute.Handle(route.method, route.path,
-			middleware.RequirePermission(route.permission),
-			route.handler,
-		)
+		paths := []string{route.path}
+		if route.path == "/" {
+			paths = append(paths, "")
+		}
+		for _, path := range paths {
+			channelRoute.Handle(route.method, path,
+				middleware.RequirePermission(route.permission),
+				route.handler,
+			)
+		}
 	}
 }
 
