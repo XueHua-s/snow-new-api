@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/openai"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
+	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )
@@ -57,18 +57,13 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, info *relaycommon.RelayIn
 		info.ReasoningEffort = effort
 	}
 	if !info.IsStream {
-		// The ChatGPT Codex backend requires stream=true. Keep the downstream
-		// mode in RelayInfo and mark the request so DoResponse can aggregate the
-		// upstream SSE stream back into a non-streaming Claude response.
 		aiRequest.Stream = common.GetPointer(true)
 		if c != nil {
 			c.Set(contextKeyCodexForcedUpstreamStream, true)
 		}
 	}
 	if info.SupportStreamOptions && info.IsStream {
-		aiRequest.StreamOptions = &dto.StreamOptions{
-			IncludeUsage: true,
-		}
+		aiRequest.StreamOptions = &dto.StreamOptions{IncludeUsage: true}
 	}
 	return a.ConvertOpenAIRequest(c, info, aiRequest)
 }
@@ -88,7 +83,6 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 	if request == nil {
 		return nil, errors.New("codex channel: request is nil")
 	}
-
 	responsesReq, err := service.ChatCompletionsRequestToResponsesRequest(request)
 	if err != nil {
 		return nil, err
@@ -160,6 +154,8 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 	// rm max_output_tokens
 	request.MaxOutputTokens = nil
 	request.Temperature = nil
+	request.FrequencyPenalty = nil
+	request.PresencePenalty = nil
 	return request, nil
 }
 
@@ -168,34 +164,32 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, request
 }
 
 func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (usage any, err *types.NewAPIError) {
-	if info.RelayMode != relayconstant.RelayModeResponses &&
-		info.RelayMode != relayconstant.RelayModeResponsesCompact &&
-		info.RelayMode != relayconstant.RelayModeChatCompletions &&
-		info.RelayFormat != types.RelayFormatClaude {
+	switch info.RelayMode {
+	case relayconstant.RelayModeAlphaSearch:
+		// Alpha search responses are handled by relay.AlphaSearchHelper.
+		return nil, types.NewError(errors.New("codex channel: alpha search response should be handled by AlphaSearchHelper"), types.ErrorCodeInvalidRequest)
+	case relayconstant.RelayModeResponsesCompact:
+		return openai.OaiResponsesCompactionHandler(c, resp)
+	case relayconstant.RelayModeResponses:
+		if isCodexUpstreamStreamForced(c) {
+			info.IsStream = false
+			return openai.OaiResponsesStreamToChatHandler(c, info, resp)
+		}
+		if info.RelayFormat == types.RelayFormatOpenAI ||
+			info.RelayFormat == types.RelayFormatClaude ||
+			info.RelayMode == relayconstant.RelayModeChatCompletions {
+			if info.IsStream {
+				return openai.OaiResponsesToChatStreamHandler(c, info, resp)
+			}
+			return openai.OaiResponsesToChatHandler(c, info, resp)
+		}
+		if info.IsStream {
+			return openai.OaiResponsesStreamHandler(c, info, resp)
+		}
+		return openai.OaiResponsesHandler(c, info, resp)
+	default:
 		return nil, types.NewError(errors.New("codex channel: endpoint not supported"), types.ErrorCodeInvalidRequest)
 	}
-
-	if info.RelayMode == relayconstant.RelayModeResponsesCompact {
-		return openai.OaiResponsesCompactionHandler(c, resp)
-	}
-	if isCodexUpstreamStreamForced(c) {
-		info.IsStream = false
-		return openai.OaiResponsesStreamToChatHandler(c, info, resp)
-	}
-
-	if info.RelayFormat == types.RelayFormatOpenAI ||
-		info.RelayFormat == types.RelayFormatClaude ||
-		info.RelayMode == relayconstant.RelayModeChatCompletions {
-		if info.IsStream {
-			return openai.OaiResponsesToChatStreamHandler(c, info, resp)
-		}
-		return openai.OaiResponsesToChatHandler(c, info, resp)
-	}
-
-	if info.IsStream {
-		return openai.OaiResponsesStreamHandler(c, info, resp)
-	}
-	return openai.OaiResponsesHandler(c, info, resp)
 }
 
 func (a *Adaptor) GetModelList() []string {
@@ -207,15 +201,20 @@ func (a *Adaptor) GetChannelName() string {
 }
 
 func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
-	path := "/backend-api/codex/responses"
-	switch {
-	case info.RelayMode == relayconstant.RelayModeResponsesCompact:
+	var path string
+	switch info.RelayMode {
+	case relayconstant.RelayModeResponses, relayconstant.RelayModeChatCompletions:
+		path = "/backend-api/codex/responses"
+	case relayconstant.RelayModeResponsesCompact:
 		path = "/backend-api/codex/responses/compact"
-	case info.RelayMode == relayconstant.RelayModeResponses,
-		info.RelayMode == relayconstant.RelayModeChatCompletions,
-		info.RelayFormat == types.RelayFormatClaude:
+	case relayconstant.RelayModeAlphaSearch:
+		path = "/backend-api/codex/alpha/search"
 	default:
-		return "", errors.New("codex channel: only /v1/responses, /v1/responses/compact, /v1/chat/completions and /v1/messages are supported")
+		if info.RelayFormat == types.RelayFormatClaude {
+			path = "/backend-api/codex/responses"
+		} else {
+			return "", errors.New("codex channel: only /v1/responses, /v1/responses/compact, /v1/chat/completions, /v1/messages and /v1/alpha/search are supported")
+		}
 	}
 	return relaycommon.GetFullRequestURL(info.ChannelBaseUrl, path, info.ChannelType), nil
 }

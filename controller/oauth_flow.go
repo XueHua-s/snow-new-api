@@ -17,7 +17,6 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -71,13 +70,7 @@ func startOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 		return
 	}
 
-	session := sessions.Default(c)
 	createdAt := time.Now().Unix()
-	session.Set(oauthSessionKey(cfg, channelID, "state"), flow.State)
-	session.Set(oauthSessionKey(cfg, channelID, "verifier"), flow.Verifier)
-	session.Set(oauthSessionKey(cfg, channelID, "created_at"), createdAt)
-	_ = session.Save()
-
 	flowToken, err := createOAuthFlowToken(cfg, channelID, flow.State, flow.Verifier, createdAt)
 	if err != nil {
 		common.ApiError(c, err)
@@ -125,23 +118,17 @@ func completeOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 		channelProxy = ch.GetSetting().Proxy
 	}
 
-	session := sessions.Default(c)
-	expectedState, _ := session.Get(oauthSessionKey(cfg, channelID, "state")).(string)
-	verifier, _ := session.Get(oauthSessionKey(cfg, channelID, "verifier")).(string)
-	if flowToken, tokenErr := parseOAuthFlowToken(req.FlowToken, cfg, channelID); tokenErr == nil && flowToken.State == state {
-		expectedState = flowToken.State
-		verifier = flowToken.Verifier
-	} else if strings.TrimSpace(req.FlowToken) != "" && tokenErr != nil {
+	flowToken, tokenErr := parseOAuthFlowToken(req.FlowToken, cfg, channelID)
+	if tokenErr != nil {
 		common.SysError("failed to parse " + cfg.logName + " oauth flow token: " + tokenErr.Error())
-	}
-	if strings.TrimSpace(expectedState) == "" || strings.TrimSpace(verifier) == "" {
-		c.JSON(http.StatusOK, gin.H{"success": false, "message": "oauth flow not started or session expired"})
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "oauth flow expired or invalid"})
 		return
 	}
-	if state != expectedState {
+	if state != flowToken.State {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "state mismatch"})
 		return
 	}
+	verifier := flowToken.Verifier
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
 	defer cancel()
@@ -152,11 +139,6 @@ func completeOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "授权码交换失败，请重试"})
 		return
 	}
-
-	session.Delete(oauthSessionKey(cfg, channelID, "state"))
-	session.Delete(oauthSessionKey(cfg, channelID, "verifier"))
-	session.Delete(oauthSessionKey(cfg, channelID, "created_at"))
-	_ = session.Save()
 
 	data := payload.Data
 	if data == nil {
@@ -267,10 +249,6 @@ func parseOAuthStateFragment(fragment string) string {
 		}
 	}
 	return fragment
-}
-
-func oauthSessionKey(cfg oauthFlowConfig, channelID int, field string) string {
-	return fmt.Sprintf("%s_oauth_%s_%d", cfg.sessionPrefix, field, channelID)
 }
 
 func createOAuthFlowToken(cfg oauthFlowConfig, channelID int, state string, verifier string, createdAt int64) (string, error) {

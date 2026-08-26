@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -51,16 +50,20 @@ func RefreshCodexOAuthTokenWithProxy(ctx context.Context, refreshToken string, p
 	return refreshCodexOAuthToken(ctx, client, codexOAuthTokenURL, codexOAuthClientID, refreshToken)
 }
 
-func ExchangeCodexAuthorizationCode(ctx context.Context, code string, verifier string) (*CodexOAuthTokenResult, error) {
-	return ExchangeCodexAuthorizationCodeWithProxy(ctx, code, verifier, "")
-}
-
 func ExchangeCodexAuthorizationCodeWithProxy(ctx context.Context, code string, verifier string, proxyURL string) (*CodexOAuthTokenResult, error) {
 	client, err := getCodexOAuthHTTPClient(proxyURL)
 	if err != nil {
 		return nil, err
 	}
-	return exchangeCodexAuthorizationCode(ctx, client, codexOAuthTokenURL, codexOAuthClientID, code, verifier, codexOAuthRedirectURI)
+	return exchangeCodexAuthorizationCode(
+		ctx,
+		client,
+		codexOAuthTokenURL,
+		codexOAuthClientID,
+		code,
+		verifier,
+		codexOAuthRedirectURI,
+	)
 }
 
 func CreateCodexOAuthAuthorizationFlow() (*CodexOAuthAuthorizationFlow, error) {
@@ -72,7 +75,7 @@ func CreateCodexOAuthAuthorizationFlow() (*CodexOAuthAuthorizationFlow, error) {
 	if err != nil {
 		return nil, err
 	}
-	u, err := buildCodexAuthorizeURL(state, challenge)
+	authorizeURL, err := buildCodexAuthorizeURL(state, challenge)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +83,7 @@ func CreateCodexOAuthAuthorizationFlow() (*CodexOAuthAuthorizationFlow, error) {
 		State:        state,
 		Verifier:     verifier,
 		Challenge:    challenge,
-		AuthorizeURL: u,
+		AuthorizeURL: authorizeURL,
 	}, nil
 }
 
@@ -187,7 +190,8 @@ func exchangeCodexAuthorizationCode(
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("codex oauth code exchange failed: status=%d", resp.StatusCode)
 	}
-	if strings.TrimSpace(payload.AccessToken) == "" || strings.TrimSpace(payload.RefreshToken) == "" || payload.ExpiresIn <= 0 {
+	if strings.TrimSpace(payload.AccessToken) == "" ||
+		strings.TrimSpace(payload.RefreshToken) == "" || payload.ExpiresIn <= 0 {
 		return nil, errors.New("codex oauth token response missing fields")
 	}
 	return &CodexOAuthTokenResult{
@@ -310,7 +314,7 @@ func decodeJWTClaims(token string) (map[string]any, bool) {
 		return nil, false
 	}
 	var claims map[string]any
-	if err := json.Unmarshal(payloadRaw, &claims); err != nil {
+	if err := common.Unmarshal(payloadRaw, &claims); err != nil {
 		return nil, false
 	}
 	return claims, true

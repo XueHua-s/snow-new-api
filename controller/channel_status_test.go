@@ -90,26 +90,32 @@ func TestBuildChannelStatusModelsUsesPricingCatalog(t *testing.T) {
 	}
 
 	filtered := buildChannelStatusModels(models, pricing, vendors)
-	if len(filtered) != 3 {
-		t.Fatalf("filtered model count = %d, want 3", len(filtered))
+	if len(filtered) != 4 {
+		t.Fatalf("filtered model count = %d, want 4", len(filtered))
 	}
-	if filtered[0].Model != "claude-opus-5" || filtered[1].Model != "gpt-5.6-sol" || filtered[2].Model != "deepseek-v4-flash" {
+	if filtered[0].Model != "claude-opus-5" || filtered[0].Section != "普通分组" ||
+		filtered[1].Model != "gpt-5.6-sol" || filtered[1].Section != "普通分组" ||
+		filtered[2].Model != "gpt-5.6-sol" || filtered[2].Section != "PROMAX" ||
+		filtered[3].Model != "deepseek-v4-flash" || filtered[3].Section != "available" {
 		t.Fatalf("unexpected filtered models: %+v", filtered)
 	}
 	if filtered[1].AverageTTFT != 2000 {
-		t.Fatalf("preferred TTFT = %d, want ordinary-group value 2000", filtered[1].AverageTTFT)
+		t.Fatalf("ordinary-group TTFT = %d, want 2000", filtered[1].AverageTTFT)
 	}
-	if filtered[1].Section != "available" || filtered[1].Family != "OpenAI" {
+	if filtered[2].AverageTTFT != 9000 {
+		t.Fatalf("PROMAX TTFT = %d, want 9000", filtered[2].AverageTTFT)
+	}
+	if filtered[1].Family != "OpenAI" || filtered[2].Family != "OpenAI" {
 		t.Fatalf("unexpected normalized GPT model: %+v", filtered[1])
 	}
-	if filtered[0].Family != "Anthropic" || filtered[2].Family != "Venice AI" {
+	if filtered[0].Family != "Anthropic" || filtered[3].Family != "Venice AI" {
 		t.Fatalf("models should use pricing vendors: %+v", filtered)
 	}
 	if strings.Join(filtered[1].Groups, ",") != "default,svip" {
 		t.Fatalf("ordered groups = %v, want [default svip]", filtered[1].Groups)
 	}
-	if filtered[2].RequestState != "no_requests" || filtered[2].Health != "idle" {
-		t.Fatalf("missing telemetry should synthesize idle model: %+v", filtered[2])
+	if filtered[3].RequestState != "no_requests" || filtered[3].Health != "idle" {
+		t.Fatalf("missing telemetry should synthesize idle model: %+v", filtered[3])
 	}
 }
 

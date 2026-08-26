@@ -7,11 +7,13 @@ import (
 	"testing"
 
 	common2 "github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/QuantumNous/new-api/relaykit/types"
 
-	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestApplyParamOverrideTrimPrefix(t *testing.T) {
@@ -1258,6 +1260,116 @@ func TestApplyParamOverrideConditionFromRetryAndLastErrorContext(t *testing.T) {
 	assertJSONEqual(t, `{"temperature":0.1}`, string(out))
 }
 
+func TestApplyParamOverrideConditionByUserAndGPTModel(t *testing.T) {
+	paramOverride := map[string]interface{}{
+		"operations": []interface{}{
+			map[string]interface{}{
+				"path":  "service_tier",
+				"mode":  "set",
+				"value": "priority",
+				"logic": "AND",
+				"conditions": []interface{}{
+					map[string]interface{}{
+						"path":  "user_id",
+						"mode":  "full",
+						"value": 1,
+					},
+					map[string]interface{}{
+						"path":  "upstream_model",
+						"mode":  "contains",
+						"value": "gpt",
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		userID   int
+		model    string
+		expected string
+	}{
+		{
+			name:     "target user and GPT model",
+			userID:   1,
+			model:    "gpt-5.2",
+			expected: `{"model":"gpt-5.2","service_tier":"priority"}`,
+		},
+		{
+			name:     "other user",
+			userID:   2,
+			model:    "gpt-5.2",
+			expected: `{"model":"gpt-5.2"}`,
+		},
+		{
+			name:     "non-GPT model",
+			userID:   1,
+			model:    "claude-sonnet-4-5",
+			expected: `{"model":"claude-sonnet-4-5"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			info := &RelayInfo{
+				UserId: tt.userID,
+				ChannelMeta: &ChannelMeta{
+					ParamOverride:     paramOverride,
+					UpstreamModelName: tt.model,
+				},
+			}
+			input := []byte(fmt.Sprintf(`{"model":%q}`, tt.model))
+
+			out, err := ApplyParamOverrideWithRelayInfo(input, info)
+
+			require.NoError(t, err)
+			require.JSONEq(t, tt.expected, string(out))
+		})
+	}
+}
+
+func TestApplyParamOverrideConditionByGroupContext(t *testing.T) {
+	info := &RelayInfo{
+		UserGroup:  "vip",
+		TokenGroup: "premium",
+		UsingGroup: "priority-route",
+	}
+	ctx := BuildParamOverrideContext(info)
+	paramOverride := map[string]interface{}{
+		"operations": []interface{}{
+			map[string]interface{}{
+				"path":  "service_tier",
+				"mode":  "set",
+				"value": "priority",
+				"logic": "AND",
+				"conditions": []interface{}{
+					map[string]interface{}{
+						"path":  "user_group",
+						"mode":  "full",
+						"value": "vip",
+					},
+					map[string]interface{}{
+						"path":  "token_group",
+						"mode":  "full",
+						"value": "premium",
+					},
+					map[string]interface{}{
+						"path":  "using_group",
+						"mode":  "full",
+						"value": "priority-route",
+					},
+				},
+			},
+		},
+	}
+
+	out, err := ApplyParamOverride([]byte(`{"model":"gpt-5.2"}`), paramOverride, ctx)
+
+	require.NoError(t, err)
+	require.JSONEq(t, `{"model":"gpt-5.2","service_tier":"priority"}`, string(out))
+}
+
 func TestApplyParamOverrideConditionFromRequestHeaders(t *testing.T) {
 	input := []byte(`{"temperature":0.7}`)
 	override := map[string]interface{}{
@@ -2053,6 +2165,17 @@ func TestRemoveDisabledFieldsDefaultFiltering(t *testing.T) {
 	assertJSONEqual(t, `{"cache_control":{"type":"ephemeral"},"store":true}`, string(out))
 }
 
+func TestRemoveDisabledFieldsNoControlledFieldsKeepsBody(t *testing.T) {
+	input := `{"model":"gpt-4o","messages":[{"role":"user","content":"hi"}]}`
+	settings := dto.ChannelOtherSettings{}
+
+	out, err := RemoveDisabledFields([]byte(input), settings, false)
+	if err != nil {
+		t.Fatalf("RemoveDisabledFields returned error: %v", err)
+	}
+	require.Equal(t, input, string(out))
+}
+
 func TestRemoveDisabledFieldsAllowInferenceGeo(t *testing.T) {
 	input := `{
 		"inference_geo":"eu",
@@ -2184,6 +2307,95 @@ func TestApplyParamOverrideWithRelayInfoRecordsOnlyKeyOperationsWhenDebugDisable
 	}
 }
 
+func TestApplyParamOverrideWithRelayInfoRecordsConversationBodyOperationsWhenDebugDisabled(t *testing.T) {
+	originalDebugEnabled := common2.DebugEnabled
+	common2.DebugEnabled = false
+	t.Cleanup(func() {
+		common2.DebugEnabled = originalDebugEnabled
+	})
+
+	info := &RelayInfo{
+		ChannelMeta: &ChannelMeta{
+			ParamOverride: map[string]interface{}{
+				"operations": []interface{}{
+					map[string]interface{}{
+						"mode": "replace",
+						"path": "messages.0.content",
+						"from": "hello",
+						"to":   "hi",
+					},
+					map[string]interface{}{
+						"mode":  "set",
+						"path":  "input.0.content.0.text",
+						"value": "rewritten response input",
+					},
+					map[string]interface{}{
+						"mode":  "set",
+						"path":  "instructions",
+						"value": "new instruction",
+					},
+					map[string]interface{}{
+						"mode":  "append",
+						"path":  "contents.0.parts",
+						"value": map[string]interface{}{"text": "new gemini part"},
+					},
+					map[string]interface{}{
+						"mode": "copy",
+						"from": "system",
+						"to":   "metadata.system_copy",
+					},
+					map[string]interface{}{
+						"mode":  "set",
+						"path":  "temperature",
+						"value": 0.1,
+					},
+				},
+			},
+		},
+	}
+
+	out, err := ApplyParamOverrideWithRelayInfo([]byte(`{
+		"messages":[{"role":"user","content":"hello world"}],
+		"input":[{"role":"user","content":[{"type":"input_text","text":"original response input"}]}],
+		"instructions":"old instruction",
+		"system":"old system",
+		"contents":[{"role":"user","parts":[{"text":"hello gemini"}]}],
+		"temperature":0.7
+	}`), info)
+	require.NoError(t, err)
+	assertJSONEqual(t, `{
+		"messages":[{"role":"user","content":"hi world"}],
+		"input":[{"role":"user","content":[{"type":"input_text","text":"rewritten response input"}]}],
+		"instructions":"new instruction",
+		"system":"old system",
+		"contents":[{"role":"user","parts":[{"text":"hello gemini"},{"text":"new gemini part"}]}],
+		"temperature":0.1,
+		"metadata":{"system_copy":"old system"}
+	}`, string(out))
+
+	require.Equal(t, []string{
+		"replace messages.0.content from hello to hi",
+		"set input.0.content.0.text = rewritten response input",
+		"set instructions = new instruction",
+		"append contents.0.parts with {\"text\":\"new gemini part\"}",
+		"copy system -> metadata.system_copy",
+	}, info.ParamOverrideAudit)
+}
+
+func TestShouldAuditParamPathUsesFieldBoundaryPrefixMatching(t *testing.T) {
+	originalDebugEnabled := common2.DebugEnabled
+	common2.DebugEnabled = false
+	t.Cleanup(func() {
+		common2.DebugEnabled = originalDebugEnabled
+	})
+
+	require.True(t, shouldAuditParamPath("messages"))
+	require.True(t, shouldAuditParamPath("messages.0.content"))
+	require.True(t, shouldAuditParamPath("systemInstruction.parts.0.text"))
+	require.False(t, shouldAuditParamPath("model_name"))
+	require.False(t, shouldAuditParamPath("message"))
+}
+
 func assertJSONEqual(t *testing.T, want, got string) {
 	t.Helper()
 
@@ -2200,4 +2412,114 @@ func assertJSONEqual(t *testing.T, want, got string) {
 	if !reflect.DeepEqual(wantObj, gotObj) {
 		t.Fatalf("json not equal\nwant: %s\ngot:  %s", want, got)
 	}
+}
+
+func TestApplyParamOverrideWithRelayInfoSynchronizesReasoningEffort(t *testing.T) {
+	originalDebugEnabled := common2.DebugEnabled
+	common2.DebugEnabled = false
+	t.Cleanup(func() {
+		common2.DebugEnabled = originalDebugEnabled
+	})
+
+	tests := []struct {
+		name          string
+		relayFormat   types.RelayFormat
+		initialEffort string
+		input         string
+		operation     map[string]interface{}
+		expected      string
+	}{
+		{
+			name:          "Responses set",
+			relayFormat:   types.RelayFormatOpenAIResponses,
+			initialEffort: "high",
+			input:         `{"reasoning":{"effort":"high"}}`,
+			operation:     map[string]interface{}{"mode": "set", "path": "reasoning.effort", "value": "max"},
+			expected:      "max",
+		},
+		{
+			name:          "chat delete",
+			relayFormat:   types.RelayFormatOpenAI,
+			initialEffort: "high",
+			input:         `{"reasoning_effort":"high"}`,
+			operation:     map[string]interface{}{"mode": "delete", "path": "reasoning_effort"},
+			expected:      "",
+		},
+		{
+			name:          "OpenRouter nested set",
+			relayFormat:   types.RelayFormatOpenAI,
+			initialEffort: "medium",
+			input:         `{"reasoning":{"effort":"medium"}}`,
+			operation:     map[string]interface{}{"mode": "set", "path": "reasoning.effort", "value": "xhigh"},
+			expected:      "xhigh",
+		},
+		{
+			name:          "Claude output config set",
+			relayFormat:   types.RelayFormatClaude,
+			initialEffort: "high",
+			input:         `{"output_config":{"effort":"high"}}`,
+			operation:     map[string]interface{}{"mode": "set", "path": "output_config.effort", "value": "max"},
+			expected:      "max",
+		},
+		{
+			name:          "Gemini thinking level set",
+			relayFormat:   types.RelayFormatGemini,
+			initialEffort: "medium",
+			input:         `{"generationConfig":{"thinkingConfig":{"thinkingLevel":"medium"}}}`,
+			operation:     map[string]interface{}{"mode": "set", "path": "generationConfig.thinkingConfig.thinkingLevel", "value": "high"},
+			expected:      "high",
+		},
+		{
+			name:          "non-string value clears effort",
+			relayFormat:   types.RelayFormatOpenAIResponses,
+			initialEffort: "high",
+			input:         `{"reasoning":{"effort":"high"}}`,
+			operation:     map[string]interface{}{"mode": "set", "path": "reasoning.effort", "value": 42},
+			expected:      "",
+		},
+		{
+			name:          "unrelated override preserves converter-derived effort",
+			relayFormat:   types.RelayFormatClaude,
+			initialEffort: "high",
+			input:         `{"thinking":{"type":"adaptive"},"max_tokens":4096}`,
+			operation:     map[string]interface{}{"mode": "set", "path": "max_tokens", "value": 8192},
+			expected:      "high",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			info := &RelayInfo{
+				RelayFormat:     tt.relayFormat,
+				ReasoningEffort: tt.initialEffort,
+				ChannelMeta: &ChannelMeta{ParamOverride: map[string]interface{}{
+					"operations": []interface{}{tt.operation},
+				}},
+			}
+
+			_, err := ApplyParamOverrideWithRelayInfo([]byte(tt.input), info)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, info.ReasoningEffort)
+		})
+	}
+}
+
+func TestReasoningEffortOverrideIsAuditedWithoutDebugMode(t *testing.T) {
+	originalDebugEnabled := common2.DebugEnabled
+	common2.DebugEnabled = false
+	t.Cleanup(func() {
+		common2.DebugEnabled = originalDebugEnabled
+	})
+	info := &RelayInfo{
+		RelayFormat: types.RelayFormatOpenAIResponses,
+		ChannelMeta: &ChannelMeta{ParamOverride: map[string]interface{}{
+			"operations": []interface{}{
+				map[string]interface{}{"mode": "set", "path": "reasoning.effort", "value": "max"},
+			},
+		}},
+	}
+
+	_, err := ApplyParamOverrideWithRelayInfo([]byte(`{"reasoning":{"effort":"high"}}`), info)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"set reasoning.effort = max"}, info.ParamOverrideAudit)
 }

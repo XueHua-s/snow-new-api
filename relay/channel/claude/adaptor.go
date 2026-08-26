@@ -11,13 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/relay/channel"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/relaykit/relayconvert"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )
@@ -97,9 +99,13 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	}
 	req.Set("anthropic-version", anthropicVersion)
 	CommonClaudeHeadersOperation(c, req, info)
-
-	if strings.HasPrefix(strings.TrimSpace(info.ApiKey), "{") {
-		oauthKey, err := service.EnsureClaudeOAuthCredential(c.Request.Context(), info.ChannelId, info.ApiKey, info.ChannelSetting.Proxy)
+	if isClaudeOAuthRequest(info) {
+		oauthKey, err := service.EnsureClaudeOAuthCredential(
+			c.Request.Context(),
+			info.ChannelId,
+			info.ApiKey,
+			info.ChannelSetting.Proxy,
+		)
 		if err != nil {
 			return err
 		}
@@ -109,7 +115,6 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 		ensureClaudeOAuthHeaders(req)
 		return nil
 	}
-
 	req.Set("x-api-key", info.ApiKey)
 	return nil
 }
@@ -119,11 +124,9 @@ func passClaudeOAuthClientHeaders(c *gin.Context, req *http.Header) {
 		return
 	}
 	for _, name := range operation_setting.ClaudeCliPassThroughHeaders() {
-		value := strings.TrimSpace(c.Request.Header.Get(name))
-		if value == "" {
-			continue
+		if value := strings.TrimSpace(c.Request.Header.Get(name)); value != "" {
+			req.Set(name, value)
 		}
-		req.Set(name, value)
 	}
 }
 
@@ -131,18 +134,15 @@ func ensureClaudeOAuthHeaders(req *http.Header) {
 	if strings.TrimSpace(req.Get("user-agent")) == "" {
 		req.Set("user-agent", service.ClaudeOAuthUserAgent)
 	}
-	current := strings.TrimSpace(req.Get("anthropic-beta"))
 	seen := map[string]struct{}{}
 	parts := make([]string, 0, len(service.ClaudeOAuthBetaHeaders)+1)
-	if current != "" {
-		for _, part := range strings.Split(current, ",") {
-			part = strings.TrimSpace(part)
-			if part == "" {
-				continue
-			}
-			seen[part] = struct{}{}
-			parts = append(parts, part)
+	for _, part := range strings.Split(req.Get("anthropic-beta"), ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
 		}
+		seen[part] = struct{}{}
+		parts = append(parts, part)
 	}
 	for _, beta := range service.ClaudeOAuthBetaHeaders {
 		if _, ok := seen[beta]; ok {
@@ -157,7 +157,11 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 	if request == nil {
 		return nil, errors.New("request is nil")
 	}
-	return RequestOpenAI2ClaudeMessage(c, *request)
+	result, err := relayconvert.ConvertRequest(c, info, types.RelayFormatClaude, request)
+	if err != nil {
+		return nil, err
+	}
+	return result.Value, nil
 }
 
 func (a *Adaptor) ConvertRerankRequest(c *gin.Context, relayMode int, request dto.RerankRequest) (any, error) {
@@ -191,8 +195,7 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, request
 	var lastResp *http.Response
 	for attempt := 0; attempt <= claudeOAuthRateLimitMaxRetries; attempt++ {
 		if attempt > 0 {
-			wait := claudeOAuthRateLimitRetryDelay(lastResp, attempt)
-			timer := time.NewTimer(wait)
+			timer := time.NewTimer(claudeOAuthRateLimitRetryDelay(lastResp, attempt))
 			select {
 			case <-timer.C:
 			case <-c.Request.Context().Done():
@@ -208,16 +211,14 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, request
 		if resp == nil || resp.StatusCode != http.StatusTooManyRequests || attempt == claudeOAuthRateLimitMaxRetries {
 			return resp, nil
 		}
-
 		lastResp = resp
 		service.CloseResponseBodyGracefully(resp)
 	}
-
 	return lastResp, nil
 }
 
 func isClaudeOAuthRequest(info *relaycommon.RelayInfo) bool {
-	return info != nil && strings.HasPrefix(strings.TrimSpace(info.ApiKey), "{")
+	return info != nil && info.ChannelType == constant.ChannelTypeClaudeOAuth
 }
 
 func claudeOAuthRateLimitRetryDelay(resp *http.Response, attempt int) time.Duration {

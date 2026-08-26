@@ -57,7 +57,7 @@ func GetUsageLeaderboardBuckets(startTime int64, endTime int64, bucketSize int64
 }
 
 func usageLeaderboardBucketExpr(bucketSize int64, timezoneOffset int64) string {
-	if common.UsingMySQL {
+	if common.UsingMainDatabase(common.DatabaseTypeMySQL) {
 		return fmt.Sprintf("FLOOR((quota_data.created_at + %d) / %d) * %d - %d", timezoneOffset, bucketSize, bucketSize, timezoneOffset)
 	}
 	return fmt.Sprintf("((quota_data.created_at + %d) / %d) * %d - %d", timezoneOffset, bucketSize, bucketSize, timezoneOffset)

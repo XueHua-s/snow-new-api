@@ -84,34 +84,40 @@ func buildChannelStatusModels(
 	pricing []model.Pricing,
 	vendors []model.PricingVendor,
 ) []ChannelStatusModel {
-	preferredTelemetry := make(map[string]ChannelStatusModel, len(models))
-	for _, item := range models {
-		current, exists := preferredTelemetry[item.Model]
-		if !exists || (item.Section == "普通分组" && current.Section != "普通分组") {
-			preferredTelemetry[item.Model] = item
-		}
-	}
-
-	catalog := append([]model.Pricing(nil), pricing...)
-	sort.Slice(catalog, func(left, right int) bool {
-		return catalog[left].ModelName < catalog[right].ModelName
-	})
 	vendorNames := make(map[int]string, len(vendors))
 	for _, vendor := range vendors {
 		vendorNames[vendor.ID] = vendor.Name
 	}
 
-	result := make([]ChannelStatusModel, 0, len(catalog))
-	for _, pricingItem := range catalog {
-		item, exists := preferredTelemetry[pricingItem.ModelName]
-		if !exists {
-			item = ChannelStatusModel{
-				Model:        pricingItem.ModelName,
-				Health:       "idle",
-				RequestState: "no_requests",
-			}
+	catalog := make(map[string]model.Pricing, len(pricing))
+	catalogModelNames := make([]string, 0, len(pricing))
+	for _, pricingItem := range pricing {
+		if _, exists := catalog[pricingItem.ModelName]; !exists {
+			catalogModelNames = append(catalogModelNames, pricingItem.ModelName)
 		}
-		item.Section = "available"
+		catalog[pricingItem.ModelName] = pricingItem
+	}
+	sort.Strings(catalogModelNames)
+
+	result := make([]ChannelStatusModel, 0, len(models)+len(catalog))
+	modelsWithTelemetry := make(map[string]struct{}, len(models))
+	seenSectionModels := make(map[string]struct{}, len(models))
+	for _, item := range models {
+		pricingItem, exists := catalog[item.Model]
+		if !exists {
+			continue
+		}
+
+		item.Section = strings.TrimSpace(item.Section)
+		if item.Section == "" {
+			item.Section = "available"
+		}
+		sectionModelKey := item.Section + "\x00" + item.Model
+		if _, exists = seenSectionModels[sectionModelKey]; exists {
+			continue
+		}
+		seenSectionModels[sectionModelKey] = struct{}{}
+		modelsWithTelemetry[item.Model] = struct{}{}
 		item.Family = vendorNames[pricingItem.VendorID]
 		if item.Family == "" {
 			item.Family = channelStatusFamily(pricingItem.ModelName)
@@ -120,15 +126,56 @@ func buildChannelStatusModels(
 		result = append(result, item)
 	}
 
+	for _, modelName := range catalogModelNames {
+		if _, exists := modelsWithTelemetry[modelName]; exists {
+			continue
+		}
+		pricingItem := catalog[modelName]
+		family := vendorNames[pricingItem.VendorID]
+		if family == "" {
+			family = channelStatusFamily(modelName)
+		}
+		result = append(result, ChannelStatusModel{
+			Model:        modelName,
+			Section:      "available",
+			Family:       family,
+			Health:       "idle",
+			RequestState: "no_requests",
+			Groups:       orderedChannelStatusGroups(pricingItem.EnableGroup),
+		})
+	}
+
 	sort.SliceStable(result, func(left, right int) bool {
+		leftSectionRank := channelStatusSectionRank(result[left].Section)
+		rightSectionRank := channelStatusSectionRank(result[right].Section)
+		if leftSectionRank != rightSectionRank {
+			return leftSectionRank < rightSectionRank
+		}
+		if result[left].Section != result[right].Section {
+			return result[left].Section < result[right].Section
+		}
 		leftRank := channelStatusFamilyRank(result[left].Family)
 		rightRank := channelStatusFamilyRank(result[right].Family)
 		if leftRank != rightRank {
 			return leftRank < rightRank
 		}
+		if result[left].Family != result[right].Family {
+			return result[left].Family < result[right].Family
+		}
 		return result[left].Model < result[right].Model
 	})
 	return result
+}
+
+func channelStatusSectionRank(section string) int {
+	switch section {
+	case "普通分组":
+		return 0
+	case "available":
+		return 2
+	default:
+		return 1
+	}
 }
 
 func channelStatusFamily(modelName string) string {

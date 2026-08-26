@@ -8,11 +8,15 @@ import (
 )
 
 func TestUsageLeaderboardBucketExprQualifiesCreatedAt(t *testing.T) {
-	originalUsingMySQL := common.UsingMySQL
-	t.Cleanup(func() { common.UsingMySQL = originalUsingMySQL })
+	originalDatabaseType := common.MainDatabaseType()
+	t.Cleanup(func() { common.SetMainDatabaseType(originalDatabaseType) })
 
 	for _, usingMySQL := range []bool{false, true} {
-		common.UsingMySQL = usingMySQL
+		if usingMySQL {
+			common.SetMainDatabaseType(common.DatabaseTypeMySQL)
+		} else {
+			common.SetMainDatabaseType(common.DatabaseTypeSQLite)
+		}
 		expression := usageLeaderboardBucketExpr(7200, 8*3600)
 		if !strings.Contains(expression, "quota_data.created_at") {
 			t.Fatalf("bucket expression must qualify created_at, got %q", expression)

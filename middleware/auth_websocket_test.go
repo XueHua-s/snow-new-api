@@ -1,103 +1,97 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
-
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 )
 
-func newWebSocketAuthTestRouter() *gin.Engine {
+func newWebSocketAuthTestRouter(t *testing.T) (*gin.Engine, string, string) {
+	t.Helper()
+	setupDashboardAuthMiddlewareTest(t)
 	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.Use(sessions.Sessions("session", cookie.NewStore([]byte("websocket-auth-test"))))
 
-	setSession := func(role int) gin.HandlerFunc {
-		return func(c *gin.Context) {
-			session := sessions.Default(c)
-			session.Set("username", "tester")
-			session.Set("role", role)
-			session.Set("id", 1)
-			session.Set("status", common.UserStatusEnabled)
-			if err := session.Save(); err != nil {
-				c.Status(http.StatusInternalServerError)
-				return
-			}
-			c.Status(http.StatusNoContent)
+	createToken := func(role int, suffix string) string {
+		accessToken := "pat-" + suffix
+		user := &model.User{
+			Username:    "websocket-" + suffix,
+			Password:    "password-placeholder",
+			Role:        role,
+			Status:      common.UserStatusEnabled,
+			Group:       "default",
+			AccessToken: &accessToken,
+			AuthVersion: 1,
+			AffCode:     "websocket-aff-" + suffix,
 		}
+		require.NoError(t, model.DB.Create(user).Error)
+		bundle, err := service.CreateLoginSession(
+			user.Id,
+			"password",
+			"127.0.0.1",
+			"websocket-test",
+		)
+		require.NoError(t, err)
+		return bundle.AccessToken
 	}
 
-	router.GET("/login-admin", setSession(common.RoleAdminUser))
-	router.GET("/login-user", setSession(common.RoleCommonUser))
+	router := gin.New()
 	router.GET("/protected", WebSocketAdminAuth(), func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": true})
 	})
 	router.GET("/protected-user", WebSocketUserAuth(), func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": true})
 	})
-	return router
+	return router,
+		createToken(common.RoleAdminUser, "admin"),
+		createToken(common.RoleCommonUser, "user")
 }
 
-func sessionCookie(t *testing.T, router http.Handler, path string) *http.Cookie {
-	t.Helper()
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, path, nil)
-	router.ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusNoContent {
-		t.Fatalf("session setup status = %d", recorder.Code)
-	}
-	cookies := recorder.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("session setup returned %d cookies, want 1", len(cookies))
-	}
-	return cookies[0]
+func addWebSocketToken(request *http.Request, token string) {
+	request.Header.Set(
+		"Sec-WebSocket-Protocol",
+		fmt.Sprintf("new-api-bearer, %s", token),
+	)
 }
 
 func TestWebSocketAdminAuth(t *testing.T) {
-	router := newWebSocketAuthTestRouter()
+	router, adminToken, userToken := newWebSocketAuthTestRouter(t)
 
-	t.Run("accepts admin session without custom header", func(t *testing.T) {
+	t.Run("accepts admin access token", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, "/protected", nil)
-		request.AddCookie(sessionCookie(t, router, "/login-admin"))
+		addWebSocketToken(request, adminToken)
 		router.ServeHTTP(recorder, request)
-		if recorder.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
-		}
+		require.Equal(t, http.StatusOK, recorder.Code)
 	})
 
-	t.Run("rejects non-admin session", func(t *testing.T) {
+	t.Run("rejects non-admin access token", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, "/protected", nil)
-		request.AddCookie(sessionCookie(t, router, "/login-user"))
+		addWebSocketToken(request, userToken)
 		router.ServeHTTP(recorder, request)
-		if recorder.Code != http.StatusForbidden {
-			t.Fatalf("status = %d, want %d", recorder.Code, http.StatusForbidden)
-		}
+		require.Equal(t, http.StatusForbidden, recorder.Code)
 	})
 
-	t.Run("rejects missing session", func(t *testing.T) {
+	t.Run("rejects missing token", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, "/protected", nil)
 		router.ServeHTTP(recorder, request)
-		if recorder.Code != http.StatusUnauthorized {
-			t.Fatalf("status = %d, want %d", recorder.Code, http.StatusUnauthorized)
-		}
+		require.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 }
 
 func TestWebSocketUserAuthAcceptsCommonUser(t *testing.T) {
-	router := newWebSocketAuthTestRouter()
+	router, _, userToken := newWebSocketAuthTestRouter(t)
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/protected-user", nil)
-	request.AddCookie(sessionCookie(t, router, "/login-user"))
+	addWebSocketToken(request, userToken)
 	router.ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
-	}
+	require.Equal(t, http.StatusOK, recorder.Code)
 }

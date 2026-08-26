@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/QuantumNous/new-api/constant"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
@@ -47,6 +48,7 @@ func TestClaudeOAuthDoRequestRetriesRateLimit(t *testing.T) {
 		RequestURLPath: "/v1/messages",
 		ChannelMeta: &relaycommon.ChannelMeta{
 			ChannelBaseUrl: server.URL,
+			ChannelType:    constant.ChannelTypeClaudeOAuth,
 			ApiKey:         `{"type":"claude_oauth","access_token":"test-access-token"}`,
 		},
 	}
@@ -77,7 +79,8 @@ func TestClaudeOAuthSetupRequestHeaderPassesClientHeaders(t *testing.T) {
 
 	info := &relaycommon.RelayInfo{
 		ChannelMeta: &relaycommon.ChannelMeta{
-			ApiKey: `{"type":"claude_oauth","access_token":"test-access-token"}`,
+			ChannelType: constant.ChannelTypeClaudeOAuth,
+			ApiKey:      `{"type":"claude_oauth","access_token":"test-access-token"}`,
 		},
 	}
 	header := http.Header{}
@@ -106,7 +109,8 @@ func TestClaudeOAuthSetupRequestHeaderUsesDefaultUserAgentWhenClientOmitsIt(t *t
 
 	info := &relaycommon.RelayInfo{
 		ChannelMeta: &relaycommon.ChannelMeta{
-			ApiKey: `{"type":"claude_oauth","access_token":"test-access-token"}`,
+			ChannelType: constant.ChannelTypeClaudeOAuth,
+			ApiKey:      `{"type":"claude_oauth","access_token":"test-access-token"}`,
 		},
 	}
 	header := http.Header{}

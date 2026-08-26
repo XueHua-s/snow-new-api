@@ -3,7 +3,7 @@ package codex
 import (
 	"strings"
 
-	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/relaykit/dto"
 )
 
 // Claude Code can express reasoning either as a named effort in
