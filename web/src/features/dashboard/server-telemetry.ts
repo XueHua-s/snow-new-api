@@ -48,8 +48,21 @@ export type ServerNetwork = {
   sentBytesPerSecond: number
 }
 
+export type ServerDisk = {
+  id: string
+  label: string
+  model: string
+  capacityBytes: number
+  usedBytes: number
+  usagePercent: number
+  readBytes: number
+  writtenBytes: number
+  readBytesPerSecond: number
+  writtenBytesPerSecond: number
+}
+
 export type ServerTelemetrySnapshot = {
-  schemaVersion: 4
+  schemaVersion: 4 | 5
   generatedAtEpochSeconds: number
   system: {
     hostname: string
@@ -78,6 +91,7 @@ export type ServerTelemetrySnapshot = {
     unmonitoredContainers: number
   }
   storagePools: ServerStoragePool[]
+  disks?: ServerDisk[]
   networks: ServerNetwork[]
 }
 
@@ -137,10 +151,31 @@ function isNetwork(value: unknown): value is ServerNetwork {
   )
 }
 
+function isDisk(value: unknown): value is ServerDisk {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.label === 'string' &&
+    typeof value.model === 'string' &&
+    isFiniteNumber(value.capacityBytes) &&
+    isFiniteNumber(value.usedBytes) &&
+    isFiniteNumber(value.usagePercent) &&
+    isFiniteNumber(value.readBytes) &&
+    isFiniteNumber(value.writtenBytes) &&
+    isFiniteNumber(value.readBytesPerSecond) &&
+    isFiniteNumber(value.writtenBytesPerSecond)
+  )
+}
+
 export function isServerTelemetrySnapshot(
   value: unknown
 ): value is ServerTelemetrySnapshot {
-  if (!isRecord(value) || value.schemaVersion !== 4) return false
+  if (
+    !isRecord(value) ||
+    (value.schemaVersion !== 4 && value.schemaVersion !== 5)
+  ) {
+    return false
+  }
 
   const system = value.system
   const cpu = value.cpu
@@ -174,6 +209,9 @@ export function isServerTelemetrySnapshot(
     isFiniteNumber(docker.unmonitoredContainers) &&
     Array.isArray(value.storagePools) &&
     value.storagePools.every(isStoragePool) &&
+    (value.disks === undefined
+      ? value.schemaVersion === 4
+      : Array.isArray(value.disks) && value.disks.every(isDisk)) &&
     Array.isArray(value.networks) &&
     value.networks.every(isNetwork)
   )
