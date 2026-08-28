@@ -536,6 +536,29 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
   }
 
   columns.push({
+    accessorKey: 'ip',
+    header: t('IP'),
+    cell: ({ row }) => {
+      const ip = row.original.ip?.trim()
+      if (!ip) {
+        return <span className='text-muted-foreground/40'>—</span>
+      }
+
+      return (
+        <StatusBadge
+          label={ip}
+          copyText={ip}
+          size='sm'
+          showDot={false}
+          className='max-w-[180px] font-mono'
+        />
+      )
+    },
+    enableHiding: false,
+    size: 150,
+  })
+
+  columns.push({
     accessorKey: 'token_name',
     header: t('Token'),
     cell: function TokenNameCell({ row }) {
