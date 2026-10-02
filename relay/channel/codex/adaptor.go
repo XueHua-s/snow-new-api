@@ -73,7 +73,56 @@ func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInf
 }
 
 func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.ImageRequest) (any, error) {
-	return nil, errors.New("codex channel: endpoint not supported")
+	if info == nil {
+		return nil, errors.New("codex channel: relay info is nil")
+	}
+	if info.RelayMode != relayconstant.RelayModeImagesGenerations {
+		return nil, errors.New("codex channel: image edits are not supported yet")
+	}
+	if request.Stream != nil && *request.Stream {
+		return nil, errors.New("codex channel: streaming image API compatibility is not supported yet; use /v1/responses for native streaming")
+	}
+	if request.N != nil && *request.N > 1 {
+		return nil, errors.New("codex channel: native imagegen supports one image per request; send separate requests for n > 1")
+	}
+
+	model := strings.TrimSpace(request.Model)
+	if model == "" || isCodexImageModelAlias(model) {
+		model = codexImageToolHostModel
+	}
+	input, err := common.Marshal([]any{
+		map[string]any{
+			"role": "user",
+			"content": []any{
+				map[string]any{"type": "input_text", "text": request.Prompt},
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	tools, err := common.Marshal([]any{buildCodexImageGenerationTool(request)})
+	if err != nil {
+		return nil, err
+	}
+	toolChoice, err := common.Marshal(map[string]any{"type": "image_generation"})
+	if err != nil {
+		return nil, err
+	}
+
+	stream := true
+	if c != nil {
+		c.Set(contextKeyCodexForcedUpstreamStream, true)
+	}
+	return dto.OpenAIResponsesRequest{
+		Model:        model,
+		Input:        input,
+		Instructions: json.RawMessage(`""`),
+		Tools:        tools,
+		ToolChoice:   toolChoice,
+		Stream:       &stream,
+		Store:        json.RawMessage("false"),
+	}, nil
 }
 
 func (a *Adaptor) Init(info *relaycommon.RelayInfo) {
@@ -104,6 +153,23 @@ func (a *Adaptor) ConvertEmbeddingRequest(c *gin.Context, info *relaycommon.Rela
 
 func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.OpenAIResponsesRequest) (any, error) {
 	isCompact := info != nil && info.RelayMode == relayconstant.RelayModeResponsesCompact
+
+	requestedModel := strings.TrimSpace(request.Model)
+	if info != nil && strings.TrimSpace(info.OriginModelName) != "" {
+		requestedModel = strings.TrimSpace(info.OriginModelName)
+	}
+	if baseModel, fast := codexFastBaseModel(requestedModel); fast {
+		upstreamModel := strings.TrimSpace(request.Model)
+		if upstreamModel == "" || upstreamModel == requestedModel {
+			upstreamModel = baseModel
+		}
+		request.Model = upstreamModel
+		request.ServiceTier = codexFastServiceTier
+		if info != nil && info.ChannelMeta != nil {
+			info.UpstreamModelName = upstreamModel
+			info.ChannelOtherSettings.AllowServiceTier = true
+		}
+	}
 
 	if info != nil && info.ChannelSetting.SystemPrompt != "" {
 		systemPrompt := info.ChannelSetting.SystemPrompt
@@ -187,6 +253,8 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 			return openai.OaiResponsesStreamHandler(c, info, resp)
 		}
 		return openai.OaiResponsesHandler(c, info, resp)
+	case relayconstant.RelayModeImagesGenerations:
+		return codexImageGenerationHandler(c, resp)
 	default:
 		return nil, types.NewError(errors.New("codex channel: endpoint not supported"), types.ErrorCodeInvalidRequest)
 	}
@@ -209,6 +277,8 @@ func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 		path = "/backend-api/codex/responses/compact"
 	case relayconstant.RelayModeAlphaSearch:
 		path = "/backend-api/codex/alpha/search"
+	case relayconstant.RelayModeImagesGenerations:
+		path = "/backend-api/codex/responses"
 	default:
 		if info.RelayFormat == types.RelayFormatClaude {
 			path = "/backend-api/codex/responses"
@@ -256,6 +326,13 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	// Clients may omit it or include parameters like `application/json; charset=utf-8`,
 	// which can be rejected by the upstream. Force the exact media type.
 	req.Set("Content-Type", "application/json")
+	if baseModel, fast := codexFastBaseModel(strings.TrimSpace(info.OriginModelName)); fast {
+		upstreamModel := strings.TrimSpace(info.UpstreamModelName)
+		if upstreamModel == "" || upstreamModel == strings.TrimSpace(info.OriginModelName) {
+			upstreamModel = baseModel
+		}
+		req.Set("x-codex-routing-hint", "model="+upstreamModel+";tier="+codexFastServiceTier)
+	}
 	if info.IsStream || isCodexUpstreamStreamForced(c) {
 		req.Set("Accept", "text/event-stream")
 	} else if req.Get("Accept") == "" {

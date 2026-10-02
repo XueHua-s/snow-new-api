@@ -18,6 +18,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 )
 
 func TestConvertOpenAIRequestConvertsChatCompletionsToResponses(t *testing.T) {
@@ -56,6 +57,81 @@ func TestConvertOpenAIRequestConvertsChatCompletionsToResponses(t *testing.T) {
 	var instructions string
 	require.NoError(t, common.Unmarshal(responsesReq.Instructions, &instructions))
 	require.Equal(t, "Be concise.", instructions)
+}
+
+func TestConvertOpenAIResponsesRequestEnablesNativeFastMode(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		originModel   string
+		requestModel  string
+		upstreamModel string
+		wantModel     string
+	}{
+		{
+			name:          "mapped fast alias",
+			originModel:   "gpt-5.6-fast",
+			requestModel:  "gpt-5.6-sol",
+			upstreamModel: "gpt-5.6-sol",
+			wantModel:     "gpt-5.6-sol",
+		},
+		{
+			name:          "native fast alias without channel mapping",
+			originModel:   "gpt-5.6-terra-fast",
+			requestModel:  "gpt-5.6-terra-fast",
+			upstreamModel: "gpt-5.6-terra-fast",
+			wantModel:     "gpt-5.6-terra",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			info := &relaycommon.RelayInfo{
+				OriginModelName: tt.originModel,
+				ChannelMeta: &relaycommon.ChannelMeta{
+					UpstreamModelName: tt.upstreamModel,
+				},
+			}
+			converted, err := (&Adaptor{}).ConvertOpenAIResponsesRequest(nil, info, dto.OpenAIResponsesRequest{
+				Model: tt.requestModel,
+			})
+
+			require.NoError(t, err)
+			request := converted.(dto.OpenAIResponsesRequest)
+			require.Equal(t, tt.wantModel, request.Model)
+			require.Equal(t, codexFastServiceTier, request.ServiceTier)
+			require.Equal(t, tt.wantModel, info.UpstreamModelName)
+			require.True(t, info.ChannelOtherSettings.AllowServiceTier)
+
+			body, err := common.Marshal(request)
+			require.NoError(t, err)
+			body, err = relaycommon.RemoveDisabledFields(body, info.ChannelOtherSettings, false)
+			require.NoError(t, err)
+			require.Equal(t, codexFastServiceTier, gjson.GetBytes(body, "service_tier").String())
+		})
+	}
+}
+
+func TestSetupRequestHeaderAddsNativeFastRoutingHint(t *testing.T) {
+	t.Parallel()
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "gpt-5.6-luna-fast",
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ApiKey:            `{"access_token":"token","account_id":"account"}`,
+			UpstreamModelName: "gpt-5.6-luna",
+		},
+	}
+	header := make(http.Header)
+
+	require.NoError(t, (&Adaptor{}).SetupRequestHeader(ctx, &header, info))
+	require.Equal(t, "model=gpt-5.6-luna;tier=priority", header.Get("x-codex-routing-hint"))
 }
 
 func TestConvertOpenAIRequestReturnsErrorForInvalidChatRequest(t *testing.T) {
