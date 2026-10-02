@@ -21,7 +21,7 @@ const maxCodexImageEventBytes = 64 << 20
 
 func isCodexImageModelAlias(model string) bool {
 	switch strings.ToLower(strings.TrimSpace(model)) {
-	case "gpt-image-2-codex", "chatgpt-image-latest", "imagegen":
+	case "gpt-image-2-codex", "chatgpt-image-latest", "imagegen", "gpt-image-2.5":
 		return true
 	default:
 		return false

@@ -112,6 +112,7 @@ var defaultModelRatio = map[string]float64{
 	"gpt-image-2-codex":                         0.625,
 	"chatgpt-image-latest":                      0.625,
 	"imagegen":                                  0.625,
+	"gpt-image-2.5":                              0.625,
 	"gpt-3.5-turbo":                             0.25,
 	"gpt-3.5-turbo-0613":                        0.75,
 	"gpt-3.5-turbo-16k":                         1.5, // $0.003 / 1K tokens

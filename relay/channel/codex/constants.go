@@ -32,6 +32,7 @@ var ModelList = []string{
 	"gpt-image-2-codex",
 	"chatgpt-image-latest",
 	"imagegen",
+	"gpt-image-2.5",
 }
 
 func codexFastBaseModel(model string) (string, bool) {
