@@ -6,6 +6,10 @@ const (
 )
 
 var codexFastModelAliases = map[string]string{
+	"gpt-6-fast":         "gpt-6-sol",
+	"gpt-6-sol-fast":     "gpt-6-sol",
+	"gpt-6-luna-fast":    "gpt-6-luna",
+	"gpt-6-astra-fast":   "gpt-6-astra",
 	"gpt-5.6-fast":       "gpt-5.6-sol",
 	"gpt-5.6-sol-fast":   "gpt-5.6-sol",
 	"gpt-5.6-terra-fast": "gpt-5.6-terra",
@@ -15,6 +19,13 @@ var codexFastModelAliases = map[string]string{
 }
 
 var ModelList = []string{
+	"gpt-6-sol",
+	"gpt-6-luna",
+	"gpt-6-astra",
+	"gpt-6-fast",
+	"gpt-6-sol-fast",
+	"gpt-6-luna-fast",
+	"gpt-6-astra-fast",
 	"gpt-5.6-sol",
 	"gpt-5.6-terra",
 	"gpt-5.6-luna",

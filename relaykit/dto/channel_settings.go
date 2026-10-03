@@ -11,12 +11,15 @@ import (
 )
 
 type ChannelSettings struct {
-	ForceFormat            bool   `json:"force_format,omitempty"`
-	ThinkingToContent      bool   `json:"thinking_to_content,omitempty"`
-	Proxy                  string `json:"proxy"`
-	PassThroughBodyEnabled bool   `json:"pass_through_body_enabled,omitempty"`
-	SystemPrompt           string `json:"system_prompt,omitempty"`
-	SystemPromptOverride   bool   `json:"system_prompt_override,omitempty"`
+	// ResponseHeaderTimeoutSeconds bounds the wait for upstream headers, not the response body.
+	// Zero preserves the default unlimited header wait; maximum is one hour.
+	ResponseHeaderTimeoutSeconds int    `json:"response_header_timeout_seconds,omitempty"`
+	ForceFormat                  bool   `json:"force_format,omitempty"`
+	ThinkingToContent            bool   `json:"thinking_to_content,omitempty"`
+	Proxy                        string `json:"proxy"`
+	PassThroughBodyEnabled       bool   `json:"pass_through_body_enabled,omitempty"`
+	SystemPrompt                 string `json:"system_prompt,omitempty"`
+	SystemPromptOverride         bool   `json:"system_prompt_override,omitempty"`
 	// HTTPProtocol controls outbound HTTP version negotiation for this channel.
 	// Accepted values: "", "auto" (default), "http1".
 	HTTPProtocol string `json:"http_protocol,omitempty"`
@@ -35,6 +38,9 @@ const (
 func (s *ChannelSettings) ValidateHTTPTransport() error {
 	if s == nil {
 		return nil
+	}
+	if s.ResponseHeaderTimeoutSeconds < 0 || s.ResponseHeaderTimeoutSeconds > 3600 {
+		return fmt.Errorf("invalid response_header_timeout_seconds: %d", s.ResponseHeaderTimeoutSeconds)
 	}
 	protocol := strings.ToLower(strings.TrimSpace(s.HTTPProtocol))
 	switch protocol {

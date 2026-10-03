@@ -13,8 +13,9 @@ import (
 // HTTPTransportPolicy is the runtime-normalized outbound HTTP transport policy
 // for a channel. Unknown or out-of-range stored values are clamped safely.
 type HTTPTransportPolicy struct {
-	Protocol string // dto.HTTPProtocolAuto or dto.HTTPProtocolHTTP1
-	Shards   int    // 1..dto.MaxHTTP2ConnectionShards
+	ResponseHeaderTimeoutSeconds int
+	Protocol                     string // dto.HTTPProtocolAuto or dto.HTTPProtocolHTTP1
+	Shards                       int    // 1..dto.MaxHTTP2ConnectionShards
 }
 
 var httpTransportPolicyWarnings sync.Map
@@ -30,6 +31,11 @@ func defaultHTTPTransportPolicy() HTTPTransportPolicy {
 // Invalid stored values never panic; they clamp to defaults and warn once per bad value.
 func NormalizeHTTPTransportPolicy(settings dto.ChannelSettings) HTTPTransportPolicy {
 	policy := defaultHTTPTransportPolicy()
+	if seconds := settings.ResponseHeaderTimeoutSeconds; seconds >= 0 && seconds <= 3600 {
+		policy.ResponseHeaderTimeoutSeconds = seconds
+	} else {
+		warnHTTPTransportPolicyOnce("response_header_timeout_seconds", fmt.Sprintf("%d", seconds))
+	}
 
 	protocol := strings.ToLower(strings.TrimSpace(settings.HTTPProtocol))
 	switch protocol {
@@ -83,7 +89,11 @@ func warnHTTPTransportPolicyOnce(field, value string) {
 }
 
 func (p HTTPTransportPolicy) cacheKeyPart() string {
-	return fmt.Sprintf("%s|%d", p.Protocol, p.Shards)
+	key := fmt.Sprintf("%s|%d", p.Protocol, p.Shards)
+	if p.ResponseHeaderTimeoutSeconds > 0 {
+		key += fmt.Sprintf("|headers=%d", p.ResponseHeaderTimeoutSeconds)
+	}
+	return key
 }
 
 func (p HTTPTransportPolicy) String() string {

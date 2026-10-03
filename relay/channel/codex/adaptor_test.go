@@ -70,6 +70,62 @@ func TestConvertOpenAIResponsesRequestEnablesNativeFastMode(t *testing.T) {
 		wantModel     string
 	}{
 		{
+			name:          "gpt-6-fast mapped=True",
+			originModel:   "gpt-6-fast",
+			requestModel:  "gpt-6-sol",
+			upstreamModel: "gpt-6-sol",
+			wantModel:     "gpt-6-sol",
+		},
+		{
+			name:          "gpt-6-fast mapped=False",
+			originModel:   "gpt-6-fast",
+			requestModel:  "gpt-6-fast",
+			upstreamModel: "gpt-6-fast",
+			wantModel:     "gpt-6-sol",
+		},
+		{
+			name:          "gpt-6-sol-fast mapped=True",
+			originModel:   "gpt-6-sol-fast",
+			requestModel:  "gpt-6-sol",
+			upstreamModel: "gpt-6-sol",
+			wantModel:     "gpt-6-sol",
+		},
+		{
+			name:          "gpt-6-sol-fast mapped=False",
+			originModel:   "gpt-6-sol-fast",
+			requestModel:  "gpt-6-sol-fast",
+			upstreamModel: "gpt-6-sol-fast",
+			wantModel:     "gpt-6-sol",
+		},
+		{
+			name:          "gpt-6-luna-fast mapped=True",
+			originModel:   "gpt-6-luna-fast",
+			requestModel:  "gpt-6-luna",
+			upstreamModel: "gpt-6-luna",
+			wantModel:     "gpt-6-luna",
+		},
+		{
+			name:          "gpt-6-luna-fast mapped=False",
+			originModel:   "gpt-6-luna-fast",
+			requestModel:  "gpt-6-luna-fast",
+			upstreamModel: "gpt-6-luna-fast",
+			wantModel:     "gpt-6-luna",
+		},
+		{
+			name:          "gpt-6-astra-fast mapped=True",
+			originModel:   "gpt-6-astra-fast",
+			requestModel:  "gpt-6-astra",
+			upstreamModel: "gpt-6-astra",
+			wantModel:     "gpt-6-astra",
+		},
+		{
+			name:          "gpt-6-astra-fast mapped=False",
+			originModel:   "gpt-6-astra-fast",
+			requestModel:  "gpt-6-astra-fast",
+			upstreamModel: "gpt-6-astra-fast",
+			wantModel:     "gpt-6-astra",
+		},
+		{
 			name:          "mapped fast alias",
 			originModel:   "gpt-5.6-fast",
 			requestModel:  "gpt-5.6-sol",
