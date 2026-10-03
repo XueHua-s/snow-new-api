@@ -29,9 +29,10 @@ type ChannelSettings struct {
 }
 
 const (
-	HTTPProtocolAuto         = "auto"
-	HTTPProtocolHTTP1        = "http1"
-	MaxHTTP2ConnectionShards = 8
+	HTTPProtocolAuto                = "auto"
+	HTTPProtocolHTTP1               = "http1"
+	MaxHTTP2ConnectionShards        = 8
+	MaxResponseHeaderTimeoutSeconds = 3600
 )
 
 // ValidateHTTPTransport validates save-time HTTP transport channel settings.
@@ -39,7 +40,7 @@ func (s *ChannelSettings) ValidateHTTPTransport() error {
 	if s == nil {
 		return nil
 	}
-	if s.ResponseHeaderTimeoutSeconds < 0 || s.ResponseHeaderTimeoutSeconds > 3600 {
+	if s.ResponseHeaderTimeoutSeconds < 0 || s.ResponseHeaderTimeoutSeconds > MaxResponseHeaderTimeoutSeconds {
 		return fmt.Errorf("invalid response_header_timeout_seconds: %d", s.ResponseHeaderTimeoutSeconds)
 	}
 	protocol := strings.ToLower(strings.TrimSpace(s.HTTPProtocol))

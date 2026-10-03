@@ -31,7 +31,7 @@ func defaultHTTPTransportPolicy() HTTPTransportPolicy {
 // Invalid stored values never panic; they clamp to defaults and warn once per bad value.
 func NormalizeHTTPTransportPolicy(settings dto.ChannelSettings) HTTPTransportPolicy {
 	policy := defaultHTTPTransportPolicy()
-	if seconds := settings.ResponseHeaderTimeoutSeconds; seconds >= 0 && seconds <= 3600 {
+	if seconds := settings.ResponseHeaderTimeoutSeconds; seconds >= 0 && seconds <= dto.MaxResponseHeaderTimeoutSeconds {
 		policy.ResponseHeaderTimeoutSeconds = seconds
 	} else {
 		warnHTTPTransportPolicyOnce("response_header_timeout_seconds", fmt.Sprintf("%d", seconds))
