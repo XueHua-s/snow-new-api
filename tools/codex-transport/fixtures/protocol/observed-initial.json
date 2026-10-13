@@ -1,0 +1,3587 @@
+{
+  "scope": "synthetic only; live accounting is a separate required gate",
+  "cases": {
+    "native": {
+      "official_connections": 2,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false,
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213031301c02cc030009fcca9cca8ccaac02bc02f009ec024c028006bc023c0270067c00ac0140039c009c0130033009d009c003d003c0035002f",
+          "sidecar": "130213031301c02cc030009fcca9cca8ccaac02bc02f009ec024c028006bc023c0270067c00ac0140039c009c0130033009d009c003d003c0035002f",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              65281,
+              "00"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "001011ec001d0017001e0018001901000101"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              22,
+              ""
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              13,
+              "003409050906090404030503060308070808081a081b081c0809080a080b080408050806040105010601030303010302040205020602"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ]
+          ],
+          "sidecar": [
+            [
+              65281,
+              "00"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "001011ec001d0017001e0018001901000101"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              22,
+              ""
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              13,
+              "003409050906090404030503060308070808081a081b081c0809080a080b080408050806040105010601030303010302040205020602"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ]
+          ],
+          "equal": true
+        },
+        "alpn": {
+          "official": null,
+          "sidecar": null,
+          "equal": true
+        }
+      },
+      "request_counts": [
+        2,
+        2
+      ],
+      "body_sha256": [
+        [
+          "27d74a88c92b8c75d0eece21860ae04f8f617e6d7bcda9173d77365377f095e8",
+          "d8f8b303f8e5ce913d4993413d629d97887a6241475f81bf9315ac51cbaf1ae8"
+        ],
+        [
+          "27d74a88c92b8c75d0eece21860ae04f8f617e6d7bcda9173d77365377f095e8",
+          "d8f8b303f8e5ce913d4993413d629d97887a6241475f81bf9315ac51cbaf1ae8"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          true,
+          true
+        ],
+        [
+          true
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ]
+        ],
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ]
+        ]
+      ]
+    },
+    "rustls": {
+      "official_connections": 2,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false,
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ]
+          ],
+          "sidecar": [
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": "http/1.1",
+          "sidecar": "http/1.1",
+          "equal": true
+        }
+      },
+      "request_counts": [
+        2,
+        2
+      ],
+      "body_sha256": [
+        [
+          "2f4a590fe778ad45632721f065b23fa5eacf901098f260abf75a09c2ffd15975",
+          "8cc604a2413d62e7c3a710dcd80cc207c7535e67468d070ab01906910af6d054"
+        ],
+        [
+          "2f4a590fe778ad45632721f065b23fa5eacf901098f260abf75a09c2ffd15975",
+          "8cc604a2413d62e7c3a710dcd80cc207c7535e67468d070ab01906910af6d054"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          true,
+          true
+        ],
+        [
+          true
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ]
+        ],
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ]
+        ]
+      ]
+    },
+    "native-resume": {
+      "official_connections": 2,
+      "sidecar_connections": 2,
+      "official_resumed": [
+        false,
+        false
+      ],
+      "sidecar_resumed": [
+        false,
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213031301c02cc030009fcca9cca8ccaac02bc02f009ec024c028006bc023c0270067c00ac0140039c009c0130033009d009c003d003c0035002f",
+          "sidecar": "130213031301c02cc030009fcca9cca8ccaac02bc02f009ec024c028006bc023c0270067c00ac0140039c009c0130033009d009c003d003c0035002f",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              65281,
+              "00"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "001011ec001d0017001e0018001901000101"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              22,
+              ""
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              13,
+              "003409050906090404030503060308070808081a081b081c0809080a080b080408050806040105010601030303010302040205020602"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ]
+          ],
+          "sidecar": [
+            [
+              65281,
+              "00"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "001011ec001d0017001e0018001901000101"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              22,
+              ""
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              13,
+              "003409050906090404030503060308070808081a081b081c0809080a080b080408050806040105010601030303010302040205020602"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ]
+          ],
+          "equal": true
+        },
+        "alpn": {
+          "official": null,
+          "sidecar": null,
+          "equal": true
+        }
+      },
+      "request_counts": [
+        2,
+        2
+      ],
+      "body_sha256": [
+        [
+          "d5677dfc7bcc88f4c0673e0b1409ddde4fc264c2e8f0e08250cc4a3c36a56583",
+          "d5677dfc7bcc88f4c0673e0b1409ddde4fc264c2e8f0e08250cc4a3c36a56583"
+        ],
+        [
+          "d5677dfc7bcc88f4c0673e0b1409ddde4fc264c2e8f0e08250cc4a3c36a56583",
+          "d5677dfc7bcc88f4c0673e0b1409ddde4fc264c2e8f0e08250cc4a3c36a56583"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ]
+        ],
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ]
+        ]
+      ]
+    },
+    "rustls-resume": {
+      "official_connections": 2,
+      "sidecar_connections": 2,
+      "official_resumed": [
+        false,
+        true
+      ],
+      "sidecar_resumed": [
+        false,
+        true
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              11,
+              "0100"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              5,
+              "0100000000"
+            ]
+          ],
+          "sidecar": [
+            [
+              45,
+              "0101"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              35,
+              ""
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": "http/1.1",
+          "sidecar": "http/1.1",
+          "equal": true
+        }
+      },
+      "request_counts": [
+        2,
+        2
+      ],
+      "body_sha256": [
+        [
+          "5886406f2b0eca51f30adfc4e96e1428248b6f4c322333b68a2b42cc83033738",
+          "5886406f2b0eca51f30adfc4e96e1428248b6f4c322333b68a2b42cc83033738"
+        ],
+        [
+          "5886406f2b0eca51f30adfc4e96e1428248b6f4c322333b68a2b42cc83033738",
+          "5886406f2b0eca51f30adfc4e96e1428248b6f4c322333b68a2b42cc83033738"
+        ]
+      ],
+      "resumed_client_hello": [
+        [
+          {
+            "version": 771,
+            "record_version": "0301",
+            "session_id_length": 32,
+            "ciphers": "130213011303c02cc02bcca9c030c02fcca800ff",
+            "compression": "00",
+            "extensions": [
+              [
+                13,
+                "001a0503040306030807080608050804060105010401090409050906"
+              ],
+              [
+                51,
+                [
+                  [
+                    29,
+                    32
+                  ]
+                ]
+              ],
+              [
+                10,
+                "000811ec001d00170018"
+              ],
+              [
+                43,
+                "0403040303"
+              ],
+              [
+                5,
+                "0100000000"
+              ],
+              [
+                11,
+                "0100"
+              ],
+              [
+                0,
+                "000c0000096c6f63616c686f7374"
+              ],
+              [
+                23,
+                ""
+              ],
+              [
+                16,
+                "000c02683208687474702f312e31"
+              ],
+              [
+                45,
+                "0101"
+              ],
+              [
+                41,
+                {
+                  "ticket_identity_lengths": [
+                    [
+                      224,
+                      "ticket_age"
+                    ]
+                  ],
+                  "binder_lengths": [
+                    48
+                  ]
+                }
+              ]
+            ],
+            "alpn": "http/1.1"
+          }
+        ],
+        [
+          {
+            "version": 771,
+            "record_version": "0301",
+            "session_id_length": 32,
+            "ciphers": "130213011303c02cc02bcca9c030c02fcca800ff",
+            "compression": "00",
+            "extensions": [
+              [
+                5,
+                "0100000000"
+              ],
+              [
+                16,
+                "000c02683208687474702f312e31"
+              ],
+              [
+                11,
+                "0100"
+              ],
+              [
+                43,
+                "0403040303"
+              ],
+              [
+                23,
+                ""
+              ],
+              [
+                51,
+                [
+                  [
+                    29,
+                    32
+                  ]
+                ]
+              ],
+              [
+                13,
+                "001a0503040306030807080608050804060105010401090409050906"
+              ],
+              [
+                45,
+                "0101"
+              ],
+              [
+                10,
+                "000811ec001d00170018"
+              ],
+              [
+                0,
+                "000c0000096c6f63616c686f7374"
+              ],
+              [
+                41,
+                {
+                  "ticket_identity_lengths": [
+                    [
+                      224,
+                      "ticket_age"
+                    ]
+                  ],
+                  "binder_lengths": [
+                    48
+                  ]
+                }
+              ]
+            ],
+            "alpn": "http/1.1"
+          }
+        ]
+      ],
+      "peer_eof": [
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ]
+        ],
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ]
+        ]
+      ]
+    },
+    "h2": {
+      "official_connections": 2,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false,
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              23,
+              ""
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ]
+          ],
+          "sidecar": [
+            [
+              11,
+              "0100"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              5,
+              "0100000000"
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": "h2",
+          "sidecar": "h2",
+          "equal": true
+        }
+      },
+      "request_counts": [
+        2,
+        2
+      ],
+      "body_sha256": [
+        [
+          "50413de16c0e5bfc6b66bb19d9b711ecdbf683cbcc98ecdcc43b9def89f279c3",
+          "b05506d454607a062da4c68f9e8e062a004da7b9044a4c052de31b87da2b9dd8"
+        ],
+        [
+          "50413de16c0e5bfc6b66bb19d9b711ecdbf683cbcc98ecdcc43b9def89f279c3",
+          "b05506d454607a062da4c68f9e8e062a004da7b9044a4c052de31b87da2b9dd8"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          true,
+          true
+        ],
+        [
+          true
+        ]
+      ],
+      "headers": [
+        [
+          [
+            ":method",
+            ":scheme",
+            ":authority",
+            ":path",
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length"
+          ],
+          [
+            ":method",
+            ":scheme",
+            ":authority",
+            ":path",
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length"
+          ]
+        ],
+        [
+          [
+            ":method",
+            ":scheme",
+            ":authority",
+            ":path",
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length"
+          ],
+          [
+            ":method",
+            ":scheme",
+            ":authority",
+            ":path",
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length"
+          ]
+        ]
+      ],
+      "frames": [
+        [
+          [
+            {
+              "type": 4,
+              "flags": 0,
+              "stream": 0,
+              "length": 24,
+              "settings": [
+                [
+                  2,
+                  0
+                ],
+                [
+                  4,
+                  2097152
+                ],
+                [
+                  5,
+                  16384
+                ],
+                [
+                  6,
+                  16384
+                ]
+              ]
+            },
+            {
+              "type": 8,
+              "flags": 0,
+              "stream": 0,
+              "length": 4,
+              "increment": 5177345
+            },
+            {
+              "type": 1,
+              "flags": 4,
+              "stream": 1,
+              "length": 1215,
+              "hpack_sha256": "bc93071777d163468061e088449ae9c574a855aeaa84b915bed2b06f90a2b81d"
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 1,
+              "length": 16384
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 1,
+              "length": 16384
+            },
+            {
+              "type": 0,
+              "flags": 1,
+              "stream": 1,
+              "length": 9662
+            },
+            {
+              "type": 4,
+              "flags": 1,
+              "stream": 0,
+              "length": 0,
+              "settings": []
+            },
+            {
+              "type": 7,
+              "flags": 0,
+              "stream": 0,
+              "length": 8,
+              "goaway": "0000000000000000"
+            }
+          ],
+          [
+            {
+              "type": 4,
+              "flags": 0,
+              "stream": 0,
+              "length": 24,
+              "settings": [
+                [
+                  2,
+                  0
+                ],
+                [
+                  4,
+                  2097152
+                ],
+                [
+                  5,
+                  16384
+                ],
+                [
+                  6,
+                  16384
+                ]
+              ]
+            },
+            {
+              "type": 8,
+              "flags": 0,
+              "stream": 0,
+              "length": 4,
+              "increment": 5177345
+            },
+            {
+              "type": 1,
+              "flags": 4,
+              "stream": 1,
+              "length": 1215,
+              "hpack_sha256": "d73842be843996781294eb9a0c0447750751fa4a1f2b00b4af2d1cdf7bce0b4c"
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 1,
+              "length": 16384
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 1,
+              "length": 16384
+            },
+            {
+              "type": 0,
+              "flags": 1,
+              "stream": 1,
+              "length": 9955
+            },
+            {
+              "type": 4,
+              "flags": 1,
+              "stream": 0,
+              "length": 0,
+              "settings": []
+            },
+            {
+              "type": 7,
+              "flags": 0,
+              "stream": 0,
+              "length": 8,
+              "goaway": "0000000000000000"
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "type": 4,
+              "flags": 0,
+              "stream": 0,
+              "length": 24,
+              "settings": [
+                [
+                  2,
+                  0
+                ],
+                [
+                  4,
+                  2097152
+                ],
+                [
+                  5,
+                  16384
+                ],
+                [
+                  6,
+                  16384
+                ]
+              ]
+            },
+            {
+              "type": 8,
+              "flags": 0,
+              "stream": 0,
+              "length": 4,
+              "increment": 5177345
+            },
+            {
+              "type": 1,
+              "flags": 4,
+              "stream": 1,
+              "length": 1215,
+              "hpack_sha256": "bc93071777d163468061e088449ae9c574a855aeaa84b915bed2b06f90a2b81d"
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 1,
+              "length": 2521
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 1,
+              "length": 16384
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 1,
+              "length": 16384
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 1,
+              "length": 7141
+            },
+            {
+              "type": 0,
+              "flags": 1,
+              "stream": 1,
+              "length": 0
+            },
+            {
+              "type": 4,
+              "flags": 1,
+              "stream": 0,
+              "length": 0,
+              "settings": []
+            },
+            {
+              "type": 1,
+              "flags": 4,
+              "stream": 3,
+              "length": 329,
+              "hpack_sha256": "2db03efe4bfa1bd3b2bdf97ba0d5f62b1de68cbff57e8933f756c19df0271c58"
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 3,
+              "length": 2521
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 3,
+              "length": 16384
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 3,
+              "length": 16384
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "stream": 3,
+              "length": 7434
+            },
+            {
+              "type": 0,
+              "flags": 1,
+              "stream": 3,
+              "length": 0
+            },
+            {
+              "type": 7,
+              "flags": 0,
+              "stream": 0,
+              "length": 8,
+              "goaway": "0000000000000000"
+            }
+          ]
+        ]
+      ],
+      "first_headers_hpack_exact": true,
+      "pseudo_headers": [
+        [
+          [
+            ":method",
+            "POST"
+          ],
+          [
+            ":scheme",
+            "https"
+          ],
+          [
+            ":authority",
+            "localhost:47337"
+          ],
+          [
+            ":path",
+            "/backend-api/codex/responses"
+          ]
+        ],
+        [
+          [
+            ":method",
+            "POST"
+          ],
+          [
+            ":scheme",
+            "https"
+          ],
+          [
+            ":authority",
+            "localhost:47337"
+          ],
+          [
+            ":path",
+            "/backend-api/codex/responses"
+          ]
+        ]
+      ]
+    },
+    "ws": {
+      "official_connections": 1,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              35,
+              ""
+            ]
+          ],
+          "sidecar": [
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": null,
+          "sidecar": null,
+          "equal": true
+        }
+      },
+      "request_counts": [
+        1,
+        1
+      ],
+      "body_sha256": [
+        [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ],
+        [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          false
+        ],
+        [
+          false
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "host",
+            "connection",
+            "upgrade",
+            "sec-websocket-version",
+            "sec-websocket-key",
+            "chatgpt-account-id",
+            "authorization",
+            "user-agent",
+            "originator",
+            "openai-beta",
+            "x-codex-beta-features",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "sec-websocket-extensions"
+          ]
+        ],
+        [
+          [
+            "host",
+            "connection",
+            "upgrade",
+            "sec-websocket-version",
+            "sec-websocket-key",
+            "x-codex-turn-metadata",
+            "x-codex-window-id",
+            "thread-id",
+            "session-id",
+            "x-client-request-id",
+            "chatgpt-account-id",
+            "authorization",
+            "user-agent",
+            "originator",
+            "openai-beta",
+            "x-codex-beta-features",
+            "sec-websocket-extensions"
+          ]
+        ]
+      ],
+      "ws_creates": [
+        [
+          3
+        ],
+        [
+          3
+        ]
+      ]
+    },
+    "proxy-http-http": {
+      "official_connections": 2,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false,
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ]
+          ],
+          "sidecar": [
+            [
+              45,
+              "0101"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              5,
+              "0100000000"
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": "http/1.1",
+          "sidecar": "http/1.1",
+          "equal": true
+        }
+      },
+      "request_counts": [
+        2,
+        2
+      ],
+      "body_sha256": [
+        [
+          "5f31f467866887a4676522f39d6003dfc4b4d5c163e7379d699ab34b0e8551f5",
+          "80dc44bb2d869e8463d2b80feaf870220d8e5ca17b18106c97af2e93cef628a9"
+        ],
+        [
+          "5f31f467866887a4676522f39d6003dfc4b4d5c163e7379d699ab34b0e8551f5",
+          "80dc44bb2d869e8463d2b80feaf870220d8e5ca17b18106c97af2e93cef628a9"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          true,
+          true
+        ],
+        [
+          true
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ]
+        ],
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ]
+        ]
+      ],
+      "proxy": {
+        "requests": [
+          {
+            "method": "CONNECT",
+            "target": "localhost:49747"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:49747"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:49747"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:49747"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:49747"
+          }
+        ],
+        "errors": [],
+        "denied_nonfixture_targets": [
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "ab.chatgpt.com:443"
+          }
+        ]
+      }
+    },
+    "proxy-http-ws": {
+      "official_connections": 1,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              45,
+              "0101"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              43,
+              "0403040303"
+            ]
+          ],
+          "sidecar": [
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              23,
+              ""
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": null,
+          "sidecar": null,
+          "equal": true
+        }
+      },
+      "request_counts": [
+        1,
+        1
+      ],
+      "body_sha256": [
+        [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ],
+        [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          false
+        ],
+        [
+          false
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "host",
+            "connection",
+            "upgrade",
+            "sec-websocket-version",
+            "sec-websocket-key",
+            "chatgpt-account-id",
+            "authorization",
+            "user-agent",
+            "originator",
+            "openai-beta",
+            "x-codex-beta-features",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "sec-websocket-extensions"
+          ]
+        ],
+        [
+          [
+            "host",
+            "connection",
+            "upgrade",
+            "sec-websocket-version",
+            "sec-websocket-key",
+            "x-codex-turn-metadata",
+            "x-codex-window-id",
+            "thread-id",
+            "session-id",
+            "x-client-request-id",
+            "chatgpt-account-id",
+            "authorization",
+            "user-agent",
+            "originator",
+            "openai-beta",
+            "x-codex-beta-features",
+            "sec-websocket-extensions"
+          ]
+        ]
+      ],
+      "ws_creates": [
+        [
+          3
+        ],
+        [
+          3
+        ]
+      ],
+      "proxy": {
+        "requests": [
+          {
+            "method": "CONNECT",
+            "target": "localhost:47707"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:47707"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:47707"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:47707"
+          }
+        ],
+        "errors": [],
+        "denied_nonfixture_targets": [
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "ab.chatgpt.com:443"
+          }
+        ]
+      }
+    },
+    "proxy-https-http": {
+      "official_connections": 2,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false,
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              35,
+              ""
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ]
+          ],
+          "sidecar": [
+            [
+              23,
+              ""
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              16,
+              "000c02683208687474702f312e31"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": "http/1.1",
+          "sidecar": "http/1.1",
+          "equal": true
+        }
+      },
+      "request_counts": [
+        2,
+        2
+      ],
+      "body_sha256": [
+        [
+          "5bf224e345b35772032bf5104c9ba06a6060a0fdfb38590760d9e309d6eede9e",
+          "2fead7fcfb9945404b0bb7406c250545c090626f75eb884b614d93d755f15a4c"
+        ],
+        [
+          "5bf224e345b35772032bf5104c9ba06a6060a0fdfb38590760d9e309d6eede9e",
+          "2fead7fcfb9945404b0bb7406c250545c090626f75eb884b614d93d755f15a4c"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          true,
+          true
+        ],
+        [
+          true
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "host",
+            "content-length"
+          ]
+        ],
+        [
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ],
+          [
+            "x-codex-beta-features",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "accept",
+            "content-type",
+            "authorization",
+            "chatgpt-account-id",
+            "originator",
+            "user-agent",
+            "content-length",
+            "host"
+          ]
+        ]
+      ],
+      "proxy": {
+        "requests": [
+          {
+            "method": "CONNECT",
+            "target": "localhost:39145"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:39145"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:39145"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:39145"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:39145"
+          }
+        ],
+        "errors": [],
+        "denied_nonfixture_targets": [
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "ab.chatgpt.com:443"
+          }
+        ]
+      }
+    },
+    "proxy-https-ws": {
+      "official_connections": 2,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false,
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": "TransportDefault fork dialer rejects HTTPS proxy, CLI falls back to HTTPS",
+      "sidecar_extension_verified": true,
+      "proxy": {
+        "requests": [
+          {
+            "method": "CONNECT",
+            "target": "localhost:50411"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:50411"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:50411"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:50411"
+          },
+          {
+            "method": "CONNECT",
+            "target": "localhost:50411"
+          }
+        ],
+        "errors": [],
+        "denied_nonfixture_targets": [
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "chatgpt.com:443"
+          },
+          {
+            "method": "CONNECT",
+            "target": "ab.chatgpt.com:443"
+          }
+        ]
+      }
+    },
+    "proxy-socks5-http": {
+      "official_connections": 0,
+      "sidecar_connections": 1,
+      "official_resumed": [],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": "reqwest SOCKS feature absent; no fixture connection; CLI waiting for network",
+      "sidecar_extension_verified": true,
+      "proxy": {
+        "requests": [
+          {
+            "address_type": 4,
+            "target": "::1",
+            "port": 48955
+          }
+        ],
+        "errors": [],
+        "denied_nonfixture_targets": []
+      }
+    },
+    "proxy-socks5-ws": {
+      "official_connections": 1,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              45,
+              "0101"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              35,
+              ""
+            ]
+          ],
+          "sidecar": [
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              35,
+              ""
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": null,
+          "sidecar": null,
+          "equal": true
+        }
+      },
+      "request_counts": [
+        1,
+        1
+      ],
+      "body_sha256": [
+        [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ],
+        [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          false
+        ],
+        [
+          false
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "host",
+            "connection",
+            "upgrade",
+            "sec-websocket-version",
+            "sec-websocket-key",
+            "chatgpt-account-id",
+            "authorization",
+            "user-agent",
+            "originator",
+            "openai-beta",
+            "x-codex-beta-features",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "sec-websocket-extensions"
+          ]
+        ],
+        [
+          [
+            "host",
+            "connection",
+            "upgrade",
+            "sec-websocket-version",
+            "sec-websocket-key",
+            "x-codex-turn-metadata",
+            "x-codex-window-id",
+            "thread-id",
+            "session-id",
+            "x-client-request-id",
+            "chatgpt-account-id",
+            "authorization",
+            "user-agent",
+            "originator",
+            "openai-beta",
+            "x-codex-beta-features",
+            "sec-websocket-extensions"
+          ]
+        ]
+      ],
+      "ws_creates": [
+        [
+          3
+        ],
+        [
+          3
+        ]
+      ],
+      "proxy": {
+        "requests": [
+          {
+            "address_type": 3,
+            "target": "localhost",
+            "port": 37055
+          },
+          {
+            "address_type": 4,
+            "target": "::1",
+            "port": 37055
+          }
+        ],
+        "errors": [],
+        "denied_nonfixture_targets": []
+      }
+    },
+    "proxy-socks5h-http": {
+      "official_connections": 0,
+      "sidecar_connections": 1,
+      "official_resumed": [],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": "reqwest SOCKS feature absent; no fixture connection; CLI waiting for network",
+      "sidecar_extension_verified": true,
+      "proxy": {
+        "requests": [
+          {
+            "address_type": 3,
+            "target": "localhost",
+            "port": 50851
+          }
+        ],
+        "errors": [],
+        "denied_nonfixture_targets": []
+      }
+    },
+    "proxy-socks5h-ws": {
+      "official_connections": 1,
+      "sidecar_connections": 1,
+      "official_resumed": [
+        false
+      ],
+      "sidecar_resumed": [
+        false
+      ],
+      "errors": [],
+      "official_unsupported": null,
+      "first_client_hello": {
+        "version": {
+          "official": 771,
+          "sidecar": 771,
+          "equal": true
+        },
+        "record_version": {
+          "official": "0301",
+          "sidecar": "0301",
+          "equal": true
+        },
+        "session_id_length": {
+          "official": 32,
+          "sidecar": 32,
+          "equal": true
+        },
+        "ciphers": {
+          "official": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "sidecar": "130213011303c02cc02bcca9c030c02fcca800ff",
+          "equal": true
+        },
+        "compression": {
+          "official": "00",
+          "sidecar": "00",
+          "equal": true
+        },
+        "extensions": {
+          "official": [
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              35,
+              ""
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              23,
+              ""
+            ]
+          ],
+          "sidecar": [
+            [
+              35,
+              ""
+            ],
+            [
+              23,
+              ""
+            ],
+            [
+              13,
+              "001a0503040306030807080608050804060105010401090409050906"
+            ],
+            [
+              43,
+              "0403040303"
+            ],
+            [
+              5,
+              "0100000000"
+            ],
+            [
+              45,
+              "0101"
+            ],
+            [
+              51,
+              [
+                [
+                  4588,
+                  1216
+                ],
+                [
+                  29,
+                  32
+                ]
+              ]
+            ],
+            [
+              0,
+              "000c0000096c6f63616c686f7374"
+            ],
+            [
+              11,
+              "0100"
+            ],
+            [
+              10,
+              "000811ec001d00170018"
+            ]
+          ],
+          "equal": false
+        },
+        "alpn": {
+          "official": null,
+          "sidecar": null,
+          "equal": true
+        }
+      },
+      "request_counts": [
+        1,
+        1
+      ],
+      "body_sha256": [
+        [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ],
+        [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ]
+      ],
+      "resumed_client_hello": [
+        [],
+        []
+      ],
+      "peer_eof": [
+        [
+          false
+        ],
+        [
+          false
+        ]
+      ],
+      "headers": [
+        [
+          [
+            "host",
+            "connection",
+            "upgrade",
+            "sec-websocket-version",
+            "sec-websocket-key",
+            "chatgpt-account-id",
+            "authorization",
+            "user-agent",
+            "originator",
+            "openai-beta",
+            "x-codex-beta-features",
+            "x-client-request-id",
+            "session-id",
+            "thread-id",
+            "x-codex-window-id",
+            "x-codex-turn-metadata",
+            "sec-websocket-extensions"
+          ]
+        ],
+        [
+          [
+            "host",
+            "connection",
+            "upgrade",
+            "sec-websocket-version",
+            "sec-websocket-key",
+            "x-codex-turn-metadata",
+            "x-codex-window-id",
+            "thread-id",
+            "session-id",
+            "x-client-request-id",
+            "chatgpt-account-id",
+            "authorization",
+            "user-agent",
+            "originator",
+            "openai-beta",
+            "x-codex-beta-features",
+            "sec-websocket-extensions"
+          ]
+        ]
+      ],
+      "ws_creates": [
+        [
+          3
+        ],
+        [
+          3
+        ]
+      ],
+      "proxy": {
+        "requests": [
+          {
+            "address_type": 3,
+            "target": "localhost",
+            "port": 43795
+          },
+          {
+            "address_type": 3,
+            "target": "localhost",
+            "port": 43795
+          }
+        ],
+        "errors": [],
+        "denied_nonfixture_targets": []
+      }
+    }
+  },
+  "missing": [],
+  "complete": true,
+  "artifacts": {
+    "official_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "sidecar_sha256": "d5c1c7dd9b727f0180cfa068641100e1c929c06aaddeef99892315dda8a5f522",
+    "image": "docker.m.daocloud.io/library/rust@sha256:c1e5f19e773b7878c3f7a805dd00a495e747acbdc76fb2337a4ebf0418896b33",
+    "python_packages": {
+      "h2": "4.3.0",
+      "hpack": "4.1.0",
+      "hyperframe": "6.1.0"
+    }
+  },
+  "capture_scope": "Initial 14-case observation; sidecar GNU/OpenSSL3.6.3 vs official musl/OpenSSL3.6.4; S09 NOT ACCEPTED; header block bytes reduced to SHA256 in committed evidence, fresh runner retains bytes in temporary output."
+}

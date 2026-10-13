@@ -14,5 +14,5 @@ If the user says `SDD模式` without asking to create or refine a task spec, fir
 ## Workflow
 
 1. Read `skills/plan-task/SKILL.md`.
-2. Follow that skill exactly for argument parsing, `.specs/tasks/draft/` input handling, planning phases, quality gates, and promotion to `.specs/tasks/todo/`.
+2. Follow that skill for argument parsing, draft input handling, planning phases, quality gates, and promotion to `.specs/tasks/todo/`. Apply its Runtime portability rules: use available agents and models, local filesystem tools, and the inline judge method; vendor-specific agents and external plugin files are not prerequisites.
 3. Treat this file only as a local compatibility shim for the `sdd:plan` name.

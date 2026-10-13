@@ -1,8 +1,14 @@
 package model
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
@@ -397,4 +403,96 @@ func TestResetUserPasswordByEmailRequiresSingleActiveMatch(t *testing.T) {
 
 	err = ResetUserPasswordByEmail("missing@example.com", "NewPassword123")
 	require.True(t, errors.Is(err, ErrEmailNotFound))
+}
+
+func TestBatchShutdownWaitsForPriorFlushAndIncludesLaterSettlement(t *testing.T) {
+	setupBatchShutdownDB(t)
+	user := User{Username: fmt.Sprintf("batch-wait-%d", time.Now().UnixNano()), AffCode: "bwait", Password: "unused", Status: common.UserStatusEnabled}
+	require.NoError(t, DB.Create(&user).Error)
+	t.Cleanup(func() { require.NoError(t, DB.Delete(&user).Error) })
+	entered, release := make(chan struct{}), make(chan struct{})
+	var blocked atomic.Bool
+	require.NoError(t, DB.Callback().Update().Before("gorm:update").Register("batch_flush_barrier", func(tx *gorm.DB) {
+		if tx.Statement.Table == "users" && blocked.CompareAndSwap(false, true) {
+			close(entered)
+			<-release
+		}
+	}))
+	t.Cleanup(func() { require.NoError(t, DB.Callback().Update().Remove("batch_flush_barrier")) })
+	addNewRecord(BatchUpdateTypeUsedQuota, user.Id, 100)
+	periodic := make(chan error, 1)
+	go func() { periodic <- flushBatchUpdates(context.Background()) }()
+	<-entered
+	addNewRecord(BatchUpdateTypeUsedQuota, user.Id, 200)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	require.ErrorIs(t, ShutdownBatchUpdater(ctx), context.Canceled, "final flush must wait behind the prior SQL snapshot")
+	close(release)
+	require.NoError(t, <-periodic)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	require.NoError(t, ShutdownBatchUpdater(ctx))
+	require.NoError(t, DB.First(&user, user.Id).Error)
+	assert.Equal(t, 300, user.UsedQuota)
+	require.NoError(t, ShutdownBatchUpdater(ctx))
+	require.NoError(t, DB.First(&user, user.Id).Error)
+	assert.Equal(t, 300, user.UsedQuota)
+}
+
+func setupBatchShutdownDB(t *testing.T) {
+	t.Helper()
+	oldDB, oldType, oldSQLite, oldRedis := DB, common.MainDatabaseType(), common.SQLitePath, common.RedisEnabled
+	t.Setenv("SQL_DSN", os.Getenv("TEST_BATCH_SQL_DSN"))
+	common.SQLitePath = filepath.Join(t.TempDir(), "batch.db")
+	database, dbType, err := chooseDB("SQL_DSN", false)
+	require.NoError(t, err)
+	DB = database
+	common.SetMainDatabaseType(dbType)
+	common.RedisEnabled = false
+	initCol()
+	require.NoError(t, DB.AutoMigrate(&User{}, &Token{}, &Channel{}))
+	sqlDB, err := DB.DB()
+	require.NoError(t, err)
+	sqlDB.SetMaxOpenConns(1)
+	resetBatchUpdateTestState(t)
+	t.Cleanup(func() {
+		require.NoError(t, sqlDB.Close())
+		DB = oldDB
+		common.SetMainDatabaseType(oldType)
+		common.SQLitePath = oldSQLite
+		common.RedisEnabled = oldRedis
+		initCol()
+	})
+	var version string
+	query := "SELECT VERSION()"
+	if dbType == common.DatabaseTypeSQLite {
+		query = "SELECT sqlite_version()"
+	}
+	require.NoError(t, DB.Raw(query).Scan(&version).Error)
+	t.Logf("batch database version=%s", version)
+}
+
+func TestBatchShutdownFailureDoesNotReplayAndAllowsLaterUpdates(t *testing.T) {
+	setupBatchShutdownDB(t)
+	user := User{Username: fmt.Sprintf("batch-fail-%d", time.Now().UnixNano()), AffCode: "bfail", Password: "unused", Status: common.UserStatusEnabled}
+	channel := Channel{Name: "batch-failure", Key: "synthetic", Status: common.ChannelStatusEnabled}
+	require.NoError(t, DB.Create(&user).Error)
+	require.NoError(t, DB.Create(&channel).Error)
+	t.Cleanup(func() { require.NoError(t, DB.Delete(&user).Error); require.NoError(t, DB.Delete(&channel).Error) })
+	addNewRecord(BatchUpdateTypeUsedQuota, user.Id, 100)
+	addNewRecord(BatchUpdateTypeChannelUsedQuota, channel.Id, 100)
+	require.NoError(t, DB.Migrator().DropTable(&Channel{}))
+	require.Error(t, ShutdownBatchUpdater(context.Background()))
+	require.NoError(t, DB.First(&user, user.Id).Error)
+	assert.Equal(t, 100, user.UsedQuota, "successful writes remain applied once")
+	require.NoError(t, DB.AutoMigrate(&Channel{}))
+	require.NoError(t, DB.Create(&channel).Error)
+	// A recovered database applies only new deltas. An earlier failed SQL may
+	// have committed remotely, so its snapshot must never be replayed.
+	addNewRecord(BatchUpdateTypeChannelUsedQuota, channel.Id, 200)
+	require.NoError(t, ShutdownBatchUpdater(context.Background()))
+	require.NoError(t, DB.First(&channel, channel.Id).Error)
+	assert.EqualValues(t, 200, channel.UsedQuota)
+	require.NoError(t, DB.First(&user, user.Id).Error)
+	assert.Equal(t, 100, user.UsedQuota)
 }

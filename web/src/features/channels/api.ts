@@ -153,12 +153,15 @@ export async function createChannel(
  */
 export async function updateChannel(
   id: number,
-  data: Partial<Channel>
+  data: Partial<Channel>,
+  proofToken?: string
 ): Promise<{ success: boolean; message?: string; data?: Channel }> {
   const res = await api.put(
     '/api/channel/',
     { id, ...data },
-    channelActionConfig()
+    channelActionConfig({
+      headers: proofToken ? { 'X-Security-Proof': proofToken } : undefined,
+    })
   )
   return res.data
 }
@@ -335,34 +338,50 @@ export async function getChannelKey(
 // Codex Channel Operations
 // ============================================================================
 
-export async function startCodexOAuth(): Promise<OAuthStartResponse> {
+export async function startCodexOAuth(
+  channelId?: number | null,
+  proofToken?: string
+): Promise<OAuthStartResponse> {
   const res = await api.post(
-    '/api/channel/codex/oauth/start',
+    channelId
+      ? `/api/channel/${channelId}/codex/oauth/start`
+      : '/api/channel/codex/oauth/start',
     {},
-    channelActionConfig()
+    channelActionConfig({
+      headers: proofToken ? { 'X-Security-Proof': proofToken } : undefined,
+    })
   )
   return res.data
 }
 
 export async function completeCodexOAuth(
   input: string,
-  flowToken?: string
+  flowToken?: string,
+  channelId?: number | null,
+  proofToken?: string
 ): Promise<OAuthCompleteResponse> {
   const res = await api.post(
-    '/api/channel/codex/oauth/complete',
+    channelId
+      ? `/api/channel/${channelId}/codex/oauth/complete`
+      : '/api/channel/codex/oauth/complete',
     { input, flow_token: flowToken },
-    channelActionConfig()
+    channelActionConfig({
+      headers: proofToken ? { 'X-Security-Proof': proofToken } : undefined,
+    })
   )
   return res.data
 }
 
 export async function refreshCodexCredential(
-  channelId: number
+  channelId: number,
+  proofToken?: string
 ): Promise<CodexCredentialRefreshResponse> {
   const res = await api.post(
     `/api/channel/${channelId}/codex/refresh`,
     {},
-    channelActionConfig()
+    channelActionConfig({
+      headers: proofToken ? { 'X-Security-Proof': proofToken } : undefined,
+    })
   )
   return res.data
 }
@@ -465,12 +484,15 @@ export async function resetCodexUsage(
  * Manage multi-key channel operations
  */
 export async function manageMultiKeys(
-  params: MultiKeyManageParams
+  params: MultiKeyManageParams,
+  proofToken?: string
 ): Promise<MultiKeyStatusResponse | { success: boolean; message?: string }> {
   const res = await api.post(
     '/api/channel/multi_key/manage',
     params,
-    channelActionConfig()
+    channelActionConfig({
+      headers: proofToken ? { 'X-Security-Proof': proofToken } : undefined,
+    })
   )
   return res.data
 }
@@ -526,13 +548,17 @@ export async function disableMultiKey(
  */
 export async function deleteMultiKey(
   channelId: number,
-  keyIndex: number
+  keyIndex: number,
+  proofToken?: string
 ): Promise<{ success: boolean; message?: string }> {
-  return manageMultiKeys({
-    channel_id: channelId,
-    action: 'delete_key',
-    key_index: keyIndex,
-  }) as Promise<{ success: boolean; message?: string }>
+  return manageMultiKeys(
+    {
+      channel_id: channelId,
+      action: 'delete_key',
+      key_index: keyIndex,
+    },
+    proofToken
+  ) as Promise<{ success: boolean; message?: string }>
 }
 
 /**
@@ -563,12 +589,16 @@ export async function disableAllMultiKeys(
  * Delete all disabled keys in multi-key channel
  */
 export async function deleteDisabledMultiKeys(
-  channelId: number
+  channelId: number,
+  proofToken?: string
 ): Promise<{ success: boolean; message?: string; data?: number }> {
-  return manageMultiKeys({
-    channel_id: channelId,
-    action: 'delete_disabled_keys',
-  }) as Promise<{ success: boolean; message?: string; data?: number }>
+  return manageMultiKeys(
+    {
+      channel_id: channelId,
+      action: 'delete_disabled_keys',
+    },
+    proofToken
+  ) as Promise<{ success: boolean; message?: string; data?: number }>
 }
 
 // ============================================================================

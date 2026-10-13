@@ -37,6 +37,10 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import {
+  SecureVerificationDialog,
+  useSecureVerification,
+} from '@/features/auth/secure-verification'
+import {
   ADMIN_PERMISSION_ACTIONS,
   ADMIN_PERMISSION_RESOURCES,
   hasPermission,
@@ -75,6 +79,11 @@ export function MultiKeyManageDialog({
   onOpenChange,
 }: MultiKeyManageDialogProps) {
   const { t } = useTranslation()
+  const verification = useSecureVerification()
+  const cancelVerification = verification.cancel
+  useEffect(() => {
+    if (!open) cancelVerification()
+  }, [open, cancelVerification])
   const { currentRow } = useChannels()
   const queryClient = useQueryClient()
   const currentUser = useAuthStore((s) => s.auth.user)
@@ -149,7 +158,7 @@ export function MultiKeyManageDialog({
   }
 
   const handleStatusFilterChange = (value: string) => {
-    const newFilter = value === 'all' ? null : parseInt(value)
+    const newFilter = value === 'all' ? null : Number.parseInt(value)
     setStatusFilter(newFilter)
     setCurrentPage(1)
     loadKeyStatus(1, pageSize, newFilter)
@@ -160,7 +169,7 @@ export function MultiKeyManageDialog({
     loadKeyStatus(newPage, pageSize)
   }
 
-  const performAction = async () => {
+  const performAction = async (proofToken?: string) => {
     if (!confirmAction || !currentRow) return
     if (
       !canEditSensitive &&
@@ -182,13 +191,13 @@ export function MultiKeyManageDialog({
       } else if (type === 'disable' && keyIndex !== undefined) {
         response = await disableMultiKey(currentRow.id, keyIndex)
       } else if (type === 'delete' && keyIndex !== undefined) {
-        response = await deleteMultiKey(currentRow.id, keyIndex)
+        response = await deleteMultiKey(currentRow.id, keyIndex, proofToken)
       } else if (type === 'enable-all') {
         response = await enableAllMultiKeys(currentRow.id)
       } else if (type === 'disable-all') {
         response = await disableAllMultiKeys(currentRow.id)
       } else if (type === 'delete-disabled') {
-        response = await deleteDisabledMultiKeys(currentRow.id)
+        response = await deleteDisabledMultiKeys(currentRow.id, proofToken)
       }
 
       if (response?.success) {
@@ -204,9 +213,10 @@ export function MultiKeyManageDialog({
           loadKeyStatus(currentPage, pageSize)
         }
       } else {
-        toast.error(response?.message || t('Operation failed'))
+        throw new Error(response?.message || t('Operation failed'))
       }
     } catch (error: unknown) {
+      if (proofToken) throw error
       toast.error(
         error instanceof Error ? error.message : t('Operation failed')
       )
@@ -294,12 +304,10 @@ export function MultiKeyManageDialog({
           {/* Toolbar */}
           <div className='flex shrink-0 items-center justify-between'>
             <Select
-              items={[
-                ...MULTI_KEY_FILTER_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: t(option.label),
-                })),
-              ]}
+              items={MULTI_KEY_FILTER_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.label),
+              }))}
               value={statusFilter === null ? 'all' : statusFilter.toString()}
               onValueChange={(v) => v !== null && handleStatusFilterChange(v)}
             >
@@ -378,15 +386,17 @@ export function MultiKeyManageDialog({
 
           {/* Table */}
           <div className='min-h-0 flex-1 overflow-auto rounded-md border'>
-            {isLoading ? (
+            {isLoading && (
               <div className='flex items-center justify-center py-12'>
                 <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
               </div>
-            ) : keys.length === 0 ? (
+            )}
+            {!isLoading && keys.length === 0 && (
               <div className='text-muted-foreground py-12 text-center'>
                 {t('No keys found')}
               </div>
-            ) : (
+            )}
+            {!isLoading && keys.length > 0 && (
               <StaticDataTable
                 className='rounded-none border-0'
                 tableClassName='min-w-[800px]'
@@ -478,7 +488,35 @@ export function MultiKeyManageDialog({
         desc={t(getMultiKeyConfirmMessage(confirmAction))}
         destructive={isDestructiveAction(confirmAction)}
         isLoading={isPerformingAction}
-        handleConfirm={performAction}
+        handleConfirm={() => {
+          if (
+            currentRow.type === 57 &&
+            (confirmAction?.type === 'delete' ||
+              confirmAction?.type === 'delete-disabled')
+          ) {
+            void verification.startVerification(performAction, {
+              scope: 'channel.codex.credentials.write',
+            })
+          } else {
+            void performAction()
+          }
+        }}
+      />
+      <SecureVerificationDialog
+        open={verification.open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) verification.cancel()
+        }}
+        methods={verification.methods}
+        state={verification.state}
+        onVerify={async (method, code) => {
+          await verification
+            .executeVerification(method, code)
+            .catch(() => undefined)
+        }}
+        onCancel={verification.cancel}
+        onCodeChange={verification.setCode}
+        onMethodChange={verification.switchMethod}
       />
     </>
   )

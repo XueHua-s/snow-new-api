@@ -128,8 +128,6 @@ import { ROLE } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { ClaudeOAuthDialog } from '../dialogs/claude-oauth-dialog'
-import { CodexOAuthDialog } from '../dialogs/codex-oauth-dialog'
 import {
   fetchModels,
   getAllModels,
@@ -180,6 +178,8 @@ import {
 import type { Channel } from '../../types'
 import { useChannels } from '../channels-provider'
 import { AdvancedCustomEditorDialog } from '../dialogs/advanced-custom-editor-dialog'
+import { ClaudeOAuthDialog } from '../dialogs/claude-oauth-dialog'
+import { CodexOAuthDialog } from '../dialogs/codex-oauth-dialog'
 import { FetchModelsDialog } from '../dialogs/fetch-models-dialog'
 import {
   MissingModelsConfirmationDialog,
@@ -188,6 +188,7 @@ import {
 import { ParamOverrideEditorDialog } from '../dialogs/param-override-editor-dialog'
 import { StatusCodeRiskDialog } from '../dialogs/status-code-risk-dialog'
 import { ModelMappingEditor } from '../model-mapping-editor'
+import { ResponsesWebSocketSetting } from '../responses-websocket-setting'
 import {
   ChannelAdvancedSection,
   ChannelApiAccessSection,
@@ -293,6 +294,7 @@ const SENSITIVE_FORM_FIELDS = [
   'http_protocol',
   'http2_connection_shards',
   'pass_through_body_enabled',
+  'responses_websocket_enabled',
   'system_prompt',
   'system_prompt_override',
   'allow_service_tier',
@@ -698,6 +700,7 @@ export function ChannelMutateDrawer({
     state: verificationState,
     executeVerification,
     withVerification,
+    startVerification,
     cancel: cancelVerification,
     setCode: setVerificationCode,
     switchMethod: switchVerificationMethod,
@@ -705,12 +708,13 @@ export function ChannelMutateDrawer({
 
   useEffect(() => {
     if (!open) {
+      cancelVerification()
       setChannelKey(null)
       setIsChannelKeyLoading(false)
     } else if (channelId) {
       setChannelKey(null)
     }
-  }, [open, channelId])
+  }, [open, channelId, cancelVerification])
 
   // Check if this is a multi-key channel
   const isMultiKeyChannel =
@@ -1409,22 +1413,25 @@ export function ChannelMutateDrawer({
 
   const handleRefreshCodexCredential = useCallback(async () => {
     if (!channelId) return
-    setIsCodexCredentialRefreshing(true)
-    try {
-      const res = await refreshCodexCredential(channelId)
-      if (!res.success) {
-        throw new Error(res.message || t('Failed to refresh credential'))
-      }
-      toast.success(t('Credential refreshed'))
-      queryClient.invalidateQueries({
-        queryKey: channelsQueryKeys.detail(channelId),
-      })
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('Refresh failed'))
-    } finally {
-      setIsCodexCredentialRefreshing(false)
-    }
-  }, [channelId, queryClient, t])
+    await startVerification(
+      async (proofToken) => {
+        setIsCodexCredentialRefreshing(true)
+        try {
+          const res = await refreshCodexCredential(channelId, proofToken)
+          if (!res.success) {
+            throw new Error(res.message || t('Failed to refresh credential'))
+          }
+          toast.success(t('Credential refreshed'))
+          queryClient.invalidateQueries({
+            queryKey: channelsQueryKeys.detail(channelId),
+          })
+        } finally {
+          setIsCodexCredentialRefreshing(false)
+        }
+      },
+      { scope: 'channel.codex.credentials.write' }
+    )
+  }, [channelId, queryClient, t, startVerification])
 
   // Unified function to update models
   const updateModels = useCallback(
@@ -1732,7 +1739,21 @@ export function ChannelMutateDrawer({
         }
       }
 
-      await channelMutation.mutateAsync(data)
+      const save = (proofToken?: string) =>
+        channelMutation.mutateAsync({ data, proofToken })
+      if (
+        isEditing &&
+        (currentRow?.type === 57 || data.type === 57) &&
+        (Boolean(data.key?.trim()) || data.type !== currentRow?.type)
+      ) {
+        await startVerification(save, {
+          scope: 'channel.codex.credentials.write',
+        })
+      } else {
+        await withVerification(save, {
+          scope: 'channel.codex.credentials.write',
+        })
+      }
     },
     [
       isEditing,
@@ -1741,6 +1762,9 @@ export function ChannelMutateDrawer({
       confirmMissingModelMappings,
       confirmStatusCodeRisk,
       channelMutation,
+      currentRow,
+      startVerification,
+      withVerification,
       t,
     ]
   )
@@ -3103,7 +3127,9 @@ export function ChannelMutateDrawer({
                                         type='button'
                                         variant='outline'
                                         size='sm'
-                                        onClick={() => setCodexOAuthDialogOpen(true)}
+                                        onClick={() =>
+                                          setCodexOAuthDialogOpen(true)
+                                        }
                                         disabled={sensitiveLocked}
                                       >
                                         <Link2 className='mr-2 h-4 w-4' />
@@ -4118,6 +4144,10 @@ export function ChannelMutateDrawer({
                             className='space-y-4 disabled:opacity-60'
                           >
                             <div className='divide-border space-y-0 divide-y border-y'>
+                              <ResponsesWebSocketSetting
+                                channelType={currentType}
+                                disabled={sensitiveLocked || isSubmitting}
+                              />
                               {currentType === 1 && (
                                 <FormField
                                   control={form.control}
@@ -4579,7 +4609,8 @@ export function ChannelMutateDrawer({
                                   currentType
                                 ) && (
                                   <>
-                                    {(currentType === 14 || currentType === 61) && (
+                                    {(currentType === 14 ||
+                                      currentType === 61) && (
                                       <FormField
                                         control={form.control}
                                         name='allow_inference_geo'
@@ -4633,7 +4664,8 @@ export function ChannelMutateDrawer({
                                       )}
                                     />
 
-                                    {(currentType === 14 || currentType === 61) && (
+                                    {(currentType === 14 ||
+                                      currentType === 61) && (
                                       <FormField
                                         control={form.control}
                                         name='claude_beta_query'
@@ -4883,10 +4915,16 @@ export function ChannelMutateDrawer({
       />
 
       <CodexOAuthDialog
+        channelId={isEditing ? channelId : null}
         open={codexOAuthDialogOpen}
         onOpenChange={setCodexOAuthDialogOpen}
         onKeyGenerated={(key) => {
           if (key) form.setValue('key', key, { shouldDirty: true })
+          else if (channelId) {
+            queryClient.invalidateQueries({
+              queryKey: channelsQueryKeys.detail(channelId),
+            })
+          }
         }}
       />
 
@@ -4909,7 +4947,7 @@ export function ChannelMutateDrawer({
         methods={verificationMethods}
         state={verificationState}
         onVerify={async (method, code) => {
-          await executeVerification(method, code)
+          await executeVerification(method, code).catch(() => undefined)
         }}
         onCancel={cancelVerification}
         onCodeChange={setVerificationCode}

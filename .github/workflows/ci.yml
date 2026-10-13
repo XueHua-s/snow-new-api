@@ -86,3 +86,37 @@ jobs:
 
       - name: Test
         run: bun run test
+
+  codex-transport:
+    name: Codex transport Linux ARM64 GNU
+    if: github.event.action != 'closed' || github.event.pull_request.merged == true
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ github.event.pull_request.base.repo.full_name }}
+          ref: ${{ github.event.action == 'closed' && github.event.pull_request.base.ref || github.ref }}
+      - name: Locked transport and vendored no-replay regression
+        run: |
+          docker run --rm --platform linux/arm64 --ulimit nofile=8192:8192 \
+            -e CODEX_TEST_UID_MATRIX=1 \
+            -v "$PWD:/workspace" -w /workspace \
+            rust:1.91.1-bookworm@sha256:c1e5f19e773b7878c3f7a805dd00a495e747acbdc76fb2337a4ebf0418896b33 \
+            bash -ec 'source tools/codex-transport/scripts/build-openssl.sh; bash tools/codex-transport/scripts/test-http.sh; cargo build --manifest-path tools/codex-transport/Cargo.toml --locked --bin codex-transport'
+      - name: Set up Go for transport subprocess tests
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            relaykit/go.sum
+      - name: Actual Go to Rust subprocess and controller retry regression
+        env:
+          CODEX_TRANSPORT_TEST_BINARY: ${{ github.workspace }}/tools/codex-transport/target/debug/codex-transport
+        run: bash tools/codex-transport/scripts/test-go-rust.sh
+      - name: Build production sidecar
+        run: docker build --platform linux/arm64 -f tools/codex-transport/Dockerfile -t codex-transport:ci .
+      - name: Validate optional Compose configuration
+        run: docker compose -f docker-compose.yml -f docker-compose.codex-transport.yml config --quiet

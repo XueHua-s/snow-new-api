@@ -37,13 +37,13 @@ func FetchCodexWhamUsage(
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, bu+"/backend-api/wham/usage", nil)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	setCodexWhamRequestHeaders(req, at, aid)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	defer resp.Body.Close()
 
@@ -79,13 +79,13 @@ func FetchCodexWhamRateLimitResetCredits(
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, bu+"/backend-api/wham/rate-limit-reset-credits", nil)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	setCodexWhamRequestHeaders(req, at, aid)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	defer resp.Body.Close()
 
@@ -103,6 +103,12 @@ func ConsumeCodexWhamRateLimitResetCredit(
 	accessToken string,
 	accountID string,
 ) (statusCode int, body []byte, err error) {
+	return ConsumeCodexWhamRateLimitResetCreditWithID(ctx, client, baseURL, accessToken, accountID, uuid.NewString())
+}
+
+// ConsumeCodexWhamRateLimitResetCreditWithID keeps the operation ID stable across
+// an explicit authorization refresh; transport failures must never be replayed.
+func ConsumeCodexWhamRateLimitResetCreditWithID(ctx context.Context, client *http.Client, baseURL, accessToken, accountID, redeemRequestID string) (statusCode int, body []byte, err error) {
 	if client == nil {
 		return 0, nil, fmt.Errorf("nil http client")
 	}
@@ -120,10 +126,10 @@ func ConsumeCodexWhamRateLimitResetCredit(
 	}
 
 	requestBody, err := common.Marshal(map[string]string{
-		"redeem_request_id": uuid.NewString(),
+		"redeem_request_id": redeemRequestID,
 	})
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 
 	req, err := http.NewRequestWithContext(
@@ -133,14 +139,14 @@ func ConsumeCodexWhamRateLimitResetCredit(
 		bytes.NewReader(requestBody),
 	)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	setCodexWhamRequestHeaders(req, at, aid)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	defer resp.Body.Close()
 

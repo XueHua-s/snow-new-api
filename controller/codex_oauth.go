@@ -7,6 +7,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/relay/channel/codex"
 	"github.com/QuantumNous/new-api/service"
 
@@ -92,4 +93,10 @@ func buildCodexOAuthKey(ctx context.Context, code string, state string, verifier
 			"last_refresh": key.LastRefresh,
 		},
 	}, nil
+}
+
+const securityProofScopeCodexCredentialWrite = "channel.codex.credentials.write"
+
+func requireCodexCredentialProof(c *gin.Context) bool {
+	return middleware.RequireSecurityProof(c, securityProofScopeCodexCredentialWrite, []string{secureVerificationMethod2FA, secureVerificationMethodPasskey})
 }

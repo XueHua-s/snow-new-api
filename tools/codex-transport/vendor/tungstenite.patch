@@ -1,0 +1,132 @@
+--- a/src/handshake/client.rs
++++ b/src/handshake/client.rs
+@@ -206,15 +206,9 @@
+             name = "Origin";
+         }
+ 
+-        writeln!(
+-            req,
+-            "{}: {}\r",
+-            name,
+-            v.to_str().map_err(|err| {
+-                Error::Utf8(format!("{err} for header name '{name}' with value: {v:?}"))
+-            })?
+-        )
+-        .unwrap();
++        write!(req, "{}: ", name).unwrap();
++        req.extend_from_slice(v.as_bytes());
++        req.extend_from_slice(b"\r\n");
+     }
+ 
+     writeln!(req, "\r").unwrap();
+--- a/src/handshake/server.rs
++++ b/src/handshake/server.rs
+@@ -94,6 +94,18 @@
+     generate_body: impl FnOnce() -> T2,
+ ) -> Result<HttpResponse<T2>> {
+     Ok(create_parts(request)?.body(generate_body())?)
++}
++
++/// Prepare an upgrade response and extension state for an external HTTP server.
++pub fn create_response_with_extensions<T>(request: &HttpRequest<T>, config: &WebSocketConfig) -> Result<(Response, Extensions)> {
++    let mut response = create_parts(request)?.body(())?;
++    let mut negotiated = Extensions::default();
++    if let Some(offers) = request.headers().typed_try_get::<SecWebsocketExtensions>().map_err(|_| ProtocolError::InvalidHeader(SecWebsocketExtensions::name().clone().into()))? {
++        let (extensions, agreed) = config.extensions.accept_offers(&offers).map_err(ProtocolError::from)?;
++        if let Some(agreed) = agreed { response.headers_mut().typed_insert(agreed); }
++        negotiated = extensions;
++    }
++    Ok((response, negotiated))
+ }
+ 
+ /// Write `response` to the stream `w`.
+--- a/src/extensions/compression/deflate/mod.rs
++++ b/src/extensions/compression/deflate/mod.rs
+@@ -139,6 +139,9 @@
+     }
+ }
+ 
++#[cfg(test)]
++thread_local! { static CODEX_DECOMPRESS_PEAK: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
++
+ const ELIDED_TRAILER_BLOCK_CONTENTS: &[u8] = &[0x00, 0x00, 0xff, 0xff];
+ 
+ impl DeflateCompress {
+@@ -158,6 +161,7 @@
+         }
+ 
+         let mut output = Vec::new();
++        let output_limit = data.len().saturating_mul(2).saturating_add(65536);
+ 
+         // The amount of space that should be available in `output` before
+         // attempting to compress data into it.
+@@ -175,7 +179,11 @@
+             let mut total_read = self.compressor.total_in();
+             loop {
+                 // Make sure there's space for compress_vec to write to.
+-                output.reserve(REQUIRED_OUTPUT_SPACE);
++                if output.len() == output.capacity() {
++                    if output.len() == output_limit { return Err(std::io::Error::other("compressed message limit")); }
++                    let target = output.capacity().saturating_mul(2).max(REQUIRED_OUTPUT_SPACE).min(output_limit);
++                    output.reserve_exact(target.saturating_sub(output.len()));
++                }
+ 
+                 let r = self.compressor.compress_vec(data, &mut output, FlushCompress::None)?;
+ 
+@@ -235,7 +243,11 @@
+         {
+             let mut total_out = self.compressor.total_out();
+             loop {
+-                output.reserve(REQUIRED_OUTPUT_SPACE);
++                if output.len() == output.capacity() {
++                    if output.len() == output_limit { return Err(std::io::Error::other("compressed message limit")); }
++                    let target = output.capacity().saturating_mul(2).max(REQUIRED_OUTPUT_SPACE).min(output_limit);
++                    output.reserve_exact(target.saturating_sub(output.len()));
++                }
+                 let output_len_before = output.len();
+                 let output_available_before = output.capacity() - output_len_before;
+ 
+@@ -308,7 +320,13 @@
+                 // optimistically assuming a 50% compression ratio of the input.
+                 // This might put us slightly beyond the requested size limit
+                 // but it also might not all be used.
+-                output.reserve(2 * data.len());
++                if output.len() == output.capacity() {
++                    let ceiling = size_limit.saturating_add(1);
++                    let target = output.capacity().saturating_mul(2).max(4096).min(ceiling);
++                    output.reserve_exact(target.saturating_sub(output.len()));
++                }
++                #[cfg(test)]
++                CODEX_DECOMPRESS_PEAK.with(|peak| peak.set(peak.get().max(output.capacity())));
+ 
+                 let r =
+                     self.decompressor.decompress_vec(data, &mut output, FlushDecompress::None)?;
+@@ -388,6 +406,19 @@
+     use super::*;
+ 
+     #[test]
++    fn codex_decompression_allocation_is_bounded_before_limit_rejection() {
++        for size in [63, 64, 65, 65536] {
++            let mut client = DeflateContext::new(Role::Client, DeflateConfig::default());
++            let mut server = DeflateContext::new(Role::Server, DeflateConfig::default());
++            let compressed = client.compress(&vec![b'a'; size]).unwrap();
++            CODEX_DECOMPRESS_PEAK.with(|peak| peak.set(0));
++            let result = server.decompress(&compressed, true, 64);
++            if size <= 64 { assert_eq!(result.unwrap().len(), size); } else { assert!(matches!(result, Err(DecompressionError::SizeLimitReached))); }
++            assert!(CODEX_DECOMPRESS_PEAK.with(|peak| peak.get()) <= 65);
++        }
++    }
++
++    #[test]
+     fn interop() {
+         let mut data = vec![0; 2048];
+         rand::rngs::SmallRng::seed_from_u64(1023).fill_bytes(&mut data);
+--- a/.gitignore
++++ b/.gitignore
+@@ -3,3 +3,6 @@
+ .vscode
+ autobahn/client/
+ autobahn/server/
++
++# Standalone security regression dependencies are reproducible.
++!Cargo.lock

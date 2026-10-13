@@ -13,7 +13,8 @@ import (
 )
 
 type CodexCredentialRefreshOptions struct {
-	ResetCaches bool
+	ResetCaches     bool
+	ExpectedChannel *model.Channel
 }
 
 type CodexOAuthKey struct {
@@ -49,6 +50,10 @@ func RefreshCodexChannelCredential(ctx context.Context, channelID int, opts Code
 	}
 	if ch.Type != constant.ChannelTypeCodex {
 		return nil, nil, fmt.Errorf("channel type is not Codex")
+	}
+
+	if opts.ExpectedChannel != nil && !ch.SameCredentialBinding(opts.ExpectedChannel) {
+		return nil, nil, errors.New("codex channel credential or destination changed before refresh")
 	}
 
 	oauthKey, err := parseCodexOAuthKey(strings.TrimSpace(ch.Key))
@@ -91,7 +96,7 @@ func RefreshCodexChannelCredential(ctx context.Context, channelID int, opts Code
 		return nil, nil, err
 	}
 
-	if err := model.DB.Model(&model.Channel{}).Where("id = ?", ch.Id).Update("key", string(encoded)).Error; err != nil {
+	if err := model.ReplaceChannelCredentialIfUnchanged(ch, string(encoded)); err != nil {
 		return nil, nil, err
 	}
 

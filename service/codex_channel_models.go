@@ -19,17 +19,14 @@ func FetchCodexChannelModels(channel *model.Channel) ([]string, error) {
 		return nil, fmt.Errorf("codex channel does not support multi-key model discovery")
 	}
 
-	client, err := NewProxyHttpClient(channel.GetSetting().Proxy)
+	client, err := GetCodexHTTPClient(CodexTransportOptions{ProxyURL: channel.GetSetting().Proxy, Settings: channel.GetSetting(), Purpose: CodexTransportAPI})
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	clientVersion, err := GetLatestCodexClientVersion(ctx, client)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Codex client version: %w", err)
-	}
+	const clientVersion = "0.162.1"
 
 	baseURL := channel.GetBaseURL()
 	if baseURL == "" {
@@ -61,7 +58,7 @@ func fetchCodexChannelModels(
 		refreshedKey, _, refreshErr := RefreshCodexChannelCredential(
 			ctx,
 			channel.Id,
-			CodexCredentialRefreshOptions{ResetCaches: true},
+			CodexCredentialRefreshOptions{ResetCaches: true, ExpectedChannel: channel},
 		)
 		if refreshErr != nil {
 			return nil, fmt.Errorf("failed to refresh Codex channel credential: %w", refreshErr)

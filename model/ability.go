@@ -3,11 +3,13 @@ package model
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	appdto "github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 
 	"github.com/samber/lo"
@@ -105,13 +107,17 @@ func getChannelQuery(group string, model string, retry int) (*gorm.DB, error) {
 	return channelQuery, nil
 }
 
-func GetChannel(group string, model string, retry int, requestPath string) (*Channel, error) {
+func GetChannel(group string, model string, retry int, requestPath string, filters ...appdto.ChannelFilter) (*Channel, error) {
 	var abilities []Ability
 
 	var err error = nil
 	channelQuery, err := getChannelQuery(group, model, retry)
 	if err != nil {
 		return nil, err
+	}
+	requireWebSocket := slices.ContainsFunc(filters, func(filter appdto.ChannelFilter) bool { return filter.Kind == appdto.FilterResponsesWebSocket })
+	if requireWebSocket {
+		channelQuery = DB.Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true)
 	}
 	if common.UsingMainDatabase(common.DatabaseTypeSQLite) || common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 		err = channelQuery.Order("weight DESC").Find(&abilities).Error
@@ -122,6 +128,31 @@ func GetChannel(group string, model string, retry int, requestPath string) (*Cha
 		return nil, err
 	}
 	abilities = filterAbilitiesByRequestPathAndModel(abilities, requestPath, model)
+	if len(filters) > 0 {
+		filtered := make([]Ability, 0, len(abilities))
+		for _, ability := range abilities {
+			candidate, lookupErr := GetChannelById(ability.ChannelId, true)
+			if lookupErr != nil {
+				return nil, lookupErr
+			}
+			if ok, _ := ChannelSatisfiesFilters(candidate, model, filters); ok {
+				filtered = append(filtered, ability)
+			}
+		}
+		abilities = filtered
+	}
+	if requireWebSocket && len(abilities) > 0 {
+		priorities := make([]int64, 0, len(abilities))
+		for _, ability := range abilities {
+			priority := lo.FromPtr(ability.Priority)
+			if !slices.Contains(priorities, priority) {
+				priorities = append(priorities, priority)
+			}
+		}
+		slices.Sort(priorities)
+		priority := priorities[max(0, len(priorities)-1-max(0, retry))]
+		abilities = slices.DeleteFunc(abilities, func(ability Ability) bool { return lo.FromPtr(ability.Priority) != priority })
+	}
 	channel := Channel{}
 	if len(abilities) > 0 {
 		// Randomly choose one

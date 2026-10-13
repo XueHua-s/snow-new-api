@@ -19,6 +19,12 @@ For commercial licensing, please contact support@quantumnous.com
 // Static translation keys that don't get picked up by the t('...') regex.
 // These cover dynamic labels (e.g. constants, configs) that are passed into t at runtime.
 export const STATIC_I18N_KEYS = [
+  // Codex OAuth credential updates
+  'Authorize and save',
+  'Codex OAuth credential saved',
+  'Connect Codex and save the OAuth credential directly to this channel.',
+  'Open the authorization page, sign in, then paste the callback URL and authorize the channel.',
+
   // Channel status
   '1 second heartbeat',
   '7-day availability',

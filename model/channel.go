@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/pkg/wsmanager"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 
@@ -58,6 +59,8 @@ type Channel struct {
 	// cache info
 	Keys []string `json:"-" gorm:"-"`
 }
+
+const ChannelStatusReasonAllKeysDisabled = "All keys are disabled"
 
 type ChannelInfo struct {
 	IsMultiKey             bool                  `json:"is_multi_key"`                        // 是否多Key模式
@@ -343,7 +346,11 @@ func (channel *Channel) GetAutoBan() bool {
 }
 
 func (channel *Channel) Save() error {
-	return DB.Save(channel).Error
+	err := DB.Save(channel).Error
+	if err == nil {
+		wsmanager.CloseChannelsAndBroadcast([]int{channel.Id}, "channel configuration changed")
+	}
+	return err
 }
 
 // saveStatusState persists only the fields owned by the channel status flow.
@@ -360,7 +367,11 @@ func (channel *Channel) saveStatusState() error {
 	if channel.ChannelInfo.IsMultiKey {
 		updates["channel_info"] = channel.ChannelInfo
 	}
-	return DB.Model(&Channel{}).Where("id = ?", channel.Id).Updates(updates).Error
+	err := DB.Model(&Channel{}).Where("id = ?", channel.Id).Updates(updates).Error
+	if err == nil {
+		wsmanager.CloseChannelsAndBroadcast([]int{channel.Id}, "channel status changed")
+	}
+	return err
 }
 
 func GetAllChannels(startIdx int, num int, selectAll bool, idSort bool, sortOptions ...ChannelSortOptions) ([]*Channel, error) {
@@ -583,6 +594,9 @@ func (channel *Channel) Update() error {
 	if err != nil {
 		return err
 	}
+	// Any successful administrative channel update invalidates authenticated
+	// connections, including active requests. New sessions read the new binding.
+	wsmanager.CloseChannelsAndBroadcast([]int{channel.Id}, "channel configuration changed")
 	DB.Model(channel).First(channel, "id = ?", channel.Id)
 	err = channel.UpdateAbilities(nil)
 	return err
@@ -614,6 +628,7 @@ func (channel *Channel) Delete() error {
 	if err != nil {
 		return err
 	}
+	wsmanager.CloseChannelsAndBroadcast([]int{channel.Id}, "channel deleted")
 	err = channel.DeleteAbilities()
 	return err
 }
@@ -697,7 +712,7 @@ func handlerMultiKeyUpdate(channel *Channel, usingKey string, status int, reason
 		if !hasEnabledMultiKey(keys, channel.ChannelInfo.MultiKeyStatusList) {
 			channel.Status = common.ChannelStatusAutoDisabled
 			info := channel.GetOtherInfo()
-			info["status_reason"] = "All keys are disabled"
+			info["status_reason"] = ChannelStatusReasonAllKeysDisabled
 			info["status_time"] = common.GetTimestamp()
 			channel.SetOtherInfo(info)
 		} else if status == common.ChannelStatusEnabled {
@@ -768,7 +783,12 @@ func UpdateChannelStatus(channelId int, usingKey string, status int, reason stri
 	if err != nil {
 		return false
 	} else {
-		if channel.Status == status {
+		// A manual channel operation must replace the exhaustion reason even
+		// when the status value is already manually disabled.
+		overridesKeyExhaustion := channel.ChannelInfo.IsMultiKey && usingKey == "" &&
+			status == common.ChannelStatusManuallyDisabled && reason != ChannelStatusReasonAllKeysDisabled &&
+			channel.GetOtherInfo()["status_reason"] == ChannelStatusReasonAllKeysDisabled
+		if channel.Status == status && !overridesKeyExhaustion {
 			return false
 		}
 
@@ -805,15 +825,39 @@ func EnableChannelByTag(tag string) error {
 }
 
 func DisableChannelByTag(tag string) error {
+	// Explicit tag-level disable also cancels automatic restoration for
+	// channels that were already disabled because all keys were unavailable.
+	var channels []Channel
+	if err := DB.Where("tag = ?", tag).Find(&channels).Error; err != nil {
+		return err
+	}
+	for _, channel := range channels {
+		if channel.ChannelInfo.IsMultiKey && channel.GetOtherInfo()["status_reason"] == ChannelStatusReasonAllKeysDisabled {
+			if !UpdateChannelStatus(channel.Id, "", common.ChannelStatusManuallyDisabled, "manual tag operation") {
+				return fmt.Errorf("failed to disable channel #%d by tag", channel.Id)
+			}
+		}
+	}
 	err := DB.Model(&Channel{}).Where("tag = ?", tag).Update("status", common.ChannelStatusManuallyDisabled).Error
 	if err != nil {
 		return err
 	}
+	// The disable is already persisted. Ability maintenance may fail, but
+	// authenticated sockets must not survive that partial-success boundary.
+	channelIDs := make([]int, 0, len(channels))
+	for _, channel := range channels {
+		channelIDs = append(channelIDs, channel.Id)
+	}
+	wsmanager.CloseChannelsAndBroadcast(channelIDs, "channel disabled")
 	err = UpdateAbilityStatusByTag(tag, false)
 	return err
 }
 
 func EditChannelByTag(tag string, newTag *string, modelMapping *string, models *string, group *string, priority *int64, weight *uint, paramOverride *string, headerOverride *string) error {
+	var channelIDs []int
+	if err := DB.Model(&Channel{}).Where("tag = ?", tag).Pluck("id", &channelIDs).Error; err != nil {
+		return err
+	}
 	updateData := Channel{}
 	shouldReCreateAbilities := false
 	updatedTag := tag
@@ -850,6 +894,7 @@ func EditChannelByTag(tag string, newTag *string, modelMapping *string, models *
 	if err != nil {
 		return err
 	}
+	wsmanager.CloseChannelsAndBroadcast(channelIDs, "channel configuration changed")
 	if shouldReCreateAbilities {
 		channels, err := GetChannelsByTag(updatedTag, false, false)
 		if err == nil {
@@ -878,10 +923,13 @@ func UpdateChannelUsedQuota(id int, quota int) {
 }
 
 func updateChannelUsedQuota(id int, quota int) {
-	err := DB.Model(&Channel{}).Where("id = ?", id).Update("used_quota", gorm.Expr("used_quota + ?", quota)).Error
-	if err != nil {
+	if err := updateChannelUsedQuotaInDB(DB, id, quota); err != nil {
 		common.SysLog(fmt.Sprintf("failed to update channel used quota: channel_id=%d, delta_quota=%d, error=%v", id, quota, err))
 	}
+}
+
+func updateChannelUsedQuotaInDB(db *gorm.DB, id int, quota int) error {
+	return db.Model(&Channel{}).Where("id = ?", id).Update("used_quota", gorm.Expr("used_quota + ?", quota)).Error
 }
 
 func DeleteChannelByStatus(status int64) (int64, error) {
@@ -1161,4 +1209,33 @@ func CountChannelsGroupByType() (map[int64]int64, error) {
 		counts[r.Type] = r.Count
 	}
 	return counts, nil
+}
+
+// SameCredentialBinding includes the destination and transport policy alongside
+// the credential. A refreshed token must never inherit an older request's target.
+func (channel *Channel) SameCredentialBinding(expected *Channel) bool {
+	return channel != nil && expected != nil && channel.Id == expected.Id && channel.Type == expected.Type &&
+		channel.Status == expected.Status && channel.Key == expected.Key && channel.GetBaseURL() == expected.GetBaseURL() && channel.GetSetting() == expected.GetSetting()
+}
+
+// ReplaceChannelCredentialIfUnchanged compares strings in Go under the row lock:
+// database collations must not treat differently cased credentials as equal.
+func ReplaceChannelCredentialIfUnchanged(expected *Channel, key string) error {
+	if expected == nil || expected.Id <= 0 {
+		return errors.New("channel credential snapshot is invalid")
+	}
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var current Channel
+		if err := lockForUpdate(tx).First(&current, expected.Id).Error; err != nil {
+			return err
+		}
+		if !current.SameCredentialBinding(expected) {
+			return errors.New("channel credential or destination changed during refresh")
+		}
+		return tx.Model(&Channel{}).Where("id = ?", current.Id).Update("key", key).Error
+	})
+	if err == nil {
+		wsmanager.CloseChannelsAndBroadcast([]int{expected.Id}, "channel credential changed")
+	}
+	return err
 }

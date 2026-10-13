@@ -20,6 +20,7 @@ type ChannelSettings struct {
 	PassThroughBodyEnabled       bool   `json:"pass_through_body_enabled,omitempty"`
 	SystemPrompt                 string `json:"system_prompt,omitempty"`
 	SystemPromptOverride         bool   `json:"system_prompt_override,omitempty"`
+	ResponsesWebSocketEnabled bool `json:"responses_websocket_enabled,omitempty"`
 	// HTTPProtocol controls outbound HTTP version negotiation for this channel.
 	// Accepted values: "", "auto" (default), "http1".
 	HTTPProtocol string `json:"http_protocol,omitempty"`
@@ -158,6 +159,14 @@ const (
 	// AdvancedCustomBalancePath identifies the optional balance lookup route used by channel management.
 	AdvancedCustomBalancePath = "/v1/dashboard/billing/credit_grants"
 )
+
+// IsNative reports whether the route forwards requests without protocol
+// conversion. Validate normalizes an empty converter to none, but callers may
+// see configurations that were never saved.
+func (r AdvancedCustomRoute) IsNative() bool {
+	converter := strings.TrimSpace(r.Converter)
+	return converter == "" || converter == advancedCustomConverterNone
+}
 
 // MatchPath returns the first route whose IncomingPath matches requestPath.
 // Matching mirrors the relay adaptor: exact match, {model} placeholder, and

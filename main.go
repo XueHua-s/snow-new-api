@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
+	"github.com/QuantumNous/new-api/pkg/wsmanager"
 	"github.com/QuantumNous/new-api/relay"
 	kitutil "github.com/QuantumNous/new-api/relaykit/relayconvert/kitutil"
 	"github.com/QuantumNous/new-api/router"
@@ -44,6 +47,61 @@ var buildFS embed.FS
 
 //go:embed web/dist/index.html
 var indexPage []byte
+
+// httpHandlerDrain tracks handler completion beyond socket closure. Closing a
+// transport cancels the request, but its existing settlement may still be running.
+type httpHandlerDrain struct {
+	handler  http.Handler
+	mu       sync.Mutex
+	stopping bool
+	workers  sync.WaitGroup
+}
+
+func (d *httpHandlerDrain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	d.mu.Lock()
+	if d.stopping {
+		d.mu.Unlock()
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+	d.workers.Add(1)
+	d.mu.Unlock()
+	defer d.workers.Done()
+	d.handler.ServeHTTP(w, r)
+}
+
+var errHTTPHandlersNotDrained = errors.New("HTTP request settlement did not finish before forced shutdown deadline")
+
+func shutdownHTTPServer(ctx context.Context, srv *http.Server, drain *httpHandlerDrain, cancelRequests context.CancelFunc, settlementTimeout time.Duration) error {
+	drain.mu.Lock()
+	drain.stopping = true
+	drain.mu.Unlock()
+	err := srv.Shutdown(ctx)
+	done := make(chan struct{})
+	go func() { drain.workers.Wait(); close(done) }()
+	if err == nil {
+		// net/http does not wait for hijacked handlers; wsmanager closes those
+		// concurrently. Preserve their original graceful deadline as well.
+		select {
+		case <-done:
+			return nil
+		case <-ctx.Done():
+			err = ctx.Err()
+		}
+	}
+	// Shutdown only stops accepting and waits; at its deadline it does not
+	// cancel active SSE requests. Cancellation must precede the final wait.
+	cancelRequests()
+	_ = srv.Close()
+	timer := time.NewTimer(settlementTimeout)
+	defer timer.Stop()
+	select {
+	case <-done:
+		return err
+	case <-timer.C:
+		return errHTTPHandlersNotDrained
+	}
+}
 
 func main() {
 	startTime := time.Now()
@@ -100,6 +158,7 @@ func main() {
 
 		go model.SyncChannelCache(common.SyncFrequency)
 	}
+	wsmanager.StartSubscriber(context.Background())
 
 	// Warm pricing after channel cache initialization so Advanced Custom
 	// endpoint inference can read cached route settings on first request.
@@ -204,10 +263,18 @@ func main() {
 		port = strconv.Itoa(*common.Port)
 	}
 
+	requestContext, cancelRequests := context.WithCancel(context.Background())
+	defer cancelRequests()
+	drain := &httpHandlerDrain{handler: server}
 	srv := &http.Server{
-		Addr:    ":" + port,
-		Handler: server,
+		Addr:        ":" + port,
+		Handler:     drain,
+		BaseContext: func(net.Listener) context.Context { return requestContext },
 	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(quit)
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -219,8 +286,6 @@ func main() {
 
 	common.LogStartupSuccess(startTime, port)
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-quit
 	common.SysLog(fmt.Sprintf("received signal: %v, shutting down...", sig))
 
@@ -228,8 +293,24 @@ func main() {
 	shutdownTimeout := time.Duration(common.GetEnvOrDefault("SHUTDOWN_TIMEOUT_SECONDS", 120)) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	httpShutdown := make(chan error, 1)
+	go func() { httpShutdown <- shutdownHTTPServer(ctx, srv, drain, cancelRequests, 10*time.Second) }()
+	if err := wsmanager.Shutdown(ctx); err != nil {
+		common.SysError(fmt.Sprintf("websocket shutdown incomplete: %v", err))
+	}
+	if err := <-httpShutdown; err != nil {
 		common.SysError(fmt.Sprintf("server forced to shutdown: %v", err))
+		if errors.Is(err, errHTTPHandlersNotDrained) {
+			common.FatalLog(err.Error())
+			return
+		}
+	}
+	flushContext, cancelFlush := context.WithTimeout(context.Background(), 10*time.Second)
+	flushErr := model.ShutdownBatchUpdater(flushContext)
+	cancelFlush()
+	if flushErr != nil {
+		common.FatalLog("final quota flush failed: " + flushErr.Error())
+		return
 	}
 	// 内存中的看板数据保存入库，避免重启丢失未落库数据 (issue #5679)
 	if common.DataExportEnabled {
@@ -300,6 +381,9 @@ func InitResources() error {
 	ratio_setting.InitRatioSettings()
 
 	service.InitHttpClient()
+	if err = service.InitCodexTransport(); err != nil {
+		return err
+	}
 
 	service.InitTokenEncoders()
 

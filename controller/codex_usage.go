@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func GetCodexChannelUsage(c *gin.Context) {
@@ -36,9 +37,12 @@ func GetCodexChannelRateLimitResetCredits(c *gin.Context) {
 }
 
 func ResetCodexChannelUsage(c *gin.Context) {
+	redeemRequestID := uuid.NewString()
 	fetchCodexChannelWhamData(
 		c,
-		service.ConsumeCodexWhamRateLimitResetCredit,
+		func(ctx context.Context, client *http.Client, baseURL, accessToken, accountID string) (int, []byte, error) {
+			return service.ConsumeCodexWhamRateLimitResetCreditWithID(ctx, client, baseURL, accessToken, accountID, redeemRequestID)
+		},
 		"failed to reset codex usage",
 		"重置用量失败，请稍后重试",
 	)
@@ -99,7 +103,7 @@ func fetchCodexChannelWhamData(
 		return
 	}
 
-	client, err := service.GetHttpClientWithProxy(ch.GetSetting().Proxy)
+	client, err := service.GetCodexHTTPClient(service.CodexTransportOptions{ProxyURL: ch.GetSetting().Proxy, Settings: ch.GetSetting(), Purpose: service.CodexTransportAPI})
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -119,21 +123,9 @@ func fetchCodexChannelWhamData(
 		refreshCtx, refreshCancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 		defer refreshCancel()
 
-		res, refreshErr := service.RefreshCodexOAuthTokenWithProxy(refreshCtx, oauthKey.RefreshToken, ch.GetSetting().Proxy)
+		refreshed, _, refreshErr := service.RefreshCodexChannelCredential(refreshCtx, ch.Id, service.CodexCredentialRefreshOptions{ResetCaches: true, ExpectedChannel: ch})
 		if refreshErr == nil {
-			oauthKey.AccessToken = res.AccessToken
-			oauthKey.RefreshToken = res.RefreshToken
-			oauthKey.LastRefresh = time.Now().Format(time.RFC3339)
-			oauthKey.Expired = res.ExpiresAt.Format(time.RFC3339)
-			if strings.TrimSpace(oauthKey.Type) == "" {
-				oauthKey.Type = "codex"
-			}
-
-			encoded, encErr := common.Marshal(oauthKey)
-			if encErr == nil {
-				_ = model.DB.Model(&model.Channel{}).Where("id = ?", ch.Id).Update("key", string(encoded)).Error
-				model.InitChannelCache()
-			}
+			oauthKey.AccessToken = refreshed.AccessToken
 
 			ctx2, cancel2 := context.WithTimeout(c.Request.Context(), 15*time.Second)
 			defer cancel2()
@@ -180,7 +172,7 @@ func fetchCodexChannelUsage(ctx context.Context, ch *model.Channel) (int, []byte
 		return 0, nil, fmt.Errorf("codex channel: account_id is required")
 	}
 
-	client, err := service.GetHttpClientWithProxy(ch.GetSetting().Proxy)
+	client, err := service.GetCodexHTTPClient(service.CodexTransportOptions{ProxyURL: ch.GetSetting().Proxy, Settings: ch.GetSetting(), Purpose: service.CodexTransportAPI})
 	if err != nil {
 		return 0, nil, err
 	}
@@ -204,28 +196,12 @@ func fetchCodexChannelUsage(ctx context.Context, ch *model.Channel) (int, []byte
 	}
 
 	refreshCtx, refreshCancel := context.WithTimeout(ctx, 10*time.Second)
-	res, refreshErr := service.RefreshCodexOAuthTokenWithProxy(
-		refreshCtx,
-		oauthKey.RefreshToken,
-		ch.GetSetting().Proxy,
-	)
+	refreshed, _, refreshErr := service.RefreshCodexChannelCredential(refreshCtx, ch.Id, service.CodexCredentialRefreshOptions{ResetCaches: true, ExpectedChannel: ch})
 	refreshCancel()
 	if refreshErr != nil {
 		return statusCode, body, nil
 	}
-
-	oauthKey.AccessToken = res.AccessToken
-	oauthKey.RefreshToken = res.RefreshToken
-	oauthKey.LastRefresh = time.Now().Format(time.RFC3339)
-	oauthKey.Expired = res.ExpiresAt.Format(time.RFC3339)
-	if strings.TrimSpace(oauthKey.Type) == "" {
-		oauthKey.Type = "codex"
-	}
-	if encoded, encodeErr := common.Marshal(oauthKey); encodeErr == nil {
-		_ = model.DB.Model(&model.Channel{}).Where("id = ?", ch.Id).Update("key", string(encoded)).Error
-		model.InitChannelCache()
-		service.ResetProxyClientCache()
-	}
+	oauthKey.AccessToken = refreshed.AccessToken
 
 	retryCtx, retryCancel := context.WithTimeout(ctx, 15*time.Second)
 	defer retryCancel()

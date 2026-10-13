@@ -1,0 +1,216 @@
+--- hyper-util-0.1.20/src/client/legacy/client.rs
++++ hyper-util-0.1.20/src/client/legacy/client.rs
+@@ -321,10 +321,38 @@
+             authority_form(req.uri_mut());
+         }
+ 
++        #[cfg(all(test, feature = "http1", feature = "tokio"))]
++        if let Some(barrier) = req
++            .extensions()
++            .get::<codex_no_retry_tests::CheckoutBarrier>()
++        {
++            if pooled.is_reused() {
++                barrier.checked_out.notify_one();
++                barrier.peer_closed.notified().await;
++                // Wait for the real connection driver to observe EOF. No error
++                // is injected: try_send_request below receives its real sender.
++                loop {
++                    if poll_fn(|cx| pooled.poll_ready(cx)).await.is_err() {
++                        break;
++                    }
++                    tokio::task::yield_now().await;
++                }
++            }
++        }
+         let mut res = match pooled.try_send_request(req).await {
+             Ok(res) => res,
+             Err(mut err) => {
+                 return if let Some(req) = err.take_message() {
++                    #[cfg(all(test, feature = "http1", feature = "tokio"))]
++                    if let Some(barrier) = req
++                        .extensions()
++                        .get::<codex_no_retry_tests::CheckoutBarrier>()
++                    {
++                        assert!(pooled.is_reused());
++                        barrier
++                            .unstarted_retryable
++                            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
++                    }
+                     Err(TrySendError::Retryable {
+                         connection_reused: pooled.is_reused(),
+                         error: e!(Canceled, err.into_error())
+@@ -1031,7 +1059,7 @@
+         let exec = Exec::new(executor);
+         Self {
+             client_config: Config {
+-                retry_canceled_requests: true,
++                retry_canceled_requests: false, // Codex: never replay cancelled checkout.
+                 set_host: true,
+                 ver: Ver::Auto,
+             },
+@@ -1668,3 +1696,148 @@
+         e!(ChannelClosed, src)
+     }
+ }
++
++#[cfg(all(test, feature = "http1", feature = "tokio"))]
++mod codex_no_retry_tests {
++    use super::*;
++    use crate::{client::legacy::connect::HttpConnector, rt::TokioExecutor};
++    use bytes::Bytes;
++    use http_body_util::{BodyExt, Empty};
++    use std::sync::{
++        atomic::{AtomicUsize, Ordering},
++        Arc,
++    };
++    use std::task::Context;
++    use tokio::{
++        io::{AsyncReadExt, AsyncWriteExt},
++        sync::Notify,
++    };
++    use tower_service::Service;
++
++    #[derive(Clone)]
++    pub(super) struct CheckoutBarrier {
++        pub(super) checked_out: Arc<Notify>,
++        pub(super) peer_closed: Arc<Notify>,
++        pub(super) unstarted_retryable: Arc<AtomicUsize>,
++    }
++    #[derive(Clone)]
++    struct CountingConnector {
++        inner: HttpConnector,
++        calls: Arc<AtomicUsize>,
++    }
++    impl Service<Uri> for CountingConnector {
++        type Response = <HttpConnector as Service<Uri>>::Response;
++        type Error = <HttpConnector as Service<Uri>>::Error;
++        type Future = <HttpConnector as Service<Uri>>::Future;
++        fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
++            self.inner.poll_ready(cx)
++        }
++        fn call(&mut self, uri: Uri) -> Self::Future {
++            self.calls.fetch_add(1, Ordering::SeqCst);
++            self.inner.call(uri)
++        }
++    }
++
++    #[tokio::test]
++    async fn codex_stale_checkout_has_zero_redial_before_request_start() {
++        for retry_control in [false, true] {
++            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++            let address = listener.local_addr().unwrap();
++            let barrier = CheckoutBarrier {
++                checked_out: Arc::new(Notify::new()),
++                peer_closed: Arc::new(Notify::new()),
++                unstarted_retryable: Arc::new(AtomicUsize::new(0)),
++            };
++            let server_barrier = barrier.clone();
++            let target_requests = Arc::new(AtomicUsize::new(0));
++            let received = target_requests.clone();
++            let server = tokio::spawn(async move {
++                for index in 0..2 {
++                    let (mut socket, _) = listener.accept().await.unwrap();
++                    let mut header = Vec::new();
++                    while !header.ends_with(b"\r\n\r\n") {
++                        header.push(socket.read_u8().await.unwrap());
++                    }
++                    received.fetch_add(1, Ordering::SeqCst);
++                    socket
++                        .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nwarm")
++                        .await
++                        .unwrap();
++                    if index == 0 {
++                        server_barrier.checked_out.notified().await;
++                        // Second request owns the actual reused sender but has
++                        // not entered try_send_request or written any bytes.
++                        drop(socket);
++                        server_barrier.peer_closed.notify_one();
++                    }
++                }
++            });
++            let calls = Arc::new(AtomicUsize::new(0));
++            let connector = CountingConnector {
++                inner: HttpConnector::new(),
++                calls: calls.clone(),
++            };
++            let mut builder = Client::builder(TokioExecutor::new());
++            if retry_control {
++                builder.retry_canceled_requests(true);
++            }
++            let client = builder.build(connector);
++            let warm = Request::builder()
++                .uri(format!("http://{address}/warm"))
++                .body(Empty::<Bytes>::new())
++                .unwrap();
++            assert_eq!(
++                client
++                    .request(warm)
++                    .await
++                    .unwrap()
++                    .into_body()
++                    .collect()
++                    .await
++                    .unwrap()
++                    .to_bytes(),
++                "warm"
++            );
++            let mut request = Request::builder()
++                .uri(format!("http://{address}/generation"))
++                .body(Empty::<Bytes>::new())
++                .unwrap();
++            request.extensions_mut().insert(barrier.clone());
++            let result = tokio::time::timeout(Duration::from_secs(3), client.request(request))
++                .await
++                .unwrap();
++            assert_eq!(
++                barrier.unstarted_retryable.load(Ordering::SeqCst),
++                1,
++                "must hit the actual Retryable unstarted reused branch"
++            );
++            if retry_control {
++                assert_eq!(
++                    result
++                        .unwrap()
++                        .into_body()
++                        .collect()
++                        .await
++                        .unwrap()
++                        .to_bytes(),
++                    "warm"
++                );
++                assert_eq!(
++                    calls.load(Ordering::SeqCst),
++                    2,
++                    "positive control exposes original automatic replay"
++                );
++                assert_eq!(target_requests.load(Ordering::SeqCst), 2);
++            } else {
++                assert!(result.is_err());
++                assert_eq!(calls.load(Ordering::SeqCst), 1, "only warmup connected");
++                assert_eq!(
++                    target_requests.load(Ordering::SeqCst),
++                    1,
++                    "generation never reached upstream"
++                );
++            }
++            server.abort();
++        }
++    }
++}
+--- hyper-util-0.1.20/src/client/legacy/connect/proxy/socks/v5/mod.rs
++++ hyper-util-0.1.20/src/client/legacy/connect/proxy/socks/v5/mod.rs
+@@ -111,7 +111,13 @@
+     where
+         T: Read + Write + Unpin,
+     {
+-        let address = match host.parse::<IpAddr>() {
++        // http::Uri::host retains IPv6 brackets. Send an IP address, not a
++        // domain named "[::1]", when reqwest has already resolved locally.
++        let ip_host = host
++            .strip_prefix('[')
++            .and_then(|s| s.strip_suffix(']'))
++            .unwrap_or(&host);
++        let address = match ip_host.parse::<IpAddr>() {
+             Ok(ip) => Address::Socket(SocketAddr::new(ip, port)),
+             Err(_) if host.len() <= 255 => {
+                 if self.local_dns {

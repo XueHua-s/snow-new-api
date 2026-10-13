@@ -1,0 +1,81 @@
+{
+  "scope": "live Go gateway -> Rust sidecar -> official upstream",
+  "generations": [
+    {
+      "input_tokens": 23,
+      "output_tokens": 5,
+      "total_tokens": 28,
+      "response_id_sha256": "d5ea4a2a9ea789b2601b3c41062d1c356e2acc5de77ae4e1b0f2cbbbcc52d7b1"
+    },
+    {
+      "input_tokens": 23,
+      "output_tokens": 5,
+      "total_tokens": 28,
+      "response_id_sha256": "3800672fa5be3e27fe40f3640e15bb64b78bf784bcfc5db1e6d4339c0ba130d9"
+    },
+    {
+      "input_tokens": 37,
+      "output_tokens": 5,
+      "total_tokens": 42,
+      "response_id_sha256": "a736db7603f7a7b2e42a9e87c19875d6b53bdce04261b1a34043c86ed21c644f"
+    }
+  ],
+  "cleanup_resource_prefix": "codex-live-255fe3e7fc",
+  "verification_expression": "tier(\"live_verification\", p * 2 + c * 2)",
+  "pricing_note": "isolated validation rate, not a claim of provider retail cost",
+  "official_endpoint": "https://chatgpt.com/backend-api/codex",
+  "custom_ca": false,
+  "proxy": "isolated allowlist CONNECT; only chatgpt.com:443",
+  "app_image_id": "sha256:c1f7972aa01e8423ace374d94b6b2a228cc6ec8263926b838c86648c2ca6d204",
+  "sidecar_image_id": "sha256:4ab8c6f99c9160e035db1ae3ff415150b06b690681e03c09213e21659bd88c54",
+  "model_discovery": {
+    "count": 10,
+    "selected": "gpt-6-luna",
+    "management_path": "/api/channel/fetch_models/9001"
+  },
+  "http_status": 200,
+  "accounting": {
+    "user": [
+      999902,
+      98,
+      3
+    ],
+    "token": [
+      999902,
+      98
+    ],
+    "channel": 98,
+    "logs": [
+      {
+        "id": 2,
+        "quota": 28,
+        "prompt_tokens": 23,
+        "completion_tokens": 5,
+        "request_id": "202610132210538168096418268d9d6BvNAYCxc",
+        "channel_id": 9001,
+        "token_id": 9001
+      },
+      {
+        "id": 3,
+        "quota": 28,
+        "prompt_tokens": 23,
+        "completion_tokens": 5,
+        "request_id": "202610132210554892336578268d9d6ZyWLD3Sr-ws-0",
+        "channel_id": 9001,
+        "token_id": 9001
+      },
+      {
+        "id": 4,
+        "quota": 42,
+        "prompt_tokens": 37,
+        "completion_tokens": 5,
+        "request_id": "202610132210554892336578268d9d6ZyWLD3Sr-ws-1",
+        "channel_id": 9001,
+        "token_id": 9001
+      }
+    ]
+  },
+  "ws_status": 101,
+  "ws_generations": 2,
+  "complete": true
+}

@@ -1,0 +1,66 @@
+# Opt in explicitly with -f docker-compose.yml -f docker-compose.codex-transport.yml.
+# Build the application from this checkout; an older latest image has no adapter.
+services:
+  new-api:
+    # Go defaults: 120s graceful drain + 10s forced settlement, plus margin.
+    stop_grace_period: 150s
+    image: new-api-codex:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    user: "10001:10001"
+    environment:
+      CODEX_TRANSPORT_ENABLED: "true"
+      CODEX_TRANSPORT_SOCKET: /run/codex-transport/transport.sock
+      CODEX_TRANSPORT_PROFILE: "0.162.1"
+    volumes:
+      - codex_transport_socket:/run/codex-transport:ro
+    depends_on:
+      codex-transport:
+        condition: service_healthy
+
+  codex-transport-init:
+    image: codex-transport:local
+    build:
+      context: .
+      dockerfile: tools/codex-transport/Dockerfile
+    platform: linux/arm64
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["chown 10001:10001 /run/codex-transport && chmod 0700 /run/codex-transport"]
+    volumes:
+      - codex_transport_socket:/run/codex-transport
+    network_mode: none
+    healthcheck:
+      disable: true
+    restart: "no"
+
+  codex-transport:
+    image: codex-transport:local
+    build:
+      context: .
+      dockerfile: tools/codex-transport/Dockerfile
+    platform: linux/arm64
+    user: "10001:10001"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    ulimits:
+      nofile:
+        soft: 2048
+        hard: 2048
+    stop_grace_period: 45s
+    environment:
+      CODEX_TRANSPORT_SOCKET: /run/codex-transport/transport.sock
+    volumes:
+      - codex_transport_socket:/run/codex-transport
+    depends_on:
+      codex-transport-init:
+        condition: service_completed_successfully
+    networks:
+      - new-api-network
+
+volumes:
+  codex_transport_socket:

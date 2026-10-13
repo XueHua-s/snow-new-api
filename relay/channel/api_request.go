@@ -12,6 +12,7 @@ import (
 	"time"
 
 	common2 "github.com/QuantumNous/new-api/common"
+	rootconstant "github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/constant"
@@ -313,11 +314,19 @@ func applyHeaderOverrideToRequest(req *http.Request, headerOverride map[string]s
 func DoApiRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody io.Reader) (*http.Response, error) {
 	fullRequestURL, err := a.GetRequestURL(info)
 	if err != nil {
+		if info.GetChannelType() == rootconstant.ChannelTypeCodex && service.CodexTransportEnabled() {
+			return nil, codexTransportRelayError(&service.CodexTransportError{Code: "target", Phase: "local_connect"})
+		}
 		return nil, fmt.Errorf("get request url failed: %w", err)
 	}
-	logger.LogDebug(c, "fullRequestURL: %s", common.SanitizeURLForLog(fullRequestURL))
+	if info.GetChannelType() != rootconstant.ChannelTypeCodex || !service.CodexTransportEnabled() {
+		logger.LogDebug(c, "fullRequestURL: %s", common.SanitizeURLForLog(fullRequestURL))
+	}
 	req, err := http.NewRequestWithContext(c.Request.Context(), c.Request.Method, fullRequestURL, requestBody)
 	if err != nil {
+		if info.GetChannelType() == rootconstant.ChannelTypeCodex && service.CodexTransportEnabled() {
+			return nil, codexTransportRelayError(&service.CodexTransportError{Code: "target", Phase: "local_connect"})
+		}
 		return nil, fmt.Errorf("new request failed: %w", err)
 	}
 	ApplyUpstreamBodyMetadata(req, requestBody)
@@ -343,11 +352,19 @@ func DoApiRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 func DoFormRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody io.Reader) (*http.Response, error) {
 	fullRequestURL, err := a.GetRequestURL(info)
 	if err != nil {
+		if info.GetChannelType() == rootconstant.ChannelTypeCodex && service.CodexTransportEnabled() {
+			return nil, codexTransportRelayError(&service.CodexTransportError{Code: "target", Phase: "local_connect"})
+		}
 		return nil, fmt.Errorf("get request url failed: %w", err)
 	}
-	logger.LogDebug(c, "fullRequestURL: %s", common.SanitizeURLForLog(fullRequestURL))
+	if info.GetChannelType() != rootconstant.ChannelTypeCodex || !service.CodexTransportEnabled() {
+		logger.LogDebug(c, "fullRequestURL: %s", common.SanitizeURLForLog(fullRequestURL))
+	}
 	req, err := http.NewRequestWithContext(c.Request.Context(), c.Request.Method, fullRequestURL, requestBody)
 	if err != nil {
+		if info.GetChannelType() == rootconstant.ChannelTypeCodex && service.CodexTransportEnabled() {
+			return nil, codexTransportRelayError(&service.CodexTransportError{Code: "target", Phase: "local_connect"})
+		}
 		return nil, fmt.Errorf("new request failed: %w", err)
 	}
 	ApplyUpstreamBodyMetadata(req, requestBody)
@@ -372,11 +389,19 @@ func DoFormRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBod
 	return resp, nil
 }
 
+// DoWssRequest dials the adaptor's upstream over WebSocket for the realtime
+// and Responses WebSocket relays. It honors the channel proxy, is bound to the
+// request context, and reports a rejected handshake as a *types.NewAPIError
+// carrying the upstream status code (types.NewError preserves it).
 func DoWssRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody io.Reader) (*websocket.Conn, error) {
 	fullRequestURL, err := a.GetRequestURL(info)
 	if err != nil {
+		if info.GetChannelType() == rootconstant.ChannelTypeCodex && service.CodexTransportEnabled() {
+			return nil, codexTransportRelayError(&service.CodexTransportError{Code: "target", Phase: "local_connect"})
+		}
 		return nil, fmt.Errorf("get request url failed: %w", err)
 	}
+	fullRequestURL = toWebSocketURL(fullRequestURL)
 	targetHeader := http.Header{}
 	err = a.SetupRequestHeader(c, &targetHeader, info)
 	if err != nil {
@@ -392,14 +417,59 @@ func DoWssRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 		targetHeader.Set(key, value)
 	}
 	targetHeader.Set("Content-Type", c.Request.Header.Get("Content-Type"))
-	targetConn, _, err := websocket.DefaultDialer.Dial(fullRequestURL, targetHeader)
-	if err != nil {
-		return nil, fmt.Errorf("dial failed to %s: %w", common.SanitizeURLForLog(fullRequestURL), err)
+	var targetConn *websocket.Conn
+	var resp *http.Response
+	if info.GetChannelType() == rootconstant.ChannelTypeCodex {
+		targetConn, resp, err = service.DialCodexWebSocket(c.Request.Context(), fullRequestURL, targetHeader, service.CodexTransportOptions{ProxyURL: info.ChannelSetting.Proxy, Settings: info.ChannelSetting, Purpose: service.CodexTransportAPI})
+		if err != nil && service.CodexTransportEnabled() {
+			var transportErr *service.CodexTransportError
+			if errors.As(err, &transportErr) {
+				return nil, codexTransportRelayError(err)
+			}
+			if resp != nil {
+				// The sidecar bounded this rejection body. Keep it alive until the
+				// existing upstream error parser has consumed the provider error.
+				defer resp.Body.Close()
+				apiErr := service.RelayErrorHandler(c.Request.Context(), resp, false)
+				return nil, types.NewError(apiErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
+			}
+			return nil, codexTransportRelayError(&service.CodexTransportError{Code: "upstream_io", Phase: "maybe_sent", MayHaveSent: true})
+		}
+	} else {
+		dialer := *websocket.DefaultDialer
+		if info.ChannelSetting.Proxy != "" {
+			proxyURL, _, proxyErr := common2.ParseProxyURLRuntime(info.ChannelSetting.Proxy)
+			if proxyErr != nil {
+				return nil, proxyErr
+			}
+			dialer.Proxy = http.ProxyURL(proxyURL)
+		}
+		targetConn, resp, err = dialer.DialContext(c.Request.Context(), fullRequestURL, targetHeader)
 	}
-	// send request body
-	//all, err := io.ReadAll(requestBody)
-	//err = service.WssString(c, targetConn, string(all))
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if resp != nil {
+			statusCode = resp.StatusCode
+			if resp.Body != nil {
+				_ = resp.Body.Close()
+			}
+		}
+		return nil, types.NewErrorWithStatusCode(fmt.Errorf("dial failed to %s: %w", common.SanitizeURLForLog(fullRequestURL), err), types.ErrorCodeDoRequestFailed, statusCode)
+	}
 	return targetConn, nil
+}
+
+// toWebSocketURL maps an http(s) endpoint to ws(s). Realtime adaptors already
+// return ws(s) URLs, which pass through unchanged.
+func toWebSocketURL(raw string) string {
+	switch {
+	case strings.HasPrefix(raw, "https://"):
+		return "wss://" + strings.TrimPrefix(raw, "https://")
+	case strings.HasPrefix(raw, "http://"):
+		return "ws://" + strings.TrimPrefix(raw, "http://")
+	default:
+		return raw
+	}
 }
 
 func startPingKeepAlive(c *gin.Context, pingInterval time.Duration) (context.CancelFunc, <-chan struct{}) {
@@ -488,8 +558,20 @@ func keepUpstreamRedirectResponse(_ *http.Request, _ []*http.Request) error {
 }
 
 func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http.Response, error) {
-	client, err := service.GetHttpClientWithProxySettings(info.ChannelSetting.Proxy, info.ChannelSetting)
+	var client *http.Client
+	var err error
+	if info.GetChannelType() == rootconstant.ChannelTypeCodex {
+		client, err = service.GetCodexHTTPClient(service.CodexTransportOptions{ProxyURL: info.ChannelSetting.Proxy, Settings: info.ChannelSetting, Purpose: service.CodexTransportAPI})
+	} else {
+		client, err = service.GetHttpClientWithProxySettings(info.ChannelSetting.Proxy, info.ChannelSetting)
+	}
 	if err != nil {
+		if transportErr := codexTransportRelayError(err); transportErr != nil {
+			if req.Body != nil {
+				req.Body.Close()
+			}
+			return nil, transportErr
+		}
 		return nil, fmt.Errorf("new proxy http client failed: %w", err)
 	}
 	// Clients are cached and shared across channels, so override redirect
@@ -531,11 +613,20 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 
 	resp, err := relayClient.Do(req)
 	if err != nil {
+		if transportErr := codexTransportRelayError(err); transportErr != nil {
+			logger.LogError(c, transportErr.Error())
+			return nil, transportErr
+		}
 		logger.LogError(c, "do request failed: "+err.Error())
 		return nil, types.NewError(err, types.ErrorCodeDoRequestFailed, types.ErrOptionWithHideErrMsg("upstream error: do request failed"))
 	}
 	if resp == nil {
 		return nil, errors.New("resp is nil")
+	}
+	if info.GetChannelType() == rootconstant.ChannelTypeCodex && service.CodexTransportEnabled() && resp.Body != nil {
+		// Provider response parsers preserve an existing NewAPIError. Attach the
+		// no-replay classification before a parser converts a Body read failure.
+		resp.Body = &codexRelayResponseBody{ReadCloser: resp.Body}
 	}
 	if common2.DebugEnabled {
 		policy := service.NormalizeHTTPTransportPolicy(info.ChannelSetting)
@@ -553,9 +644,33 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 		c.Set(common2.UpstreamRequestIdKey, upID)
 	}
 
-	_ = req.Body.Close()
-	_ = c.Request.Body.Close()
+	if req.Body != nil {
+		_ = req.Body.Close()
+	}
+	if c.Request.Body != nil {
+		_ = c.Request.Body.Close()
+	}
 	return resp, nil
+}
+
+type codexRelayResponseBody struct{ io.ReadCloser }
+
+func (b *codexRelayResponseBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	if classified := codexTransportRelayError(err); classified != nil {
+		return n, classified
+	}
+	return n, err
+}
+
+// A received upstream status is handled by the existing provider error path.
+// Transport uncertainty, including a pre-send failure, must never replay or switch channels.
+func codexTransportRelayError(err error) *types.NewAPIError {
+	var transportErr *service.CodexTransportError
+	if !errors.As(err, &transportErr) {
+		return nil
+	}
+	return types.NewError(transportErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
 }
 
 func DoTaskApiRequest(a TaskAdaptor, c *gin.Context, info *common.RelayInfo, requestBody io.Reader) (*http.Response, error) {
@@ -565,6 +680,9 @@ func DoTaskApiRequest(a TaskAdaptor, c *gin.Context, info *common.RelayInfo, req
 	}
 	req, err := http.NewRequest(c.Request.Method, fullRequestURL, requestBody)
 	if err != nil {
+		if info.GetChannelType() == rootconstant.ChannelTypeCodex && service.CodexTransportEnabled() {
+			return nil, codexTransportRelayError(&service.CodexTransportError{Code: "target", Phase: "local_connect"})
+		}
 		return nil, fmt.Errorf("new request failed: %w", err)
 	}
 	ApplyUpstreamBodyMetadata(req, requestBody)

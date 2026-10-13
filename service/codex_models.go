@@ -125,7 +125,7 @@ func FetchCodexModels(
 
 	modelsURL, err := url.Parse(baseURL + "/backend-api/codex/models")
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	query := modelsURL.Query()
 	query.Set("client_version", clientVersion)
@@ -133,7 +133,7 @@ func FetchCodexModels(
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelsURL.String(), nil)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("ChatGPT-Account-Id", accountID)
@@ -142,7 +142,7 @@ func FetchCodexModels(
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, SafeCodexHTTPError(err)
 	}
 	defer resp.Body.Close()
 

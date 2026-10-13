@@ -2,11 +2,17 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"net/http"
+	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/gin-gonic/gin"
 )
 
@@ -115,7 +121,7 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			}
 			logger.LogDebug(param.Ctx, "Auto selecting group: %s, priorityRetry: %d", autoGroup, priorityRetry)
 
-			channel, _ = model.GetRandomSatisfiedChannel(autoGroup, param.ModelName, priorityRetry, param.RequestPath)
+			channel, _ = model.GetRandomSatisfiedChannel(autoGroup, param.ModelName, priorityRetry, param.RequestPath, GetChannelConstraints(param.Ctx).Filters...)
 			if channel == nil {
 				// Current group has no available channel for this model, try next group
 				// 当前分组没有该模型的可用渠道，尝试下一个分组
@@ -153,10 +159,148 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			break
 		}
 	} else {
-		channel, err = model.GetRandomSatisfiedChannel(param.TokenGroup, param.ModelName, param.GetRetry(), param.RequestPath)
+		channel, err = model.GetRandomSatisfiedChannel(param.TokenGroup, param.ModelName, param.GetRetry(), param.RequestPath, GetChannelConstraints(param.Ctx).Filters...)
 		if err != nil {
 			return nil, param.TokenGroup, err
 		}
 	}
 	return channel, selectGroup, nil
+}
+
+// ChannelSelectError explains why SelectChannelForRequest found no channel.
+// Callers render it for their transport: the HTTP distributor localizes
+// MessageID with its own helpers and the Responses WebSocket relay wraps it in
+// a NewAPIError. Message is set instead of MessageID when the text is a fixed
+// error code that clients match on.
+type ChannelSelectError struct {
+	StatusCode int
+	Code       types.ErrorCode
+	MessageID  string
+	Params     map[string]any
+	Message    string
+	// FilterKind and Channel identify a candidate rejected by request filters.
+	FilterKind dto.ChannelFilterKind
+	Channel    *model.Channel
+	// NoAvailableChannel identifies an exhausted group/model selection.
+	NoAvailableChannel bool
+}
+
+// SelectChannelForRequest resolves the channel for one attempt with the rules
+// shared by the HTTP distributor and the Responses WebSocket relay: a pinned
+// channel wins, then session affinity (first attempt only), then a random
+// eligible channel; every candidate must satisfy the request's channel
+// filters. The group the channel was chosen from is returned for auto-group
+// callers. The caller still applies SetupContextForSelectedChannel.
+func SelectChannelForRequest(c *gin.Context, modelName string, retry *RetryParam) (*model.Channel, string, *ChannelSelectError) {
+	constraints := GetChannelConstraints(c)
+	if pin, found := constraints.ResolvedPin(); found {
+		channel, err := model.CacheGetChannel(pin.ChannelId)
+		if err != nil {
+			return nil, "", &ChannelSelectError{StatusCode: http.StatusBadRequest, MessageID: i18n.MsgDistributorInvalidChannelId}
+		}
+		if channel.Status != common.ChannelStatusEnabled {
+			return nil, "", &ChannelSelectError{StatusCode: http.StatusForbidden, MessageID: i18n.MsgDistributorChannelDisabled}
+		}
+		if ok, kind := model.ChannelSatisfiesFilters(channel, modelName, constraints.Filters); !ok {
+			return nil, "", &ChannelSelectError{
+				StatusCode: http.StatusBadRequest, Code: types.ErrorCode(kind), MessageID: i18n.MsgDistributorNoAvailableChannel,
+				Params:     map[string]any{"Group": common.GetContextKeyString(c, constant.ContextKeyUsingGroup), "Model": modelName},
+				FilterKind: kind, Channel: channel,
+			}
+		}
+		return channel, "", nil
+	}
+
+	usingGroup := retry.TokenGroup
+	var channel *model.Channel
+	var selectGroup string
+	if retry.GetRetry() == 0 {
+		if preferredChannelID, found := GetPreferredChannelByAffinity(c, modelName, usingGroup); found {
+			affinityUsable := false
+			preferred, err := model.CacheGetChannel(preferredChannelID)
+			affinitySatisfied := false
+			if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled {
+				affinitySatisfied, _ = model.ChannelSatisfiesFilters(preferred, modelName, constraints.Filters)
+			}
+			if affinitySatisfied {
+				if usingGroup == "auto" {
+					userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
+					for _, g := range GetRequestAutoGroups(c, userGroup) {
+						if model.IsChannelEnabledForGroupModel(g, modelName, preferred.Id) {
+							selectGroup = g
+							common.SetContextKey(c, constant.ContextKeyAutoGroup, g)
+							channel = preferred
+							affinityUsable = true
+							MarkChannelAffinityUsed(c, g, preferred.Id)
+							break
+						}
+					}
+				} else if model.IsChannelEnabledForGroupModel(usingGroup, modelName, preferred.Id) {
+					channel = preferred
+					selectGroup = usingGroup
+					affinityUsable = true
+					MarkChannelAffinityUsed(c, usingGroup, preferred.Id)
+				}
+			}
+			if !affinityUsable && !ShouldKeepChannelAffinityOnChannelDisabled() {
+				ClearCurrentChannelAffinityCache(c)
+			}
+		}
+	}
+
+	if channel == nil {
+		var err error
+		channel, selectGroup, err = CacheGetRandomSatisfiedChannel(retry)
+		if err != nil {
+			showGroup := usingGroup
+			if usingGroup == "auto" {
+				showGroup = fmt.Sprintf("auto(%s)", selectGroup)
+			}
+			return nil, selectGroup, &ChannelSelectError{
+				StatusCode: http.StatusServiceUnavailable, Code: types.ErrorCodeModelNotFound, MessageID: i18n.MsgDistributorGetChannelFailed,
+				Params: map[string]any{"Group": showGroup, "Model": modelName, "Error": err.Error()},
+			}
+		}
+		if channel == nil {
+			return nil, selectGroup, &ChannelSelectError{
+				StatusCode: http.StatusServiceUnavailable, Code: types.ErrorCodeModelNotFound, MessageID: i18n.MsgDistributorNoAvailableChannel,
+				Params: map[string]any{"Group": usingGroup, "Model": modelName}, NoAvailableChannel: true,
+			}
+		}
+	}
+	if ok, kind := model.ChannelSatisfiesFilters(channel, modelName, constraints.Filters); !ok {
+		return nil, selectGroup, &ChannelSelectError{
+			StatusCode: http.StatusServiceUnavailable, Code: types.ErrorCodeModelNotFound, MessageID: i18n.MsgDistributorNoAvailableChannel,
+			Params:     map[string]any{"Group": common.GetContextKeyString(c, constant.ContextKeyUsingGroup), "Model": modelName},
+			FilterKind: kind, Channel: channel, NoAvailableChannel: true,
+		}
+	}
+	return channel, selectGroup, nil
+}
+
+// AppendUsedChannel records an attempted channel in the request's channel
+// trail, which the retry log and the consume log's admin_info both read.
+func AppendUsedChannel(c *gin.Context, channelID int) {
+	c.Set("use_channel", append(c.GetStringSlice("use_channel"), fmt.Sprintf("%d", channelID)))
+}
+
+func GetChannelConstraints(c *gin.Context) *dto.ChannelConstraints {
+	if c == nil {
+		return &dto.ChannelConstraints{}
+	}
+	if value, exists := c.Get("channel_constraints"); exists {
+		if constraints, ok := value.(*dto.ChannelConstraints); ok {
+			return constraints
+		}
+	}
+	constraints := &dto.ChannelConstraints{}
+	if value, exists := common.GetContextKey(c, constant.ContextKeyTokenSpecificChannelId); exists {
+		id, err := strconv.Atoi(fmt.Sprint(value))
+		if err != nil || id <= 0 {
+			id = -1
+		}
+		constraints.AddPin(dto.ChannelPin{ChannelId: id})
+	}
+	c.Set("channel_constraints", constraints)
+	return constraints
 }

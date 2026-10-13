@@ -10,3 +10,28 @@ docs
 /web/node_modules
 /web/dist
 !THIRD-PARTY-LICENSES.md
+
+# Local credentials, captures, generated binaries and research never enter images.
+**/target
+**/.local-tests
+.specs
+.claude
+.agents
+skills
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.pcap
+**/*.pcapng
+**/*.har
+**/*.test
+**/node_modules
+/data
+/logs
+/tmp
+# Preserve audited dependency notices despite the general markdown exclusion.
+!tools/codex-transport/vendor/**/LICENSE*
+!tools/codex-transport/vendor/**/NOTICE*
+!tools/codex-transport/vendor/**/COPYING*
+.superset

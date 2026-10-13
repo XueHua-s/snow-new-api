@@ -1,0 +1,8 @@
+target
+Cargo.lock
+.vscode
+autobahn/client/
+autobahn/server/
+
+# Standalone security regression dependencies are reproducible.
+!Cargo.lock

@@ -1,13 +1,14 @@
 package model
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
 
-	"github.com/bytedance/gopkg/util/gopool"
 	"gorm.io/gorm"
 )
 
@@ -30,13 +31,58 @@ func init() {
 	}
 }
 
+var batchFlushGate = make(chan struct{}, 1)
+var batchUpdaterMu sync.Mutex
+var batchUpdaterCancel context.CancelFunc
+var batchUpdaterDone chan struct{}
+
 func InitBatchUpdater() {
-	gopool.Go(func() {
+	batchUpdaterMu.Lock()
+	defer batchUpdaterMu.Unlock()
+	if batchUpdaterCancel != nil {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	batchUpdaterCancel, batchUpdaterDone = cancel, done
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(time.Duration(max(1, common.BatchUpdateInterval)) * time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Duration(common.BatchUpdateInterval) * time.Second)
-			batchUpdate()
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				// Stop only the scheduler. Never cancel an additive SQL update
+				// and then replay it because its commit outcome is unknown.
+				if err := flushBatchUpdates(context.Background()); err != nil {
+					common.SysLog("failed to flush batch updates: " + err.Error())
+				}
+			}
 		}
-	})
+	}()
+}
+
+// ShutdownBatchUpdater is called after admitted relay handlers have settled.
+// Stop scheduling and wait for the current SQL cycle before the final flush.
+// Failed additive writes are never replayed: their commit outcome may be unknown.
+// The caller must report a failed final flush and reconcile database errors.
+func ShutdownBatchUpdater(ctx context.Context) error {
+	batchUpdaterMu.Lock()
+	cancel, done := batchUpdaterCancel, batchUpdaterDone
+	if cancel != nil {
+		cancel()
+	}
+	batchUpdaterMu.Unlock()
+	if done != nil {
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return flushBatchUpdates(ctx)
 }
 
 func addNewRecord(type_ int, id int, value int) {
@@ -50,6 +96,20 @@ func addNewRecord(type_ int, id int, value int) {
 }
 
 func batchUpdate() {
+	if err := flushBatchUpdates(context.Background()); err != nil {
+		common.SysLog("failed to flush batch updates: " + err.Error())
+	}
+}
+
+func flushBatchUpdates(ctx context.Context) error {
+	select {
+	case batchFlushGate <- struct{}{}:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	defer func() { <-batchFlushGate }()
+	var flushErrors []error
+	db := DB.WithContext(ctx)
 	// check if there's any data to update
 	hasData := false
 	for i := 0; i < BatchUpdateTypeCount; i++ {
@@ -63,7 +123,7 @@ func batchUpdate() {
 	}
 
 	if !hasData {
-		return
+		return nil
 	}
 
 	common.SysLog("batch update started")
@@ -82,12 +142,14 @@ func batchUpdate() {
 		for key, value := range store {
 			switch i {
 			case BatchUpdateTypeTokenQuota:
-				err := increaseTokenQuota(key, value)
+				err := increaseTokenQuotaInDB(db, key, value)
 				if err != nil {
-					common.SysLog("failed to batch update token quota: " + err.Error())
+					flushErrors = append(flushErrors, fmt.Errorf("token quota update: %w", err))
 				}
 			case BatchUpdateTypeChannelUsedQuota:
-				updateChannelUsedQuota(key, value)
+				if err := updateChannelUsedQuotaInDB(db, key, value); err != nil {
+					flushErrors = append(flushErrors, fmt.Errorf("channel quota update: %w", err))
+				}
 			}
 		}
 	}
@@ -107,9 +169,17 @@ func batchUpdate() {
 		userIDs[key] = struct{}{}
 	}
 	for key := range userIDs {
-		updateUserQuotaUsedQuotaAndRequestCount(key, userQuotaStore[key], usedQuotaStore[key], requestCountStore[key])
+		if err := updateUserQuotaUsedQuotaAndRequestCount(db, key, userQuotaStore[key], usedQuotaStore[key], requestCountStore[key]); err != nil {
+			flushErrors = append(flushErrors, fmt.Errorf("user quota update: %w", err))
+		}
 	}
-	common.SysLog("batch update finished")
+	flushError := errors.Join(flushErrors...)
+	if flushError == nil {
+		common.SysLog("batch update finished")
+	}
+	// Match periodic update semantics: never replay an additive SQL statement
+	// after an error with a potentially ambiguous commit outcome.
+	return flushError
 }
 
 func RecordExist(err error) (bool, error) {
