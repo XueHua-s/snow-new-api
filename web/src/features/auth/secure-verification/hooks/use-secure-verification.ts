@@ -110,23 +110,8 @@ export function useSecureVerification(
         return false
       }
 
-      if (
-        availableMethods.has2FA === false &&
-        availableMethods.hasPasskey === false
-      ) {
-        toast.error(
-          i18next.t(
-            'Please enable Two-factor Authentication or Passkey before proceeding'
-          )
-        )
-        onError?.(
-          new Error(
-            'No verification methods available. Enable 2FA or Passkey to continue.'
-          )
-        )
-        return false
-      }
-
+      // Missing site factors open setup guidance; an upstream account's MFA
+      // does not satisfy this site's proof requirement.
       let defaultMethod: VerificationMethod | null = preferredMethod ?? null
       if (
         (defaultMethod === 'passkey' &&

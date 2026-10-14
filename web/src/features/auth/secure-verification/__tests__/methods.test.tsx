@@ -16,7 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { act, renderHook } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from '@testing-library/react'
 import { AxiosError } from 'axios'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
@@ -24,6 +30,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { api } from '@/lib/api'
 
 import { checkVerificationMethods } from '../api'
+import { SecureVerificationDialog } from '../components/secure-verification-dialog'
 import { useSecureVerification } from '../hooks/use-secure-verification'
 
 const originalAdapter = api.defaults.adapter
@@ -141,4 +148,79 @@ test('unavailable status reports a load failure and supports retry without chang
   })
   expect(result.current.open).toBe(true)
   expect(mutation).not.toHaveBeenCalled()
+})
+
+test('missing site factors show setup guidance without invoking the protected action', async () => {
+  twoFA = { success: true, data: { enabled: false } }
+  passkey = { success: true, data: { enabled: false } }
+  const mutation = vi.fn()
+  const { result } = renderHook(() => useSecureVerification())
+  await act(async () => {
+    expect(
+      await result.current.startVerification(mutation, {
+        scope: 'channel.codex.credentials.write',
+      })
+    ).toBe(true)
+  })
+  const onVerify = vi.fn()
+  render(
+    <SecureVerificationDialog
+      open={result.current.open}
+      onOpenChange={vi.fn()}
+      methods={result.current.methods}
+      state={result.current.state}
+      onVerify={onVerify}
+      onCancel={result.current.cancel}
+      onCodeChange={result.current.setCode}
+      onMethodChange={result.current.switchMethod}
+    />
+  )
+  expect(screen.getByRole('dialog')).toHaveAccessibleName(
+    'Set up verification for this site'
+  )
+  expect(screen.getByText(/Security settings on OpenAI, ChatGPT/)).toBeVisible()
+  expect(
+    screen.getByRole('link', { name: 'Open security settings' })
+  ).toHaveAttribute('href', '/profile')
+  expect(
+    screen.getByRole('link', { name: 'Open security settings' })
+  ).toHaveAttribute('target', '_blank')
+  expect(
+    screen.queryByRole('button', { name: 'Verify' })
+  ).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  expect(result.current.open).toBe(false)
+  expect(onVerify).not.toHaveBeenCalled()
+  expect(mutation).not.toHaveBeenCalled()
+
+  twoFA = { success: true, data: { enabled: true } }
+  await act(async () => {
+    await result.current.startVerification(mutation, {
+      scope: 'channel.codex.credentials.write',
+    })
+  })
+  expect(result.current.currentMethod).toBe('2fa')
+  expect(mutation).not.toHaveBeenCalled()
+})
+
+test('an enrolled passkey on an unsupported device is not described as missing enrollment', () => {
+  render(
+    <SecureVerificationDialog
+      open
+      onOpenChange={vi.fn()}
+      methods={{ has2FA: false, hasPasskey: true, passkeySupported: false }}
+      state={{ method: null, loading: false, code: '' }}
+      onVerify={vi.fn()}
+      onCancel={vi.fn()}
+      onCodeChange={vi.fn()}
+      onMethodChange={vi.fn()}
+    />
+  )
+  expect(
+    screen.getByText('This device does not support Passkey verification.')
+  ).toBeVisible()
+  expect(
+    screen.queryByRole('link', { name: 'Open security settings' })
+  ).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Verify' })).toBeDisabled()
 })

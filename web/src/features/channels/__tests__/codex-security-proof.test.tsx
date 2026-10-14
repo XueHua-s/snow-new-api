@@ -284,7 +284,7 @@ describe('Codex credential proof requests', () => {
       screen.getByRole('button', { name: 'Open authorization page' })
     )
     const verification = await screen.findByRole('dialog', {
-      name: 'Additional verification required',
+      name: 'Security verification',
     })
     await user.click(
       within(verification).getByRole('button', { name: 'Cancel' })
@@ -311,7 +311,7 @@ describe('Codex credential proof requests', () => {
         screen.getByRole('button', { name: 'Open authorization page' })
       )
       let dialog = await screen.findByRole('dialog', {
-        name: 'Additional verification required',
+        name: 'Security verification',
       })
       await user.type(
         within(dialog).getByPlaceholderText('Enter verification code'),
@@ -329,7 +329,7 @@ describe('Codex credential proof requests', () => {
         screen.getByRole('button', { name: 'Authorize and save' })
       )
       dialog = await screen.findByRole('dialog', {
-        name: 'Additional verification required',
+        name: 'Security verification',
       })
       await user.type(
         within(dialog).getByPlaceholderText('Enter verification code'),
@@ -374,7 +374,7 @@ describe('Codex credential proof requests', () => {
       ).toBe(true)
     )
     expect(
-      screen.queryByRole('dialog', { name: 'Additional verification required' })
+      screen.queryByRole('dialog', { name: 'Security verification' })
     ).not.toBeInTheDocument()
   })
 })
