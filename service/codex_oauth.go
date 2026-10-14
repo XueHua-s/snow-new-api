@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -43,7 +44,7 @@ func RefreshCodexOAuthToken(ctx context.Context, refreshToken string) (*CodexOAu
 }
 
 func RefreshCodexOAuthTokenWithProxy(ctx context.Context, refreshToken string, proxyURL string) (*CodexOAuthTokenResult, error) {
-	client, err := getCodexOAuthHTTPClient(proxyURL)
+	client, err := GetCodexHTTPClient(CodexTransportOptions{ProxyURL: proxyURL, Purpose: CodexTransportAuth})
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func RefreshCodexOAuthTokenWithProxy(ctx context.Context, refreshToken string, p
 }
 
 func ExchangeCodexAuthorizationCodeWithProxy(ctx context.Context, code string, verifier string, proxyURL string) (*CodexOAuthTokenResult, error) {
-	client, err := getCodexOAuthHTTPClient(proxyURL)
+	client, err := GetCodexHTTPClient(CodexTransportOptions{ProxyURL: proxyURL, Purpose: CodexTransportAuth})
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +114,7 @@ func refreshCodexOAuthToken(
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, SafeCodexHTTPError(err)
 	}
 	defer resp.Body.Close()
 
@@ -123,8 +124,15 @@ func refreshCodexOAuthToken(
 		ExpiresIn    int    `json:"expires_in"`
 	}
 
-	if err := common.DecodeJson(resp.Body, &payload); err != nil {
-		return nil, err
+	body, err := io.ReadAll(io.LimitReader(resp.Body, (1<<20)+1))
+	if err != nil {
+		return nil, SafeCodexHTTPError(err)
+	}
+	if len(body) > 1<<20 {
+		return nil, errors.New("codex oauth response exceeds limit")
+	}
+	if err := common.Unmarshal(body, &payload); err != nil {
+		return nil, errors.New("codex oauth response is invalid")
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("codex oauth refresh failed: status=%d", resp.StatusCode)
@@ -175,7 +183,7 @@ func exchangeCodexAuthorizationCode(
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, SafeCodexHTTPError(err)
 	}
 	defer resp.Body.Close()
 
@@ -184,8 +192,15 @@ func exchangeCodexAuthorizationCode(
 		RefreshToken string `json:"refresh_token"`
 		ExpiresIn    int    `json:"expires_in"`
 	}
-	if err := common.DecodeJson(resp.Body, &payload); err != nil {
-		return nil, err
+	body, err := io.ReadAll(io.LimitReader(resp.Body, (1<<20)+1))
+	if err != nil {
+		return nil, SafeCodexHTTPError(err)
+	}
+	if len(body) > 1<<20 {
+		return nil, errors.New("codex oauth response exceeds limit")
+	}
+	if err := common.Unmarshal(body, &payload); err != nil {
+		return nil, errors.New("codex oauth response is invalid")
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("codex oauth code exchange failed: status=%d", resp.StatusCode)
@@ -318,4 +333,23 @@ func decodeJWTClaims(token string) (map[string]any, bool) {
 		return nil, false
 	}
 	return claims, true
+}
+
+// SafeCodexHTTPError strips net/http URL wrappers before errors reach management
+// responses or logs, while retaining the typed transport no-replay contract.
+func SafeCodexHTTPError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var transportErr *CodexTransportError
+	if errors.As(err, &transportErr) {
+		return transportErr
+	}
+	if errors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return context.DeadlineExceeded
+	}
+	return errors.New("codex upstream request failed")
 }

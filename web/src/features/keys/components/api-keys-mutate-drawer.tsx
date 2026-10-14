@@ -16,13 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, KeyRound, Settings2, WalletCards } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { useForm, type SubmitErrorHandler } from 'react-hook-form'
+import { ChevronDown, KeyRound, Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
 import { DateTimePicker } from '@/components/datetime-picker'
 import {
@@ -62,38 +57,12 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { useStatus } from '@/hooks/use-status'
-import { getUserModels, getUserGroups } from '@/lib/api'
-import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 
-import {
-  createApiKey,
-  updateApiKey,
-  getApiKey,
-  getTokenAutoGroups,
-} from '../api'
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
-import {
-  getApiKeyFormSchema,
-  type ApiKeyFormValues,
-  getApiKeyFormDefaultValues,
-  transformFormDataToPayload,
-  transformApiKeyToFormDefaults,
-} from '../lib'
-import type { ApiKey } from '../types'
-import {
-  ApiKeyGroupCombobox,
-  type ApiKeyGroupOption,
-} from './api-key-group-combobox'
-import { useApiKeys } from './api-keys-provider'
+import { ApiKeyGroupCombobox } from './api-key-group-combobox'
+import { ApiKeyQuotaFields } from './api-key-quota-fields'
 import { AutoGroupOrderEditor } from './auto-group-order-editor'
-
-type ApiKeyMutateDrawerProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  currentRow?: ApiKey
-}
+import { type ApiKeyMutateDrawerProps, useApiKeyForm } from './use-api-key-form'
 
 export function ApiKeysMutateDrawer({
   open,
@@ -101,265 +70,28 @@ export function ApiKeysMutateDrawer({
   currentRow,
 }: ApiKeyMutateDrawerProps) {
   const { t } = useTranslation()
-  const isUpdate = !!currentRow
-  const currentRowId = currentRow?.id
-  const { triggerRefresh } = useApiKeys()
-  const { status, loading: statusLoading } = useStatus()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [advancedOpen, setAdvancedOpen] = useState(false)
-  const [initializedTarget, setInitializedTarget] = useState<string | null>(
-    null
-  )
-  const defaultUseAutoGroup = status?.default_use_auto_group === true
-
-  // Fetch models
-  const { data: modelsData } = useQuery({
-    queryKey: ['user-models'],
-    queryFn: getUserModels,
-    enabled: open,
-    staleTime: 0,
-  })
-
-  // Fetch groups
   const {
-    data: groupsData,
-    isFetched: groupsFetched,
-    isFetching: groupsFetching,
-  } = useQuery({
-    queryKey: ['user-groups'],
-    queryFn: getUserGroups,
-    enabled: open,
-    staleTime: 0,
-  })
-
-  const {
-    data: apiKeyData,
-    isFetched: apiKeyFetched,
-    isFetching: apiKeyFetching,
-  } = useQuery({
-    queryKey: ['api-key', currentRowId],
-    queryFn: () => getApiKey(currentRowId ?? 0),
-    enabled: open && isUpdate && currentRowId !== undefined,
-    staleTime: 0,
-  })
-
-  const {
-    data: autoGroupsData,
-    isFetched: autoGroupsFetched,
-    isFetching: autoGroupsFetching,
-  } = useQuery({
-    queryKey: ['token-auto-groups'],
-    queryFn: getTokenAutoGroups,
-    enabled: open,
-    staleTime: 0,
-  })
-
-  const models = modelsData?.data || []
-  const groups = useMemo<ApiKeyGroupOption[]>(
-    () =>
-      Object.entries(groupsData?.data || {}).map(([key, info]) => ({
-        value: key,
-        label: key,
-        desc: info.desc || key,
-        ratio: info.ratio,
-      })),
-    [groupsData]
-  )
-  const backendHasAuto = groups.some((g) => g.value === 'auto')
-  const availableAutoGroupNames = useMemo(
-    () => groups.filter((group) => group.value !== 'auto').map((g) => g.value),
-    [groups]
-  )
-  const globalAutoGroups = useMemo(() => {
-    const available = new Set(availableAutoGroupNames)
-    return (autoGroupsData?.data?.groups || []).filter((group) =>
-      available.has(group)
-    )
-  }, [autoGroupsData, availableAutoGroupNames])
-  const globalAutoGroupOptions = useMemo(() => {
-    const groupsByValue = new Map(groups.map((group) => [group.value, group]))
-    return globalAutoGroups.flatMap((group) => {
-      const option = groupsByValue.get(group)
-      return option ? [option] : []
-    })
-  }, [globalAutoGroups, groups])
-  const maxAutoGroups =
-    Number.isInteger(autoGroupsData?.data?.max_count) &&
-    Number(autoGroupsData?.data?.max_count) > 0
-      ? Number(autoGroupsData?.data?.max_count)
-      : 5
-  const schema = useMemo(
-    () => getApiKeyFormSchema(t, maxAutoGroups),
-    [t, maxAutoGroups]
-  )
-
-  const form = useForm<ApiKeyFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: getApiKeyFormDefaultValues(defaultUseAutoGroup),
-  })
-
-  // Load existing data when updating
-  useEffect(() => {
-    if (!open) {
-      setInitializedTarget(null)
-      return
-    }
-    if (
-      !groupsFetched ||
-      groupsFetching ||
-      !autoGroupsFetched ||
-      autoGroupsFetching
-    ) {
-      return
-    }
-    if (isUpdate && (!apiKeyFetched || apiKeyFetching)) return
-    if (!isUpdate && statusLoading) return
-
-    const target = isUpdate && currentRow ? `update:${currentRow.id}` : 'create'
-    if (initializedTarget === target) return
-    if (isUpdate && currentRow) {
-      if (apiKeyData?.success && apiKeyData.data) {
-        form.reset(
-          transformApiKeyToFormDefaults(
-            apiKeyData.data,
-            availableAutoGroupNames,
-            maxAutoGroups
-          )
-        )
-        setInitializedTarget(target)
-      }
-    } else {
-      form.reset(
-        getApiKeyFormDefaultValues(defaultUseAutoGroup && backendHasAuto)
-      )
-      setInitializedTarget(target)
-    }
-  }, [
-    open,
     isUpdate,
-    currentRow,
-    form,
-    defaultUseAutoGroup,
-    statusLoading,
-    backendHasAuto,
-    groupsFetched,
-    groupsFetching,
-    autoGroupsFetched,
-    autoGroupsFetching,
-    apiKeyData,
-    apiKeyFetched,
-    apiKeyFetching,
-    availableAutoGroupNames,
+    isSubmitting,
+    advancedOpen,
+    setAdvancedOpen,
+    models,
+    groups,
+    globalAutoGroupOptions,
     maxAutoGroups,
-    initializedTarget,
-  ])
-
-  const formTarget =
-    isUpdate && currentRow ? `update:${currentRow.id}` : 'create'
-  const isFormInitialized = initializedTarget === formTarget
-  const selectedGroup = form.watch('group')
-
-  // Correct group after groups load: if the form value is not in available groups, fall back
-  useEffect(() => {
-    if (groups.length === 0) return
-    const currentGroup = selectedGroup
-    if (currentGroup && !groups.some((g) => g.value === currentGroup)) {
-      const fallback =
-        groups.find((g) => g.value === 'default')?.value ??
-        groups[0]?.value ??
-        ''
-      form.setValue('group', fallback)
-      if (currentGroup === 'auto') {
-        form.setValue('auto_groups', [])
-        form.setValue('auto_groups_mode', 'inherit')
-        form.setValue('cross_group_retry', false)
-      }
-    }
-  }, [groups, form, selectedGroup])
-
-  const onSubmit = async (data: ApiKeyFormValues) => {
-    setIsSubmitting(true)
-    try {
-      const basePayload = transformFormDataToPayload(data)
-
-      if (isUpdate && currentRow) {
-        const result = await updateApiKey({
-          ...basePayload,
-          id: currentRow.id,
-        })
-        if (result.success) {
-          toast.success(t(SUCCESS_MESSAGES.API_KEY_UPDATED))
-          onOpenChange(false)
-          triggerRefresh()
-        } else {
-          toast.error(result.message || t(ERROR_MESSAGES.UPDATE_FAILED))
-        }
-      } else {
-        // Create mode - handle batch creation
-        const count = data.tokenCount || 1
-        let successCount = 0
-
-        for (let i = 0; i < count; i++) {
-          const result = await createApiKey({
-            ...basePayload,
-            name:
-              i === 0 && data.name
-                ? data.name
-                : `${data.name || 'default'}-${Math.random().toString(36).slice(2, 8)}`,
-          })
-          if (result.success) {
-            successCount++
-          } else {
-            toast.error(result.message || t(ERROR_MESSAGES.CREATE_FAILED))
-            break
-          }
-        }
-
-        if (successCount > 0) {
-          toast.success(
-            t('Successfully created {{count}} API Key(s)', {
-              count: successCount,
-            })
-          )
-          onOpenChange(false)
-          triggerRefresh()
-        }
-      }
-    } catch {
-      toast.error(t(ERROR_MESSAGES.UNEXPECTED))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const onInvalid: SubmitErrorHandler<ApiKeyFormValues> = () => {
-    toast.error(t('Please fix the highlighted fields before saving'))
-  }
-
-  const handleSetExpiry = (months: number, days: number, hours: number) => {
-    if (months === 0 && days === 0 && hours === 0) {
-      form.setValue('expired_time', undefined)
-      return
-    }
-
-    const now = new Date()
-    now.setMonth(now.getMonth() + months)
-    now.setDate(now.getDate() + days)
-    now.setHours(now.getHours() + hours)
-
-    form.setValue('expired_time', now)
-  }
-
-  const { meta: currencyMeta } = getCurrencyDisplay()
-  const currencyLabel = getCurrencyLabel()
-  const tokensOnly = currencyMeta.kind === 'tokens'
-  const quotaLabel = t('Quota ({{currency}})', { currency: currencyLabel })
-  const quotaPlaceholder = tokensOnly
-    ? t('Enter quota in tokens')
-    : t('Enter quota in {{currency}}', { currency: currencyLabel })
-  const autoGroupsMode = form.watch('auto_groups_mode')
-  const unlimitedQuota = form.watch('unlimited_quota')
-
+    form,
+    isFormInitialized,
+    selectedGroup,
+    onSubmit,
+    onInvalid,
+    handleSetExpiry,
+    currencyLabel,
+    tokensOnly,
+    quotaLabel,
+    quotaPlaceholder,
+    autoGroupsMode,
+    unlimitedQuota,
+  } = useApiKeyForm({ open, onOpenChange, currentRow })
   return (
     <Sheet
       open={open}
@@ -601,69 +333,14 @@ export function ApiKeysMutateDrawer({
               )}
             </SideDrawerSection>
 
-            <SideDrawerSection>
-              <SideDrawerSectionHeader
-                title={t('Quota Settings')}
-                description={t('Set quota amount and limits')}
-                icon={<WalletCards className='size-4' />}
-                iconTone='success'
-              />
-              {!unlimitedQuota && (
-                <FormField
-                  control={form.control}
-                  name='remain_quota_dollars'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{quotaLabel}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type='number'
-                          step={tokensOnly ? 1 : 0.01}
-                          placeholder={quotaPlaceholder}
-                          onChange={(e) =>
-                            field.onChange(
-                              Number.parseFloat(e.target.value) || 0
-                            )
-                          }
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {tokensOnly
-                          ? t('Enter the quota amount in tokens')
-                          : t('Enter the quota amount in {{currency}}', {
-                              currency: currencyLabel,
-                            })}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <FormField
-                control={form.control}
-                name='unlimited_quota'
-                render={({ field }) => (
-                  <FormItem className={sideDrawerSwitchItemClassName()}>
-                    <div className='flex flex-col gap-0.5'>
-                      <FormLabel className='text-sm'>
-                        {t('Unlimited Quota')}
-                      </FormLabel>
-                      <FormDescription className='text-xs'>
-                        {t('Enable unlimited quota for this API key')}
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </SideDrawerSection>
+            <ApiKeyQuotaFields
+              unlimitedQuota={unlimitedQuota}
+              form={form}
+              quotaLabel={quotaLabel}
+              tokensOnly={tokensOnly}
+              quotaPlaceholder={quotaPlaceholder}
+              currencyLabel={currencyLabel}
+            />
 
             <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
               <SideDrawerSection>

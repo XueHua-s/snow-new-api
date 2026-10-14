@@ -21,10 +21,11 @@ import { getRouteApi } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { DataTablePage, useDataTable } from '@/components/data-table'
-import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 
+import { useDataTable } from '../../../components/data-table/hooks/use-data-table'
+import { DataTablePage } from '../../../components/data-table/layout/data-table-page'
+import { useMediaQuery } from '../../../hooks/use-media-query'
 import { getModels, searchModels, getVendors } from '../api'
 import {
   DEFAULT_PAGE_SIZE,

@@ -21,7 +21,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -63,17 +63,18 @@ export function SecureVerificationDialog({
   const activeMethod =
     state.method ?? (availableTabs.length > 0 ? availableTabs[0] : null)
 
-  const title =
-    state.title ??
-    (availableTabs.length
-      ? 'Additional verification required'
-      : 'Verification unavailable')
-
-  const description =
-    state.description ??
-    (availableTabs.length
-      ? 'Confirm your identity before accessing this sensitive action.'
-      : 'Enable Two-factor Authentication or Passkey in your profile settings to continue.')
+  const needsSetup = methods.has2FA === false && methods.hasPasskey === false
+  const title = needsSetup
+    ? t('Set up verification for this site')
+    : (state.title ?? t('Security verification'))
+  const description = needsSetup
+    ? t(
+        'Enable Two-factor Authentication or Passkey for your account on this site. Security settings on OpenAI, ChatGPT, or other providers do not apply here.'
+      )
+    : (state.description ??
+      t(
+        'Verify using a security method registered to your account on this site.'
+      ))
 
   const handleVerify = () => {
     if (!activeMethod) return
@@ -114,14 +115,25 @@ export function SecureVerificationDialog({
           >
             {t('Cancel')}
           </Button>
-          <Button
-            type='button'
-            onClick={handleVerify}
-            disabled={availableTabs.length === 0 || verifyDisabled}
-          >
-            {state.loading && <Loader2 className='h-4 w-4 animate-spin' />}
-            {t('Verify')}
-          </Button>
+          {needsSetup ? (
+            <a
+              className={buttonVariants()}
+              href='/profile'
+              target='_blank'
+              rel='noopener noreferrer'
+            >
+              {t('Open security settings')}
+            </a>
+          ) : (
+            <Button
+              type='button'
+              onClick={handleVerify}
+              disabled={availableTabs.length === 0 || verifyDisabled}
+            >
+              {state.loading && <Loader2 className='h-4 w-4 animate-spin' />}
+              {t('Verify')}
+            </Button>
+          )}
         </>
       }
     >
@@ -132,7 +144,9 @@ export function SecureVerificationDialog({
           </div>
           <p className='text-muted-foreground text-sm'>
             {t(
-              'Enable Two-factor Authentication or Passkey in your profile to unlock sensitive operations.'
+              needsSetup
+                ? 'After setting up verification, return here, close this dialog, and try again.'
+                : 'This device does not support Passkey verification.'
             )}
           </p>
         </div>

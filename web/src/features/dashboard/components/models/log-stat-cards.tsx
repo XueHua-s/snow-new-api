@@ -23,11 +23,6 @@ import { IconBadge } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getUserQuotaDates } from '@/features/dashboard/api'
 import { useModelStatCardsConfig } from '@/features/dashboard/hooks/use-dashboard-config'
-import {
-  buildQueryParams,
-  calculateDashboardStats,
-  getDefaultDays,
-} from '@/features/dashboard/lib'
 import type {
   QuotaDataItem,
   DashboardFilters,
@@ -37,6 +32,9 @@ import { formatCompactNumber, formatNumber, formatQuota } from '@/lib/format'
 import { computeTimeRange } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
+
+import { buildQueryParams, getDefaultDays } from '../../lib/filters'
+import { calculateDashboardStats } from '../../lib/stats'
 
 interface LogStatCardsProps {
   filters?: DashboardFilters

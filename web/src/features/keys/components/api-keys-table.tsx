@@ -27,9 +27,6 @@ import { toast } from 'sonner'
 import {
   DISABLED_ROW_DESKTOP,
   DISABLED_ROW_MOBILE,
-  DataTablePage,
-  useDebouncedColumnFilter,
-  useDataTable,
 } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import {
@@ -45,6 +42,9 @@ import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
+import { useDataTable } from '../../../components/data-table/hooks/use-data-table'
+import { useDebouncedColumnFilter } from '../../../components/data-table/hooks/use-debounced-column-filter'
+import { DataTablePage } from '../../../components/data-table/layout/data-table-page'
 import { getApiKeys, searchApiKeys } from '../api'
 import {
   API_KEY_STATUS,

@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo, useState, type ReactNode } from 'react'
 import {
   Check,
   ChevronDown,
@@ -28,8 +27,10 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -40,8 +41,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { StatusBadge } from '@/components/status-badge'
-import type { ClaudeUsageResponse } from '../../api'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+
+import type { ClaudeUsageResponse } from '../../oauth-api'
 
 type ClaudeAccountPayload = {
   loggedIn?: boolean

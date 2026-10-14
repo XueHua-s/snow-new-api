@@ -21,10 +21,6 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import {
-  PromptInputButton,
-  PromptInputTools,
-} from '@/components/ai-elements/prompt-input'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   DropdownMenu,
@@ -38,6 +34,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import {
+  PromptInputButton,
+  PromptInputTools,
+} from '../../../../components/ai-elements/prompt-input-controls'
 import {
   ATTACHMENT_ACTIONS,
   getAttachmentActionNotice,

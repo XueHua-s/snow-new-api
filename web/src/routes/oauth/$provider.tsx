@@ -42,8 +42,10 @@ import {
   getOAuthSessionStorage,
   resolveOAuthCallbackMode,
 } from '@/features/auth/lib/oauth-callback-mode'
-import { api, applyAuthBundle, isAuthBundle } from '@/lib/api'
+import { api } from '@/lib/api'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
+
+import { applyAuthBundle, isAuthBundle } from '../../lib/auth-session'
 
 type OAuthRequestConfig = AxiosRequestConfig & {
   skipBusinessError?: boolean

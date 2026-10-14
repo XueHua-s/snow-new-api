@@ -67,7 +67,7 @@ import {
   REDEMPTION_FORM_DEFAULT_VALUES,
   transformFormDataToPayload,
   transformRedemptionToFormDefaults,
-} from '../lib'
+} from '../lib/redemption-form'
 import type { Redemption } from '../types'
 import { useRedemptions } from './redemptions-provider'
 

@@ -50,9 +50,10 @@ import {
   saveAffiliateCode,
 } from '@/features/auth/lib/storage'
 import { useStatus } from '@/hooks/use-status'
-import { isAuthBundle } from '@/lib/api'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
+
+import { isAuthBundle } from '../../../../lib/auth-session'
 
 export function SignUpForm({
   className,

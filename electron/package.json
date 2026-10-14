@@ -37,6 +37,7 @@
     },
     "files": [
       "main.js",
+      "server-diagnostics.js",
       "preload.js",
       "icon.png",
       "tray-iconTemplate.png",

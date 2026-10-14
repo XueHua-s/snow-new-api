@@ -37,8 +37,8 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { testDeploymentConnectionWithKey } from '@/features/models/api'
 
+import { testDeploymentConnectionWithKey } from '../../models/deployment-api'
 import {
   SettingsForm,
   SettingsSwitchContent,

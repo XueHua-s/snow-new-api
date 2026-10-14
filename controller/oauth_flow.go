@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 
@@ -60,6 +62,16 @@ type oauthFlowConfig struct {
 }
 
 func startOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
+	if cfg.channelType == constant.ChannelTypeCodex {
+		c.Header("Cache-Control", "no-store")
+		if _, ok := middleware.GetSessionAuthIdentity(c); !ok {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		if channelID > 0 && !requireCodexCredentialProof(c) {
+			return
+		}
+	}
 	if _, ok := getOAuthChannel(c, channelID, cfg); !ok {
 		return
 	}
@@ -71,7 +83,18 @@ func startOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 	}
 
 	createdAt := time.Now().Unix()
-	flowToken, err := createOAuthFlowToken(cfg, channelID, flow.State, flow.Verifier, createdAt)
+	var flowToken string
+	if cfg.channelType == constant.ChannelTypeCodex {
+		identity, _ := middleware.GetSessionAuthIdentity(c)
+		encoded, encodeErr := common.Marshal(oauthFlowTokenPayload{SessionPrefix: cfg.sessionPrefix, ChannelID: channelID, State: flow.State, Verifier: flow.Verifier, CreatedAt: createdAt})
+		if encodeErr != nil {
+			common.ApiError(c, encodeErr)
+			return
+		}
+		flowToken, _, err = model.CreateAuthFlow(model.AuthFlowCreate{Purpose: model.AuthFlowPurposeOAuth, Provider: cfg.sessionPrefix, Intent: "channel", UserId: identity.UserID, SessionId: identity.SessionID, Payload: string(encoded), ExpiresAt: time.Now().Add(10 * time.Minute)})
+	} else {
+		flowToken, err = createOAuthFlowToken(cfg, channelID, flow.State, flow.Verifier, createdAt)
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -88,6 +111,16 @@ func startOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 }
 
 func completeOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
+	if cfg.channelType == constant.ChannelTypeCodex {
+		c.Header("Cache-Control", "no-store")
+		if _, ok := middleware.GetSessionAuthIdentity(c); !ok {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		if channelID > 0 && !requireCodexCredentialProof(c) {
+			return
+		}
+	}
 	req := oauthCompleteRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		common.ApiError(c, err)
@@ -118,7 +151,24 @@ func completeOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 		channelProxy = ch.GetSetting().Proxy
 	}
 
-	flowToken, tokenErr := parseOAuthFlowToken(req.FlowToken, cfg, channelID)
+	var flowToken *oauthFlowTokenPayload
+	var tokenErr error
+	var match model.AuthFlowMatch
+	if cfg.channelType == constant.ChannelTypeCodex {
+		identity, _ := middleware.GetSessionAuthIdentity(c)
+		match = model.AuthFlowMatch{Purpose: model.AuthFlowPurposeOAuth, Provider: cfg.sessionPrefix, Intent: "channel", UserId: identity.UserID, SessionId: identity.SessionID}
+		stored, err := model.GetAuthFlow(req.FlowToken, match)
+		tokenErr = err
+		if err == nil {
+			flowToken = &oauthFlowTokenPayload{}
+			tokenErr = common.UnmarshalJsonStr(stored.Payload, flowToken)
+			if tokenErr == nil && (stored.CreatedAt.After(time.Now()) || flowToken.CreatedAt > time.Now().Unix() || flowToken.CreatedAt <= 0 || flowToken.SessionPrefix != cfg.sessionPrefix || flowToken.ChannelID != channelID || flowToken.Verifier == "" || flowToken.State == "") {
+				tokenErr = model.ErrAuthFlowInvalid
+			}
+		}
+	} else {
+		flowToken, tokenErr = parseOAuthFlowToken(req.FlowToken, cfg, channelID)
+	}
 	if tokenErr != nil {
 		common.SysError("failed to parse " + cfg.logName + " oauth flow token: " + tokenErr.Error())
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "oauth flow expired or invalid"})
@@ -127,6 +177,14 @@ func completeOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 	if state != flowToken.State {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "state mismatch"})
 		return
+	}
+	if cfg.channelType == constant.ChannelTypeCodex {
+		// Commit consumption before the external exchange. An ambiguous failure must
+		// require a new ceremony, never rollback into a replayable authorization code.
+		if _, err := model.ConsumeAuthFlow(req.FlowToken, match); err != nil {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "oauth flow expired or invalid"})
+			return
+		}
 	}
 	verifier := flowToken.Verifier
 
@@ -146,10 +204,17 @@ func completeOAuthFlow(c *gin.Context, channelID int, cfg oauthFlowConfig) {
 	}
 
 	if channelID > 0 {
-		if err := model.DB.Model(&model.Channel{}).Where("id = ?", channelID).Update("key", payload.EncodedKey).Error; err != nil {
-			common.ApiError(c, err)
+		var saveErr error
+		if cfg.channelType == constant.ChannelTypeCodex {
+			saveErr = model.ReplaceChannelCredentialIfUnchanged(ch, payload.EncodedKey)
+		} else {
+			saveErr = model.DB.Model(&model.Channel{}).Where("id = ?", channelID).Update("key", payload.EncodedKey).Error
+		}
+		if saveErr != nil {
+			common.ApiError(c, saveErr)
 			return
 		}
+
 		model.InitChannelCache()
 		service.ResetProxyClientCache()
 		data["channel_id"] = channelID
@@ -174,7 +239,7 @@ func getOAuthChannel(c *gin.Context, channelID int, cfg oauthFlowConfig) (*model
 		return nil, true
 	}
 
-	ch, err := model.GetChannelById(channelID, false)
+	ch, err := model.GetChannelById(channelID, cfg.channelType == constant.ChannelTypeCodex)
 	if err != nil {
 		common.ApiError(c, err)
 		return nil, false

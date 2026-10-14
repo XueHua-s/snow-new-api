@@ -24,7 +24,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 
 import { deleteUser } from '../api'
 import { ERROR_MESSAGES } from '../constants'
-import { getUserActionMessage } from '../lib'
+import { getUserActionMessage } from '../lib/user-actions'
 import { useUsers } from './users-provider'
 
 export function UsersDeleteDialog() {

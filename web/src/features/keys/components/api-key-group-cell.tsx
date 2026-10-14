@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
 
-import { BadgeCell, TruncatedCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
 import {
@@ -27,6 +26,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import { BadgeCell } from '../../../components/data-table/core/badge-cell'
+import { TruncatedCell } from '../../../components/data-table/core/truncated-cell'
 import {
   // AutoGroupBadge,
   GroupRatioBadge,
@@ -66,11 +67,7 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
           />
         }
       >
-        <StatusBadge
-          label={t('Cross-group')}
-          variant='info'
-          copyable={false}
-        />
+        <StatusBadge label={t('Cross-group')} variant='info' copyable={false} />
         {/*<AutoGroupBadge shouldReduceMotion={props.shouldReduceMotion} />*/}
         <GroupRatioBadge
           ratio={props.ratio}

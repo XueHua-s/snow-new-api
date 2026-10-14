@@ -1,0 +1,158 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/* ── Anthropic ────────────────────────────────────────────────────────── */
+/*
+ * Inspired by Anthropic's official brand language: warm cream canvas
+ * (#faf9f5) on warm slate ink (#141413), with clay/coral (#d97757) as the
+ * single primary accent. The dormant accent palette (olive, sky, fig,
+ * cactus) is wired into chart and semantic tokens.
+ *
+ * Defining counter-positioning: a tinted (non-white) canvas with warm
+ * neutral cards and borders — NOT primary-tinted surfaces. This is the
+ * brand's deliberate counter-positioning against every cool-gray AI tool.
+ *
+ * Anthropic is opted out of the semantic surface bridge above so these
+ * bespoke warm-neutral surface tokens win the cascade. Without the opt-out,
+ * the bridge selector (specificity 0,3,0 because of `:not()`) would override
+ * this block (specificity 0,1,0) and tint every surface with the clay
+ * accent — producing the peach/pink look that doesn't match Anthropic.
+ *
+ * OKLCH hue 95 = warm yellow-cream (matches #faf9f5 family);
+ * OKLCH hue 60 = warm slate (matches #141413 family);
+ * OKLCH hue 38 = clay/coral (matches #d97757).
+ */
+[data-theme-preset='anthropic'] {
+  /* Canvas + ink — the defining pair. */
+  --background: oklch(0.984 0.004 95); /* ≈ #faf9f5 cream */
+  --foreground: oklch(0.205 0.005 60); /* ≈ #141413 ink */
+
+  /* Warm-neutral surfaces (NOT primary-tinted). Stepped opacity matches
+   * the Anthropic surface ladder: canvas → secondary → card → strong. */
+  --card: oklch(0.945 0.008 92); /* ≈ #efe9de */
+  --card-foreground: oklch(0.205 0.005 60);
+  --popover: oklch(0.97 0.006 92); /* slight cream lift */
+  --popover-foreground: oklch(0.205 0.005 60);
+
+  /* Clay/coral — Anthropic's signature accent, used scarcely on CTAs. */
+  --primary: oklch(0.685 0.142 38); /* ≈ #d97757 */
+  --primary-foreground: oklch(0.99 0.005 95);
+
+  --secondary: oklch(0.925 0.008 92);
+  --secondary-foreground: oklch(0.255 0.005 60);
+
+  --muted: oklch(0.94 0.007 92);
+  --muted-foreground: oklch(0.51 0.006 75); /* ≈ #5e5d59 warm gray */
+  --accent: oklch(0.92 0.009 92);
+  --accent-foreground: oklch(0.205 0.005 60);
+
+  --destructive: oklch(0.55 0.18 27);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.59 0.082 130); /* olive #788c5d */
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.78 0.13 70); /* kraft amber */
+  --warning-foreground: oklch(0.205 0.005 60);
+  --info: oklch(0.67 0.075 248); /* sky #6a9bcc */
+  --info-foreground: oklch(0.985 0 0);
+  --neutral: oklch(0.51 0.006 75);
+  --neutral-foreground: oklch(0.205 0.005 60);
+
+  /* Hairline borders — warm gray, not coral. */
+  --border: oklch(0.895 0.008 92); /* ≈ #e8e6dc */
+  --input: oklch(0.895 0.008 92);
+  --ring: oklch(0.685 0.142 38);
+
+  /* Chart palette uses Anthropic's dormant accent swatches. */
+  --chart-1: oklch(0.685 0.142 38); /* clay */
+  --chart-2: oklch(0.59 0.082 130); /* olive */
+  --chart-3: oklch(0.67 0.075 248); /* sky */
+  --chart-4: oklch(0.7 0.115 0); /* fig */
+  --chart-5: oklch(0.83 0.027 175); /* cactus */
+
+  --sidebar: oklch(0.955 0.008 92);
+  --sidebar-foreground: oklch(0.255 0.005 60);
+  --sidebar-primary: oklch(0.685 0.142 38);
+  --sidebar-primary-foreground: oklch(0.99 0.005 95);
+  --sidebar-accent: oklch(0.915 0.009 92);
+  --sidebar-accent-foreground: oklch(0.205 0.005 60);
+  --sidebar-border: oklch(0.895 0.008 92);
+  --sidebar-ring: oklch(0.685 0.142 38);
+
+  --skeleton-base: oklch(0.93 0.008 92);
+  --skeleton-highlight: oklch(0.96 0.006 92);
+
+  --radius: 0.625rem;
+
+  /* Default typography for the Anthropic preset is the editorial serif.
+   * Users can override this with the Font axis (`data-theme-font='sans'`).
+   * The `--font-serif` token itself is declared once in theme.css. */
+  --font-body: var(--font-serif);
+}
+.dark [data-theme-preset='anthropic'] {
+  /* Warm near-black product surfaces, not pure black — keeps the editorial
+   * personality even when inverted. Coral lifts slightly for legibility. */
+  --background: oklch(0.215 0.004 60);
+  --foreground: oklch(0.965 0.005 92);
+  --card: oklch(0.255 0.004 60);
+  --card-foreground: oklch(0.965 0.005 92);
+  --popover: oklch(0.275 0.004 60);
+  --popover-foreground: oklch(0.965 0.005 92);
+
+  --primary: oklch(0.72 0.135 40);
+  --primary-foreground: oklch(0.18 0.005 60);
+  --secondary: oklch(0.305 0.004 60);
+  --secondary-foreground: oklch(0.945 0.005 92);
+
+  --muted: oklch(0.285 0.004 60);
+  --muted-foreground: oklch(0.76 0.006 75);
+  --accent: oklch(0.33 0.006 60);
+  --accent-foreground: oklch(0.985 0.005 92);
+
+  --destructive: oklch(0.7 0.19 22);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.7 0.105 135);
+  --success-foreground: oklch(0.18 0.005 60);
+  --warning: oklch(0.78 0.13 70);
+  --warning-foreground: oklch(0.18 0.005 60);
+  --info: oklch(0.72 0.085 248);
+  --info-foreground: oklch(0.18 0.005 60);
+  --neutral: oklch(0.76 0.006 75);
+  --neutral-foreground: oklch(0.18 0.005 60);
+
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.72 0.135 40);
+
+  --chart-1: oklch(0.72 0.135 40);
+  --chart-2: oklch(0.7 0.105 135);
+  --chart-3: oklch(0.72 0.085 248);
+  --chart-4: oklch(0.78 0.13 0);
+  --chart-5: oklch(0.83 0.027 175);
+
+  --sidebar: oklch(0.205 0.004 60);
+  --sidebar-foreground: oklch(0.95 0.005 92);
+  --sidebar-primary: oklch(0.72 0.135 40);
+  --sidebar-primary-foreground: oklch(0.18 0.005 60);
+  --sidebar-accent: oklch(0.32 0.006 60);
+  --sidebar-accent-foreground: oklch(0.985 0.005 92);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.72 0.135 40);
+
+  --skeleton-base: oklch(0.305 0.004 60);
+  --skeleton-highlight: oklch(0.41 0.004 60);
+}

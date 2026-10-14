@@ -1,0 +1,6 @@
+event: response.created
+data: {"type":"response.created","response":{"id":"resp_synthetic_baseline","status":"in_progress"},"sequence_number":0}
+
+event: response.completed
+data: {"type":"response.completed","response":{"id":"resp_synthetic_baseline","object":"response","status":"completed","model":"synthetic-model","output":[],"usage":{"input_tokens":17,"output_tokens":3,"total_tokens":20,"input_tokens_details":{"cached_tokens":5},"output_tokens_details":{"reasoning_tokens":1}}},"sequence_number":1}
+

@@ -26,7 +26,10 @@ import { Dialog } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-import { checkClusterNameAvailability, updateDeploymentName } from '../../api'
+import {
+  checkClusterNameAvailability,
+  updateDeploymentName,
+} from '../../deployment-api'
 import { deploymentsQueryKeys } from '../../lib'
 
 export function RenameDeploymentDialog({

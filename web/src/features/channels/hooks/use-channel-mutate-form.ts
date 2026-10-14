@@ -25,6 +25,7 @@ import {
   ADMIN_PERMISSION_RESOURCES,
   hasPermission,
 } from '@/lib/admin-permissions'
+import { isVerificationRequiredError } from '@/lib/secure-verification'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { createChannel, updateChannel } from '../api'
@@ -90,7 +91,13 @@ export function useChannelMutateForm(props: UseChannelMutateFormParams) {
   )
 
   return useMutation({
-    mutationFn: async (data: ChannelFormValues): Promise<string> => {
+    mutationFn: async ({
+      data,
+      proofToken,
+    }: {
+      data: ChannelFormValues
+      proofToken?: string
+    }): Promise<string> => {
       if (props.isEditing && props.currentRow) {
         const payload = transformFormDataToUpdatePayload(
           data,
@@ -117,7 +124,8 @@ export function useChannelMutateForm(props: UseChannelMutateFormParams) {
 
         const response = await updateChannel(
           props.currentRow.id,
-          payloadWithKeyMode
+          payloadWithKeyMode,
+          proofToken
         )
         if (!response.success) {
           throw new Error(response.message || t(ERROR_MESSAGES.UPDATE_FAILED))
@@ -137,6 +145,7 @@ export function useChannelMutateForm(props: UseChannelMutateFormParams) {
       props.onSuccess()
     },
     onError: (error: unknown) => {
+      if (isVerificationRequiredError(error)) return
       toast.error(getErrorMessage(error) || t(ERROR_MESSAGES.CREATE_FAILED))
     },
   })

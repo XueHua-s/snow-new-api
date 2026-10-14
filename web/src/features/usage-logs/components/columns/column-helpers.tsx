@@ -21,7 +21,6 @@ import { Zap } from 'lucide-react'
 /* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react'
 
-import { DataTableColumnHeader } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import {
   Tooltip,
@@ -32,6 +31,7 @@ import {
 import { formatTimestampToDate, formatTokens } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
+import { DataTableColumnHeader } from '../../../../components/data-table/core/column-header'
 import { formatDuration } from '../../lib/format'
 import { FailReasonDialog } from '../dialogs/fail-reason-dialog'
 
@@ -54,7 +54,7 @@ export function CacheTooltip({
       <Tooltip>
         <TooltipTrigger
           render={<Zap className={`size-3 flex-shrink-0 ${color}`} />}
-        ></TooltipTrigger>
+        />
         <TooltipContent side='top'>
           <p className='text-xs'>
             {label}: {formatTokens(tokens)}

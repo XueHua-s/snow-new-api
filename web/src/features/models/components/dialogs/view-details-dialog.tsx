@@ -49,7 +49,7 @@ import {
 } from '@/components/ui/collapsible'
 import { Separator } from '@/components/ui/separator'
 
-import { getDeployment, listDeploymentContainers } from '../../api'
+import { getDeployment, listDeploymentContainers } from '../../deployment-api'
 
 export function ViewDetailsDialog({
   open,

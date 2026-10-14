@@ -1,0 +1,227 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+.usage-leaderboard-default .lb-default-chart-card::before {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.usage-leaderboard-default .lb-default-chart-podium::before {
+  inset: -120px -80px auto auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(245 158 11 / 16%),
+    rgb(59 130 246 / 5%) 45%,
+    transparent 70%
+  );
+  animation: lb-default-breathe 5.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-chart-roadmap::before {
+  inset: -90px auto auto -100px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(6 182 212 / 16%),
+    rgb(37 99 235 / 7%) 44%,
+    transparent 70%
+  );
+  animation: lb-default-drift 6s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-chart-race::before {
+  inset: -45% -12%;
+  background: conic-gradient(
+    from 90deg,
+    transparent,
+    rgb(37 99 235 / 7%),
+    rgb(124 58 237 / 9%),
+    transparent 56%
+  );
+  filter: blur(28px);
+  animation: lb-default-aurora-spin 18s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-chart-arena {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background-image:
+    linear-gradient(rgb(37 99 235 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(37 99 235 / 4%) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(black, black);
+}
+
+.usage-leaderboard-default .lb-default-divider::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(37 99 235 / 35%),
+    rgb(6 182 212 / 25%),
+    transparent
+  );
+}
+
+.usage-leaderboard-default .lb-default-sprint-row,
+.usage-leaderboard-default .lb-default-energy-track,
+.usage-leaderboard-default .lb-default-milestone,
+.usage-leaderboard-default .lb-default-position-card {
+  box-shadow: inset 0 0 0 1px rgb(59 130 246 / 22%);
+}
+
+.usage-leaderboard-default .lb-default-sprint-row {
+  animation: lb-default-sprint-pulse 3.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-sprint-scan {
+  position: absolute;
+  inset: 0 auto 0 -26%;
+  width: 20%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(96 165 250 / 30%),
+    transparent
+  );
+  animation: lb-default-sprint-scan 3.8s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-roadmap-zap {
+  filter: drop-shadow(0 0 8px rgb(37 99 235 / 34%));
+  animation: lb-default-flame-pulse 2.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-energy-fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      circle at 18% 72%,
+      rgb(255 255 255 / 52%) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 68% 34%,
+      rgb(255 255 255 / 40%) 0 1.5px,
+      transparent 2.5px
+    ),
+    linear-gradient(90deg, #2563eb, #3b82f6 52%, #22d3ee);
+  background-size:
+    29px 18px,
+    37px 22px,
+    180% 100%;
+  box-shadow:
+    inset 0 1px 2px rgb(255 255 255 / 48%),
+    inset 0 -2px 3px rgb(30 64 175 / 24%),
+    0 0 13px rgb(37 99 235 / 42%);
+  animation: lb-default-energy-liquid 3.6s ease-in-out infinite alternate;
+}
+
+.usage-leaderboard-default .lb-default-energy-fill::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -2px;
+  left: -16px;
+  width: calc(100% + 32px);
+  height: 7px;
+  background: radial-gradient(
+      ellipse at 50% 0%,
+      rgb(255 255 255 / 48%) 0 38%,
+      transparent 43%
+    )
+    0 0 / 18px 7px repeat-x;
+  animation: lb-default-energy-wave 1.6s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-energy-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgb(255 255 255 / 62%) 50%,
+    transparent 74%
+  );
+  transform: translateX(-100%);
+  animation: lb-default-energy-flow 2.2s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-energy-target {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: #22d3ee;
+  animation: lb-default-target-pulse 1.7s ease-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-milestone {
+  background: linear-gradient(
+    105deg,
+    transparent,
+    rgb(37 99 235 / 6%),
+    transparent
+  );
+  background-size: 220% 100%;
+  animation: lb-default-milestone-flow 5s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-state {
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 20%),
+    0 10px 30px rgb(37 99 235 / 8%);
+}
+
+.usage-leaderboard-default .lb-default-state::before {
+  content: '';
+  position: absolute;
+  inset: -60% 10%;
+  background: conic-gradient(
+    transparent,
+    rgb(37 99 235 / 12%),
+    rgb(124 58 237 / 10%),
+    transparent 60%
+  );
+  filter: blur(24px);
+  animation: lb-default-aurora-spin 16s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-state > * {
+  position: relative;
+  z-index: 1;
+}

@@ -31,9 +31,6 @@ import { useTranslation } from 'react-i18next'
 import {
   DISABLED_ROW_DESKTOP,
   DISABLED_ROW_MOBILE,
-  DataTablePage,
-  useDebouncedColumnFilter,
-  useDataTable,
 } from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,10 +39,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { getLobeIcon } from '@/lib/lobe-icon'
 
+import { useDataTable } from '../../../components/data-table/hooks/use-data-table'
+import { useDebouncedColumnFilter } from '../../../components/data-table/hooks/use-debounced-column-filter'
+import { DataTablePage } from '../../../components/data-table/layout/data-table-page'
+import { useMediaQuery } from '../../../hooks/use-media-query'
 import { getChannels, searchChannels, getGroups } from '../api'
 import {
   DEFAULT_PAGE_SIZE,

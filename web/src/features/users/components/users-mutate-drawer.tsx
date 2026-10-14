@@ -16,13 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
 import {
   SideDrawerSection,
@@ -65,39 +60,18 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   ADMIN_PERMISSION_ACTIONS,
   ADMIN_PERMISSION_RESOURCES,
-  EMPTY_PERMISSION_CATALOG,
   hasPermission,
   normalizeAdminPermissions,
 } from '@/lib/admin-permissions'
-import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { formatQuota, parseQuotaFromDollars } from '@/lib/format'
-import { ROLE } from '@/lib/roles'
-import { useAuthStore } from '@/stores/auth-store'
 
+import { BINDING_FIELDS } from '../constants'
+import type { User } from '../types'
 import {
-  createUser,
-  updateUser,
-  getUser,
-  getGroups,
-  getPermissionCatalog,
-} from '../api'
-import { BINDING_FIELDS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
-import {
-  userFormSchema,
-  type UserFormValues,
-  USER_FORM_DEFAULT_VALUES,
-  transformFormDataToPayload,
-  transformUserToFormDefaults,
-} from '../lib'
-import { type User } from '../types'
+  type UsersMutateDrawerProps,
+  useUsersMutateForm,
+} from './use-users-mutate-form'
 import { UserQuotaDialog } from './user-quota-dialog'
-import { useUsers } from './users-provider'
-
-type UsersMutateDrawerProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  currentRow?: User
-}
 
 export function UsersMutateDrawer({
   open,
@@ -105,112 +79,23 @@ export function UsersMutateDrawer({
   currentRow,
 }: UsersMutateDrawerProps) {
   const { t } = useTranslation()
-  const isUpdate = !!currentRow
-  const { triggerRefresh } = useUsers()
-  const currentUser = useAuthStore((s) => s.auth.user)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false)
-
-  // Fetch groups
-  const { data: groupsData } = useQuery({
-    queryKey: ['groups'],
-    queryFn: getGroups,
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const groups = groupsData?.data || []
-
-  // Permission catalog is owned by the backend; fetched once and reused.
-  const { data: permissionCatalog = EMPTY_PERMISSION_CATALOG } = useQuery({
-    queryKey: ['admin-permission-catalog'],
-    queryFn: getPermissionCatalog,
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema),
-    defaultValues: USER_FORM_DEFAULT_VALUES,
-  })
-
-  // Load existing data when updating
-  useEffect(() => {
-    if (open && isUpdate && currentRow) {
-      // For update, fetch fresh data
-      getUser(currentRow.id).then((result) => {
-        if (result.success && result.data) {
-          form.reset(transformUserToFormDefaults(result.data))
-        }
-      })
-    } else if (open && !isUpdate) {
-      // For create, reset to defaults
-      form.reset(USER_FORM_DEFAULT_VALUES)
-    }
-  }, [open, isUpdate, currentRow, form])
-
-  const { meta: currencyMeta } = getCurrencyDisplay()
-  const currencyLabel = getCurrencyLabel()
-  const tokensOnly = currencyMeta.kind === 'tokens'
-
-  const currentQuotaRaw = form.watch('quota_dollars') || 0
-  const selectedRole = form.watch('role')
-  const canEditAdminPermissions = currentUser?.role === ROLE.SUPER_ADMIN
-  const targetIsAdmin = (selectedRole ?? currentRow?.role ?? 0) >= ROLE.ADMIN
-
-  const onSubmit = async (data: UserFormValues) => {
-    if (!isUpdate) {
-      const passwordLength = data.password?.length || 0
-      if (passwordLength < 8 || passwordLength > 20) {
-        form.setError('password', {
-          type: 'manual',
-          message: t('Password must be between 8 and 20 characters'),
-        })
-        return
-      }
-    }
-
-    setIsSubmitting(true)
-    try {
-      const payload = transformFormDataToPayload(
-        data,
-        currentRow?.id,
-        permissionCatalog
-      )
-      const result = isUpdate
-        ? await updateUser(payload as typeof payload & { id: number })
-        : await createUser(payload)
-
-      if (result.success) {
-        toast.success(
-          isUpdate
-            ? t(SUCCESS_MESSAGES.USER_UPDATED)
-            : t(SUCCESS_MESSAGES.USER_CREATED)
-        )
-        onOpenChange(false)
-        triggerRefresh()
-      } else {
-        toast.error(
-          result.message ||
-            (isUpdate
-              ? t(ERROR_MESSAGES.UPDATE_FAILED)
-              : t(ERROR_MESSAGES.CREATE_FAILED))
-        )
-      }
-    } catch (_error) {
-      toast.error(t(ERROR_MESSAGES.UNEXPECTED))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const refreshUserData = async () => {
-    if (!currentRow) return
-    const result = await getUser(currentRow.id)
-    if (result.success && result.data) {
-      form.reset(transformUserToFormDefaults(result.data))
-    }
-    triggerRefresh()
-  }
-
+  const {
+    isUpdate,
+    currentUser,
+    isSubmitting,
+    quotaDialogOpen,
+    setQuotaDialogOpen,
+    groups,
+    permissionCatalog,
+    form,
+    currencyLabel,
+    tokensOnly,
+    currentQuotaRaw,
+    canEditAdminPermissions,
+    targetIsAdmin,
+    onSubmit,
+    refreshUserData,
+  } = useUsersMutateForm({ open, onOpenChange, currentRow })
   return (
     <>
       <Sheet
@@ -278,7 +163,8 @@ export function UsersMutateDrawer({
                             { value: '10', label: t('Admin') },
                           ]}
                           onValueChange={(value) =>
-                            value !== null && field.onChange(parseInt(value))
+                            value !== null &&
+                            field.onChange(Number.parseInt(value))
                           }
                           value={String(field.value)}
                         >
@@ -360,12 +246,10 @@ export function UsersMutateDrawer({
                       <FormItem>
                         <FormLabel>{t('Group')}</FormLabel>
                         <Select
-                          items={[
-                            ...groups.map((group) => ({
-                              value: group,
-                              label: group,
-                            })),
-                          ]}
+                          items={groups.map((group) => ({
+                            value: group,
+                            label: group,
+                          }))}
                           onValueChange={field.onChange}
                           value={field.value}
                         >

@@ -16,12 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, ExternalLink, Loader2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { tryPrettyJson } from '@/lib/utils'
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,6 +32,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import {
+  SecureVerificationDialog,
+  useSecureVerification,
+  type SecurityProofScope,
+} from '@/features/auth/secure-verification'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { tryPrettyJson } from '@/lib/utils'
 
 type OAuthStartResponse = {
   success: boolean
@@ -61,10 +67,12 @@ type OAuthCredentialDialogProps = {
   inputLabel: string
   inputPlaceholder: string
   tip: string
-  startOAuth: () => Promise<OAuthStartResponse>
+  verificationScope?: SecurityProofScope
+  startOAuth: (proofToken?: string) => Promise<OAuthStartResponse>
   completeOAuth: (
     input: string,
-    flowToken?: string
+    flowToken?: string,
+    proofToken?: string
   ) => Promise<OAuthCompleteResponse>
   completeButtonLabel?: string
   completingLabel?: string
@@ -83,6 +91,7 @@ export function OAuthCredentialDialog({
   inputPlaceholder,
   tip,
   startOAuth,
+  verificationScope,
   completeOAuth,
   completeButtonLabel = 'Generate credential',
   completingLabel = 'Generating...',
@@ -90,6 +99,8 @@ export function OAuthCredentialDialog({
   requireKeyResult = true,
 }: OAuthCredentialDialogProps) {
   const { t } = useTranslation()
+  const verification = useSecureVerification()
+  const cancelVerification = verification.cancel
   const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
 
   const [state, setState] = useState({
@@ -102,6 +113,7 @@ export function OAuthCredentialDialog({
 
   useEffect(() => {
     if (!open) {
+      cancelVerification()
       setState({
         authorizeUrl: '',
         flowToken: '',
@@ -110,7 +122,7 @@ export function OAuthCredentialDialog({
         isCompleting: false,
       })
     }
-  }, [open])
+  }, [open, cancelVerification])
 
   const canCopyAuthorizeUrl = Boolean(state.authorizeUrl && !state.isStarting)
   const canComplete = useMemo(
@@ -118,10 +130,10 @@ export function OAuthCredentialDialog({
     [state.callbackUrl, state.isCompleting]
   )
 
-  const handleStart = async () => {
+  const handleStart = async (proofToken?: string) => {
     setState((prev) => ({ ...prev, isStarting: true }))
     try {
-      const res = await startOAuth()
+      const res = await startOAuth(proofToken)
       if (!res.success) {
         throw new Error(res.message || 'Failed to start OAuth')
       }
@@ -145,6 +157,7 @@ export function OAuthCredentialDialog({
         toast.warning(t('Please manually copy and open the authorization link'))
       }
     } catch (error) {
+      if (verificationScope) throw error
       toast.error(
         error instanceof Error ? error.message : t('OAuth start failed')
       )
@@ -153,13 +166,14 @@ export function OAuthCredentialDialog({
     }
   }
 
-  const handleComplete = async () => {
+  const handleComplete = async (proofToken?: string) => {
     if (!state.callbackUrl.trim()) return
     setState((prev) => ({ ...prev, isCompleting: true }))
     try {
       const res = await completeOAuth(
         state.callbackUrl.trim(),
-        state.flowToken || undefined
+        state.flowToken || undefined,
+        proofToken
       )
       if (!res.success) {
         throw new Error(res.message || 'OAuth failed')
@@ -174,6 +188,7 @@ export function OAuthCredentialDialog({
       toast.success(t(successMessage))
       onOpenChange(false)
     } catch (error) {
+      if (verificationScope) throw error
       toast.error(error instanceof Error ? error.message : t('OAuth failed'))
     } finally {
       setState((prev) => ({ ...prev, isCompleting: false }))
@@ -181,91 +196,127 @@ export function OAuthCredentialDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl'>
-        <DialogHeader>
-          <DialogTitle>{t(title)}</DialogTitle>
-          <DialogDescription>{t(description)}</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) verification.cancel()
+          onOpenChange(nextOpen)
+        }}
+      >
+        <DialogContent className='sm:max-w-2xl'>
+          <DialogHeader>
+            <DialogTitle>{t(title)}</DialogTitle>
+            <DialogDescription>{t(description)}</DialogDescription>
+          </DialogHeader>
 
-        <div className='space-y-4'>
-          <Alert>
-            <AlertDescription>{t(instructions)}</AlertDescription>
-          </Alert>
+          <div className='space-y-4'>
+            <Alert>
+              <AlertDescription>{t(instructions)}</AlertDescription>
+            </Alert>
 
-          <div className='flex flex-wrap gap-2'>
-            <Button
-              type='button'
-              onClick={handleStart}
-              disabled={state.isStarting}
-            >
-              {state.isStarting ? (
-                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-              ) : (
-                <ExternalLink className='mr-2 h-4 w-4' />
-              )}
-              {t('Open authorization page')}
-            </Button>
+            <div className='flex flex-wrap gap-2'>
+              <Button
+                type='button'
+                onClick={() => {
+                  if (verificationScope) {
+                    void verification.startVerification(handleStart, {
+                      scope: verificationScope,
+                    })
+                  } else void handleStart()
+                }}
+                disabled={state.isStarting}
+              >
+                {state.isStarting ? (
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                ) : (
+                  <ExternalLink className='mr-2 h-4 w-4' />
+                )}
+                {t('Open authorization page')}
+              </Button>
 
+              <Button
+                type='button'
+                variant='outline'
+                disabled={!canCopyAuthorizeUrl}
+                onClick={async () => {
+                  if (!state.authorizeUrl) return
+                  await copyToClipboard(state.authorizeUrl)
+                }}
+                aria-label={t('Copy authorization link')}
+                title={t('Copy authorization link')}
+              >
+                {copiedText === state.authorizeUrl ? (
+                  <Check className='mr-2 h-4 w-4 text-green-600' />
+                ) : (
+                  <Copy className='mr-2 h-4 w-4' />
+                )}
+                {t('Copy authorization link')}
+              </Button>
+            </div>
+
+            <div className='space-y-2'>
+              <div className='text-sm font-medium'>{t(inputLabel)}</div>
+              <Input
+                value={state.callbackUrl}
+                onChange={(e) =>
+                  setState((prev) => ({
+                    ...prev,
+                    callbackUrl: e.target.value,
+                  }))
+                }
+                placeholder={t(inputPlaceholder)}
+                autoComplete='off'
+                spellCheck={false}
+              />
+              <div className='text-muted-foreground text-xs'>{t(tip)}</div>
+            </div>
+          </div>
+
+          <DialogFooter>
             <Button
               type='button'
               variant='outline'
-              disabled={!canCopyAuthorizeUrl}
-              onClick={async () => {
-                if (!state.authorizeUrl) return
-                await copyToClipboard(state.authorizeUrl)
-              }}
-              aria-label={t('Copy authorization link')}
-              title={t('Copy authorization link')}
+              onClick={() => onOpenChange(false)}
+              disabled={state.isStarting || state.isCompleting}
             >
-              {copiedText === state.authorizeUrl ? (
-                <Check className='mr-2 h-4 w-4 text-green-600' />
-              ) : (
-                <Copy className='mr-2 h-4 w-4' />
-              )}
-              {t('Copy authorization link')}
+              {t('Cancel')}
             </Button>
-          </div>
-
-          <div className='space-y-2'>
-            <div className='text-sm font-medium'>{t(inputLabel)}</div>
-            <Input
-              value={state.callbackUrl}
-              onChange={(e) =>
-                setState((prev) => ({
-                  ...prev,
-                  callbackUrl: e.target.value,
-                }))
-              }
-              placeholder={t(inputPlaceholder)}
-              autoComplete='off'
-              spellCheck={false}
-            />
-            <div className='text-muted-foreground text-xs'>{t(tip)}</div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button
-            type='button'
-            variant='outline'
-            onClick={() => onOpenChange(false)}
-            disabled={state.isStarting || state.isCompleting}
-          >
-            {t('Cancel')}
-          </Button>
-          <Button
-            type='button'
-            onClick={handleComplete}
-            disabled={!canComplete}
-          >
-            {state.isCompleting && (
-              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-            )}
-            {state.isCompleting ? t(completingLabel) : t(completeButtonLabel)}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <Button
+              type='button'
+              onClick={() => {
+                if (verificationScope) {
+                  void verification.startVerification(handleComplete, {
+                    scope: verificationScope,
+                  })
+                } else void handleComplete()
+              }}
+              disabled={!canComplete}
+            >
+              {state.isCompleting && (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              )}
+              {state.isCompleting ? t(completingLabel) : t(completeButtonLabel)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <SecureVerificationDialog
+        open={verification.open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) verification.cancel()
+        }}
+        methods={verification.methods}
+        state={verification.state}
+        onVerify={async (method, code) => {
+          await verification
+            .executeVerification(method, code)
+            .catch(() => undefined)
+        }}
+        onCancel={verification.cancel}
+        onCodeChange={verification.setCode}
+        onMethodChange={verification.switchMethod}
+      />
+    </>
   )
 }

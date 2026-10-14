@@ -16,6 +16,12 @@ import (
 )
 
 var (
+	// Codex transport is opt-in and snapshotted by service.InitCodexTransport.
+	CodexTransportEnabled bool
+	CodexTransportSocket  string
+	CodexTransportProfile = "0.162.1"
+	CodexTransportCAFile  string
+
 	Port         = flag.Int("port", 3000, "the listening port")
 	PrintVersion = flag.Bool("version", false, "print version and exit")
 	PrintHelp    = flag.Bool("help", false, "print help and exit")
@@ -108,6 +114,10 @@ func InitEnv() {
 	// Initialize variables with GetEnvOrDefault
 	SyncFrequency = GetEnvOrDefault("SYNC_FREQUENCY", 60)
 	BatchUpdateInterval = GetEnvOrDefault("BATCH_UPDATE_INTERVAL", 5)
+	CodexTransportEnabled = GetEnvOrDefaultBool("CODEX_TRANSPORT_ENABLED", false)
+	CodexTransportSocket = os.Getenv("CODEX_TRANSPORT_SOCKET")
+	CodexTransportProfile = GetEnvOrDefaultString("CODEX_TRANSPORT_PROFILE", "0.162.1")
+	CodexTransportCAFile = os.Getenv("CODEX_TRANSPORT_CA_FILE")
 	RelayTimeout = GetEnvOrDefault("RELAY_TIMEOUT", 0)
 	RelayIdleConnTimeout = GetEnvOrDefault("RELAY_IDLE_CONN_TIMEOUT", 90)
 	RelayMaxIdleConns = GetEnvOrDefault("RELAY_MAX_IDLE_CONNS", 500)

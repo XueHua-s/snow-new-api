@@ -18,24 +18,19 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { z } from 'zod'
 
+import { CHANNEL_TYPE_NEW_API, ERROR_MESSAGES } from '../constants'
 import {
-  CLAUDE_FIELD_PASSTHROUGH_TYPES,
-  CHANNEL_TYPE_NEW_API,
-  CHANNEL_STATUS,
-  ERROR_MESSAGES,
-  FIELD_PASSTHROUGH_TYPES,
-  MODEL_FETCHABLE_TYPES,
-  OPENAI_FIELD_PASSTHROUGH_TYPES,
-} from '../constants'
-import type { Channel } from '../types'
-import {
-  CHANNEL_TYPE_ADVANCED_CUSTOM,
   advancedCustomConfigUsesRelativeUpstreamPath,
   hasValidAdvancedCustomModelListRoute,
   parseAdvancedCustomConfig,
-  stringifyAdvancedCustomConfig,
-  validateAdvancedCustomConfig,
 } from './advanced-custom'
+import { CHANNEL_TYPE_ADVANCED_CUSTOM } from './advanced-custom-options'
+import { validateAdvancedCustomConfig } from './advanced-custom-validation'
+import {
+  normalizeHttpProtocol,
+  MAX_HTTP2_CONNECTION_SHARDS,
+  HTTP_PROTOCOL_HTTP1,
+} from './channel-http-settings'
 
 // ============================================================================
 // Form Validation Schema
@@ -71,37 +66,6 @@ function isOptionalProxyURL(value: string | undefined): boolean {
   } catch {
     return false
   }
-}
-
-export const HTTP_PROTOCOL_AUTO = 'auto'
-export const HTTP_PROTOCOL_HTTP1 = 'http1'
-export const MAX_HTTP2_CONNECTION_SHARDS = 8
-
-export function normalizeHttpProtocol(
-  value: string | undefined | null
-): 'auto' | 'http1' {
-  const normalized = String(value || '')
-    .trim()
-    .toLowerCase()
-  if (normalized === HTTP_PROTOCOL_HTTP1) {
-    return HTTP_PROTOCOL_HTTP1
-  }
-  return HTTP_PROTOCOL_AUTO
-}
-
-export function normalizeHttp2ConnectionShards(
-  value: number | undefined | null
-): number {
-  if (value == null || Number.isNaN(value) || value === 0) {
-    return 1
-  }
-  if (value < 1) {
-    return 1
-  }
-  if (value > MAX_HTTP2_CONNECTION_SHARDS) {
-    return MAX_HTTP2_CONNECTION_SHARDS
-  }
-  return value
 }
 
 function parseOptionalJson(value: string | undefined): unknown {
@@ -262,6 +226,7 @@ export const channelFormSchema = z
     http_protocol: z.enum(['auto', 'http1']).optional(),
     http2_connection_shards: z.number().int().optional(),
     pass_through_body_enabled: z.boolean().optional(),
+    responses_websocket_enabled: z.boolean().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
     // Type-specific settings (stored in settings JSON)
@@ -398,489 +363,6 @@ export const channelFormSchema = z
 export type ChannelFormValues = z.infer<typeof channelFormSchema>
 
 // ============================================================================
-// Default Form Values
-// ============================================================================
-
-export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
-  name: '',
-  type: 1,
-  base_url: '',
-  key: '',
-  openai_organization: '',
-  models: '',
-  group: ['default'],
-  model_mapping: '',
-  priority: 0,
-  weight: 0,
-  test_model: '',
-  auto_ban: 1,
-  status: CHANNEL_STATUS.ENABLED,
-  status_code_mapping: '',
-  tag: '',
-  remark: '',
-  setting: '',
-  param_override: '',
-  header_override: '',
-  settings: '{}',
-  other: '',
-  multi_key_mode: 'single',
-  multi_key_type: 'random',
-  batch_add_set_key_prefix_2_name: false,
-  key_mode: 'append',
-  // Channel extra settings
-  force_format: false,
-  thinking_to_content: false,
-  proxy: '',
-  http_protocol: HTTP_PROTOCOL_AUTO,
-  http2_connection_shards: 1,
-  pass_through_body_enabled: false,
-  system_prompt: '',
-  system_prompt_override: false,
-  // Type-specific settings
-  is_enterprise_account: false,
-  vertex_key_type: 'json',
-  aws_key_type: 'ak_sk',
-  azure_responses_version: '',
-  // Field passthrough controls
-  allow_service_tier: false,
-  disable_store: false,
-  allow_safety_identifier: false,
-  allow_include_obfuscation: false,
-  allow_inference_geo: false,
-  allow_speed: false,
-  claude_beta_query: false,
-  disable_task_polling_sleep: false,
-  upstream_model_update_check_enabled: false,
-  upstream_model_update_auto_sync_enabled: false,
-  upstream_model_update_ignored_models: '',
-  advanced_custom: '',
-}
-
-// ============================================================================
-// Transform Functions
-// ============================================================================
-
-/**
- * Transform Channel from API to Form default values
- */
-export function transformChannelToFormDefaults(
-  channel: Channel
-): ChannelFormValues {
-  // Parse channel extra settings from setting field
-  let extraSettings = {
-    force_format: false,
-    thinking_to_content: false,
-    proxy: '',
-    http_protocol: HTTP_PROTOCOL_AUTO as 'auto' | 'http1',
-    http2_connection_shards: 1,
-    pass_through_body_enabled: false,
-    system_prompt: '',
-    system_prompt_override: false,
-  }
-
-  if (channel.setting) {
-    try {
-      const parsed = JSON.parse(channel.setting)
-      const protocol = normalizeHttpProtocol(parsed.http_protocol)
-      const shards = normalizeHttp2ConnectionShards(
-        parsed.http2_connection_shards
-      )
-      extraSettings = {
-        force_format: parsed.force_format || false,
-        thinking_to_content: parsed.thinking_to_content || false,
-        proxy: parsed.proxy || '',
-        http_protocol: protocol,
-        http2_connection_shards: protocol === HTTP_PROTOCOL_HTTP1 ? 1 : shards,
-        pass_through_body_enabled: parsed.pass_through_body_enabled || false,
-        system_prompt: parsed.system_prompt || '',
-        system_prompt_override: parsed.system_prompt_override || false,
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to parse channel setting:', error)
-    }
-  }
-
-  // Parse type-specific settings from settings field
-  let vertexKeyType: 'json' | 'api_key' = 'json'
-  let azureResponsesVersion = ''
-  let isEnterpriseAccount = false
-  let awsKeyType: 'ak_sk' | 'api_key' = 'ak_sk'
-  let allowServiceTier = false
-  let disableStore = false
-  let allowSafetyIdentifier = false
-  let allowIncludeObfuscation = false
-  let allowInferenceGeo = false
-  let allowSpeed = false
-  let claudeBetaQuery = false
-  let disableTaskPollingSleep = false
-  let upstreamModelUpdateCheckEnabled = false
-  let upstreamModelUpdateAutoSyncEnabled = false
-  let upstreamModelUpdateIgnoredModels = ''
-  let advancedCustom = ''
-
-  if (channel.settings) {
-    try {
-      const parsed = JSON.parse(channel.settings)
-      vertexKeyType = parsed.vertex_key_type || 'json'
-      azureResponsesVersion = parsed.azure_responses_version || ''
-      isEnterpriseAccount = parsed.openrouter_enterprise === true
-      awsKeyType = parsed.aws_key_type || 'ak_sk'
-      allowServiceTier = parsed.allow_service_tier === true
-      disableStore = parsed.disable_store === true
-      allowSafetyIdentifier = parsed.allow_safety_identifier === true
-      allowIncludeObfuscation = parsed.allow_include_obfuscation === true
-      allowInferenceGeo = parsed.allow_inference_geo === true
-      allowSpeed = parsed.allow_speed === true
-      claudeBetaQuery = parsed.claude_beta_query === true
-      disableTaskPollingSleep = parsed.disable_task_polling_sleep === true
-      upstreamModelUpdateCheckEnabled =
-        parsed.upstream_model_update_check_enabled === true
-      upstreamModelUpdateAutoSyncEnabled =
-        parsed.upstream_model_update_auto_sync_enabled === true
-      upstreamModelUpdateIgnoredModels = Array.isArray(
-        parsed.upstream_model_update_ignored_models
-      )
-        ? parsed.upstream_model_update_ignored_models.join(',')
-        : ''
-      if (parsed.advanced_custom) {
-        advancedCustom = stringifyAdvancedCustomConfig(parsed.advanced_custom)
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to parse channel settings:', error)
-    }
-  }
-
-  return {
-    name: channel.name || '',
-    type: channel.type,
-    base_url: channel.base_url || '',
-    key: '', // Never populate key from backend for security
-    openai_organization: channel.openai_organization || '',
-    models: channel.models || '',
-    group: parseGroups(channel.group || 'default'),
-    model_mapping: channel.model_mapping || '',
-    priority: channel.priority || 0,
-    weight: channel.weight || 0,
-    test_model: channel.test_model || '',
-    auto_ban: channel.auto_ban ?? 1,
-    status: channel.status,
-    status_code_mapping: channel.status_code_mapping || '',
-    tag: channel.tag || '',
-    remark: channel.remark || '',
-    setting: channel.setting || '',
-    param_override: channel.param_override || '',
-    header_override: channel.header_override || '',
-    settings: channel.settings || '{}',
-    other: channel.other || '',
-    multi_key_mode: 'single',
-    multi_key_type: channel.channel_info.multi_key_mode || 'random',
-    batch_add_set_key_prefix_2_name: false,
-    key_mode: 'append', // Default to append mode for editing multi-key channels
-    // Channel extra settings
-    ...extraSettings,
-    // Type-specific settings
-    is_enterprise_account: isEnterpriseAccount,
-    vertex_key_type: vertexKeyType,
-    azure_responses_version: azureResponsesVersion,
-    aws_key_type: awsKeyType,
-    allow_service_tier: allowServiceTier,
-    disable_store: disableStore,
-    allow_include_obfuscation: allowIncludeObfuscation,
-    allow_inference_geo: allowInferenceGeo,
-    allow_speed: allowSpeed,
-    claude_beta_query: claudeBetaQuery,
-    disable_task_polling_sleep: disableTaskPollingSleep,
-    allow_safety_identifier: allowSafetyIdentifier,
-    upstream_model_update_check_enabled: upstreamModelUpdateCheckEnabled,
-    upstream_model_update_auto_sync_enabled: upstreamModelUpdateAutoSyncEnabled,
-    upstream_model_update_ignored_models: upstreamModelUpdateIgnoredModels,
-    advanced_custom: advancedCustom,
-  }
-}
-
-/**
- * Build the setting JSON string from form extra settings
- */
-export function buildSettingJSON(formData: ChannelFormValues): string {
-  const settingObj: Record<string, unknown> = {
-    force_format: formData.force_format || false,
-    thinking_to_content: formData.thinking_to_content || false,
-    proxy: formData.proxy?.trim() || '',
-    pass_through_body_enabled: formData.pass_through_body_enabled || false,
-    system_prompt: formData.system_prompt || '',
-    system_prompt_override: formData.system_prompt_override || false,
-  }
-
-  const protocol = normalizeHttpProtocol(formData.http_protocol)
-  const shards =
-    protocol === HTTP_PROTOCOL_HTTP1
-      ? 1
-      : normalizeHttp2ConnectionShards(formData.http2_connection_shards)
-
-  // Omit defaults so unchanged channels keep equivalent JSON.
-  if (protocol === HTTP_PROTOCOL_HTTP1) {
-    settingObj.http_protocol = HTTP_PROTOCOL_HTTP1
-  } else if (shards > 1) {
-    settingObj.http2_connection_shards = shards
-  }
-
-  return JSON.stringify(settingObj)
-}
-
-/**
- * Build the settings JSON string (for type-specific config like vertex_key_type)
- */
-function buildSettingsJSON(formData: ChannelFormValues): string {
-  let settingsObj: Record<string, unknown> = {}
-
-  // Try to parse existing settings first
-  if (formData.settings && formData.settings !== '{}') {
-    try {
-      settingsObj = JSON.parse(formData.settings)
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to parse existing settings:', error)
-    }
-  }
-
-  // Add vertex_key_type for Vertex AI channels (type 41)
-  if (formData.type === 41) {
-    settingsObj.vertex_key_type = formData.vertex_key_type || 'json'
-  } else if ('vertex_key_type' in settingsObj) {
-    delete settingsObj.vertex_key_type
-  }
-
-  // Add azure_responses_version for Azure channels (type 3)
-  if (formData.type === 3 && formData.azure_responses_version) {
-    settingsObj.azure_responses_version = formData.azure_responses_version
-  } else if ('azure_responses_version' in settingsObj) {
-    delete settingsObj.azure_responses_version
-  }
-
-  // Add enterprise account setting for OpenRouter (type 20)
-  if (formData.type === 20) {
-    settingsObj.openrouter_enterprise = formData.is_enterprise_account === true
-  } else if ('openrouter_enterprise' in settingsObj) {
-    delete settingsObj.openrouter_enterprise
-  }
-
-  // Add aws_key_type for AWS channels (type 33)
-  if (formData.type === 33) {
-    settingsObj.aws_key_type = formData.aws_key_type || 'ak_sk'
-  } else if ('aws_key_type' in settingsObj) {
-    delete settingsObj.aws_key_type
-  }
-
-  // Field passthrough controls:
-  // - OpenAI, Anthropic, Codex, and New API: allow_service_tier
-  // - OpenAI request fields: OpenAI, Codex, and New API
-  // - Claude request fields: Anthropic and New API
-  if (FIELD_PASSTHROUGH_TYPES.has(formData.type)) {
-    settingsObj.allow_service_tier = formData.allow_service_tier === true
-  } else if ('allow_service_tier' in settingsObj) {
-    delete settingsObj.allow_service_tier
-  }
-
-  if (OPENAI_FIELD_PASSTHROUGH_TYPES.has(formData.type)) {
-    settingsObj.disable_store = formData.disable_store === true
-    settingsObj.allow_safety_identifier =
-      formData.allow_safety_identifier === true
-    settingsObj.allow_include_obfuscation =
-      formData.allow_include_obfuscation === true
-  } else {
-    if ('disable_store' in settingsObj) {
-      delete settingsObj.disable_store
-    }
-    if ('allow_safety_identifier' in settingsObj) {
-      delete settingsObj.allow_safety_identifier
-    }
-    if ('allow_include_obfuscation' in settingsObj) {
-      delete settingsObj.allow_include_obfuscation
-    }
-  }
-
-  if (
-    OPENAI_FIELD_PASSTHROUGH_TYPES.has(formData.type) ||
-    CLAUDE_FIELD_PASSTHROUGH_TYPES.has(formData.type)
-  ) {
-    settingsObj.allow_inference_geo = formData.allow_inference_geo === true
-  } else if ('allow_inference_geo' in settingsObj) {
-    delete settingsObj.allow_inference_geo
-  }
-
-  if (CLAUDE_FIELD_PASSTHROUGH_TYPES.has(formData.type)) {
-    settingsObj.allow_speed = formData.allow_speed === true
-  } else if ('allow_speed' in settingsObj) {
-    delete settingsObj.allow_speed
-  }
-
-  // Only the Anthropic adaptor supports forcing the Claude beta query.
-  if (formData.type === 14) {
-    settingsObj.claude_beta_query = formData.claude_beta_query === true
-  } else if ('claude_beta_query' in settingsObj) {
-    delete settingsObj.claude_beta_query
-  }
-
-  settingsObj.disable_task_polling_sleep =
-    formData.disable_task_polling_sleep === true
-
-  // Upstream model update settings (for model-fetchable channel types)
-  if (MODEL_FETCHABLE_TYPES.has(formData.type)) {
-    settingsObj.upstream_model_update_check_enabled =
-      formData.upstream_model_update_check_enabled === true
-    settingsObj.upstream_model_update_auto_sync_enabled =
-      settingsObj.upstream_model_update_check_enabled === true &&
-      formData.upstream_model_update_auto_sync_enabled === true
-    settingsObj.upstream_model_update_ignored_models = [
-      ...new Set(
-        String(formData.upstream_model_update_ignored_models || '')
-          .split(',')
-          .map((model) => model.trim())
-          .filter(Boolean)
-      ),
-    ]
-    if (
-      !Array.isArray(settingsObj.upstream_model_update_last_detected_models) ||
-      settingsObj.upstream_model_update_check_enabled !== true
-    ) {
-      settingsObj.upstream_model_update_last_detected_models = []
-    }
-    if (typeof settingsObj.upstream_model_update_last_check_time !== 'number') {
-      settingsObj.upstream_model_update_last_check_time = 0
-    }
-  }
-
-  if (formData.type === CHANNEL_TYPE_ADVANCED_CUSTOM) {
-    const advancedCustomConfig = parseAdvancedCustomConfig(
-      formData.advanced_custom
-    )
-    if (advancedCustomConfig) {
-      settingsObj.advanced_custom = advancedCustomConfig
-    }
-  } else if ('advanced_custom' in settingsObj) {
-    delete settingsObj.advanced_custom
-  }
-
-  return JSON.stringify(settingsObj)
-}
-
-function normalizeBaseUrl(value: string | undefined): string {
-  return String(value || '')
-    .trim()
-    .replace(/\/+$/, '')
-}
-
-/**
- * Transform form data to API payload for creating channel
- */
-export function transformFormDataToCreatePayload(formData: ChannelFormValues): {
-  mode: 'single' | 'batch' | 'multi_to_single'
-  multi_key_mode?: 'random' | 'polling'
-  batch_add_set_key_prefix_2_name?: boolean
-  channel: Partial<Channel>
-} {
-  const mode = formData.multi_key_mode || 'single'
-
-  const channel: Partial<Channel> = {
-    name: formData.name,
-    type: formData.type,
-    base_url: normalizeBaseUrl(formData.base_url) || null,
-    key: formData.key,
-    openai_organization: formData.openai_organization || null,
-    models: formData.models,
-    group: formatGroups(formData.group),
-    model_mapping: formData.model_mapping || null,
-    priority: formData.priority || null,
-    weight: formData.weight || null,
-    test_model: formData.test_model || null,
-    auto_ban: formData.auto_ban ?? 1,
-    status: formData.status,
-    status_code_mapping: formData.status_code_mapping || null,
-    tag: formData.tag || null,
-    remark: formData.remark || '',
-    setting: buildSettingJSON(formData),
-    param_override: formData.param_override || null,
-    header_override: formData.header_override || null,
-    settings: buildSettingsJSON(formData),
-    other: formData.other || '',
-  }
-
-  // Clean up empty strings to null for optional fields
-  Object.keys(channel).forEach((key) => {
-    if (channel[key as keyof typeof channel] === '') {
-      ;(channel as Record<string, unknown>)[key] = null
-    }
-  })
-
-  return {
-    mode,
-    multi_key_mode:
-      mode === 'multi_to_single' ? formData.multi_key_type : undefined,
-    batch_add_set_key_prefix_2_name:
-      mode === 'batch' ? formData.batch_add_set_key_prefix_2_name : undefined,
-    channel,
-  }
-}
-
-/**
- * Transform form data to API payload for updating channel
- */
-export function transformFormDataToUpdatePayload(
-  formData: ChannelFormValues,
-  channelId: number
-): Partial<Channel> {
-  const payload: Partial<Channel> = {
-    id: channelId,
-    name: formData.name,
-    type: formData.type,
-    base_url: normalizeBaseUrl(formData.base_url) || null,
-    openai_organization: formData.openai_organization || null,
-    models: formData.models,
-    group: formatGroups(formData.group),
-    model_mapping: formData.model_mapping || null,
-    priority: formData.priority ?? 0,
-    weight: formData.weight ?? 0,
-    test_model: formData.test_model || null,
-    auto_ban: formData.auto_ban ?? 1,
-    status_code_mapping: formData.status_code_mapping || null,
-    tag: formData.tag || null,
-    remark: formData.remark || '',
-    setting: buildSettingJSON(formData),
-    param_override: formData.param_override || null,
-    header_override: formData.header_override || null,
-    settings: buildSettingsJSON(formData),
-    other: formData.other || '',
-  }
-
-  // Only include key if it was changed (not empty)
-  if (formData.key && formData.key.trim()) {
-    payload.key = formData.key
-  }
-
-  // Clean up empty strings to null for optional fields
-  Object.keys(payload).forEach((key) => {
-    if (payload[key as keyof typeof payload] === '') {
-      ;(payload as Record<string, unknown>)[key] = null
-    }
-  })
-
-  // Send explicit empty strings for nullable fields so GORM updates can clear them.
-  payload.base_url = normalizeBaseUrl(formData.base_url) || ''
-  payload.openai_organization = formData.openai_organization || ''
-  payload.test_model = formData.test_model || ''
-  payload.tag = formData.tag || ''
-  payload.remark = formData.remark || ''
-  payload.model_mapping = formData.model_mapping || ''
-  payload.status_code_mapping = formData.status_code_mapping || ''
-  payload.param_override = formData.param_override || ''
-  payload.header_override = formData.header_override || ''
-
-  return payload
-}
-
-// ============================================================================
 // Validation Helpers
 // ============================================================================
 
@@ -917,26 +399,26 @@ export function parseModels(models: string): string[] {
 }
 
 /**
- * Parse groups string to array
- */
-export function parseGroups(groups: string): string[] {
-  if (!groups) return []
-  return groups
-    .split(',')
-    .map((g) => g.trim())
-    .filter((g) => g.length > 0)
-}
-
-/**
  * Format models array to string
  */
 export function formatModels(models: string[]): string {
   return models.join(',')
 }
 
-/**
- * Format groups array to string
- */
-export function formatGroups(groups: string[]): string {
-  return groups.join(',')
-}
+export { parseGroups, formatGroups } from './channel-group-format'
+export {
+  CHANNEL_FORM_DEFAULT_VALUES,
+  transformChannelToFormDefaults,
+} from './channel-form-defaults'
+export {
+  buildSettingJSON,
+  transformFormDataToCreatePayload,
+  transformFormDataToUpdatePayload,
+} from './channel-form-payload'
+export {
+  HTTP_PROTOCOL_AUTO,
+  HTTP_PROTOCOL_HTTP1,
+  MAX_HTTP2_CONNECTION_SHARDS,
+  normalizeHttpProtocol,
+  normalizeHttp2ConnectionShards,
+} from './channel-http-settings'

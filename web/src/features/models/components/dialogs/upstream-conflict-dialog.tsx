@@ -16,30 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueryClient } from '@tanstack/react-query'
-import type { ColumnDef, RowSelectionState } from '@tanstack/react-table'
-import {
-  Search,
-  Info,
-  MousePointerClick,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { Search, Info, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { DataTableView, useDataTable } from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
-import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -48,291 +32,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useDebounce } from '@/hooks/use-debounce'
-import { useIsMobile } from '@/hooks/use-mobile'
 
+import { DataTableView } from '../../../../components/data-table/core/data-table-view'
+import { useDataTable } from '../../../../components/data-table/hooks/use-data-table'
 import { applyUpstreamOverwrite } from '../../api'
 import { modelsQueryKeys, vendorsQueryKeys } from '../../lib'
 import type { SyncOverwritePayload } from '../../types'
-import { useModels } from '../models-provider'
-
-const FIELD_LABELS: Record<string, string> = {
-  description: 'Description',
-  icon: 'Icon',
-  tags: 'Tags',
-  vendor: 'Vendor',
-  name_rule: 'Name Rule',
-  status: 'Status',
-  endpoints: 'Endpoints',
-  quota_types: 'Quota Types',
-  enable_groups: 'Enable Groups',
-}
-
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const
-
-const formatValue = (value: unknown) => {
-  if (value === null || value === undefined) return '—'
-  if (typeof value === 'string') return value || '—'
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
-  }
-  try {
-    return JSON.stringify(value, null, 2)
-  } catch {
-    return String(value)
-  }
-}
-
-type UpstreamConflictDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-type ConflictFieldRow = {
-  id: string
-  modelName: string
-  fieldKey: string
-  fieldLabel: string
-  localValue: unknown
-  upstreamValue: unknown
-}
-
-function ValuePreview({ value }: { value: unknown }) {
-  return (
-    <pre className='bg-muted/70 text-muted-foreground max-h-32 overflow-auto rounded-md border px-2 py-1.5 font-mono text-xs break-words whitespace-pre-wrap'>
-      {formatValue(value)}
-    </pre>
-  )
-}
+import { PAGE_SIZE_OPTIONS } from './upstream-conflict-format'
+import { useUpstreamConflictColumns } from './use-upstream-conflict-columns'
+import {
+  type UpstreamConflictDialogProps,
+  useUpstreamConflicts,
+} from './use-upstream-conflicts'
 
 export function UpstreamConflictDialog({
   open,
   onOpenChange,
 }: UpstreamConflictDialogProps) {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
   const {
-    upstreamConflicts = [],
+    queryClient,
     setUpstreamConflicts,
     syncWizardOptions,
-  } = useModels()
-  const isMobile = useIsMobile()
-  const [search, setSearch] = useState('')
-  const debouncedSearch = useDebounce(search, 200)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [pageSize, setPageSize] = useState(10)
-  const [pageIndex, setPageIndex] = useState(0)
-
-  useEffect(() => {
-    if (open) {
-      setRowSelection({})
-      setSearch('')
-      setPageIndex(0)
-    }
-  }, [open, upstreamConflicts])
-
-  const conflictRows = useMemo<ConflictFieldRow[]>(() => {
-    return upstreamConflicts.flatMap((conflict) => {
-      if (!conflict.fields?.length) {
-        return []
-      }
-
-      return conflict.fields.map((field) => ({
-        id: `${conflict.model_name}-${field.field}`,
-        modelName: conflict.model_name,
-        fieldKey: field.field,
-        fieldLabel: FIELD_LABELS[field.field] || field.field,
-        localValue: field.local,
-        upstreamValue: field.upstream,
-      }))
-    })
-  }, [upstreamConflicts])
-
-  const totalModels = upstreamConflicts.length
-  const totalFields = conflictRows.length
-  const normalizedSearch = debouncedSearch.trim().toLowerCase()
-
-  const { matchingModelNames, visibleRowIds } = useMemo(() => {
-    if (!normalizedSearch) {
-      return { matchingModelNames: null, visibleRowIds: null }
-    }
-
-    const modelMatches = new Set<string>()
-    upstreamConflicts.forEach((conflict) => {
-      const modelMatch = conflict.model_name
-        ?.toLowerCase()
-        .includes(normalizedSearch)
-
-      if (modelMatch) {
-        modelMatches.add(conflict.model_name)
-        return
-      }
-
-      const fieldMatch = conflict.fields?.some((field) => {
-        const label = FIELD_LABELS[field.field] || field.field
-        return (
-          label.toLowerCase().includes(normalizedSearch) ||
-          field.field.toLowerCase().includes(normalizedSearch)
-        )
-      })
-
-      if (fieldMatch) {
-        modelMatches.add(conflict.model_name)
-      }
-    })
-
-    const rowIdSet = new Set<string>()
-    conflictRows.forEach((row) => {
-      if (
-        modelMatches.has(row.modelName) ||
-        row.fieldLabel.toLowerCase().includes(normalizedSearch) ||
-        row.fieldKey.toLowerCase().includes(normalizedSearch)
-      ) {
-        rowIdSet.add(row.id)
-      }
-    })
-
-    return { matchingModelNames: modelMatches, visibleRowIds: rowIdSet }
-  }, [normalizedSearch, upstreamConflicts, conflictRows])
-
-  const columns = useMemo<ColumnDef<ConflictFieldRow>[]>(() => {
-    const modelColumn: ColumnDef<ConflictFieldRow> = {
-      accessorKey: 'modelName',
-      header: 'Model',
-      cell: ({ row }) => (
-        <div className='flex items-start gap-3'>
-          {isMobile ? (
-            <Checkbox
-              checked={row.getIsSelected()}
-              onCheckedChange={(value) => row.toggleSelected(!!value)}
-              aria-label='Select row'
-            />
-          ) : null}
-          <div className='space-y-1'>
-            <p className='leading-none font-medium'>{row.original.modelName}</p>
-            <span className='text-muted-foreground font-mono text-xs'>
-              {row.original.fieldKey}
-            </span>
-            {isMobile ? (
-              <StatusBadge
-                label={row.original.fieldLabel}
-                variant='neutral'
-                size='sm'
-                copyable={false}
-              />
-            ) : null}
-          </div>
-        </div>
-      ),
-      size: 220,
-    }
-
-    const diffColumn: ColumnDef<ConflictFieldRow> = {
-      id: 'actions',
-      header: 'Diff',
-      enableSorting: false,
-      enableHiding: false,
-      cell: ({ row }) => (
-        <Popover>
-          <PopoverTrigger
-            render={
-              <Button
-                variant='ghost'
-                size='sm'
-                className={isMobile ? 'h-7 w-7 p-0' : 'h-7 gap-2 px-2 text-xs'}
-              />
-            }
-          >
-            <MousePointerClick className='h-3.5 w-3.5' />
-            {!isMobile && 'View diff'}
-          </PopoverTrigger>
-          <PopoverContent className='w-[min(90vw,24rem)] space-y-4 text-sm'>
-            <div>
-              <StatusBadge
-                label='Local'
-                variant='neutral'
-                size='sm'
-                copyable={false}
-                className='mb-1'
-              />
-              <pre className='bg-muted rounded-md p-2 text-xs'>
-                {formatValue(row.original.localValue)}
-              </pre>
-            </div>
-            <div>
-              <StatusBadge
-                label='Upstream'
-                variant='info'
-                size='sm'
-                copyable={false}
-                className='mb-1'
-              />
-              <pre className='bg-muted rounded-md p-2 text-xs'>
-                {formatValue(row.original.upstreamValue)}
-              </pre>
-            </div>
-          </PopoverContent>
-        </Popover>
-      ),
-      size: isMobile ? 50 : 140,
-    }
-
-    if (isMobile) {
-      return [modelColumn, diffColumn]
-    }
-
-    const selectionColumn: ColumnDef<ConflictFieldRow> = {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          indeterminate={table.getIsSomePageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label='Select all'
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label='Select row'
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-      size: 40,
-    }
-
-    return [
-      selectionColumn,
-      modelColumn,
-      {
-        accessorKey: 'fieldLabel',
-        header: 'Field',
-        cell: ({ row }) => (
-          <StatusBadge
-            label={row.original.fieldLabel}
-            variant='neutral'
-            size='sm'
-            copyable={false}
-          />
-        ),
-        enableSorting: false,
-        size: 160,
-      },
-      {
-        accessorKey: 'localValue',
-        header: 'Local Value',
-        cell: ({ row }) => <ValuePreview value={row.original.localValue} />,
-      },
-      {
-        accessorKey: 'upstreamValue',
-        header: 'Upstream Value',
-        cell: ({ row }) => <ValuePreview value={row.original.upstreamValue} />,
-      },
-    ]
-  }, [isMobile])
+    isMobile,
+    search,
+    setSearch,
+    isSubmitting,
+    setIsSubmitting,
+    rowSelection,
+    setRowSelection,
+    pageSize,
+    setPageSize,
+    pageIndex,
+    setPageIndex,
+    conflictRows,
+    totalModels,
+    totalFields,
+    matchingModelNames,
+    visibleRowIds,
+  } = useUpstreamConflicts({ open, onOpenChange })
+  const { columns } = useUpstreamConflictColumns(isMobile)
 
   const { table } = useDataTable({
     data: conflictRows,
@@ -360,7 +99,7 @@ export function UpstreamConflictDialog({
 
   useEffect(() => {
     setPageIndex((prev) => Math.min(prev, Math.max(0, totalPages - 1)))
-  }, [totalPages])
+  }, [totalPages, setPageIndex])
 
   const pageStart = pageIndex * pageSize
   const paginatedRows = filteredRows.slice(pageStart, pageStart + pageSize)
@@ -379,7 +118,7 @@ export function UpstreamConflictDialog({
 
   const clearSelections = useCallback(() => {
     setRowSelection({})
-  }, [])
+  }, [setRowSelection])
 
   const handleApplyOverwrite = async () => {
     const selectedRows = table.getSelectedRowModel().rows

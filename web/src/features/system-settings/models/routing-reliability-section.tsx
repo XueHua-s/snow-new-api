@@ -16,12 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useMemo, useRef } from 'react'
-import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-import * as z from 'zod'
 
 import {
   Form,
@@ -44,7 +39,6 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { parseHttpStatusCodeRules } from '@/lib/http-status-code-rules'
 
 import {
   SettingsForm,
@@ -53,282 +47,26 @@ import {
 } from '../components/settings-form-layout'
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
-import { useResetForm } from '../hooks/use-reset-form'
-import { useUpdateOption } from '../hooks/use-update-option'
 import { safeNumberFieldProps } from '../utils/numeric-field'
-
-const numericString = z.string().refine((value) => {
-  const trimmed = value.trim()
-  if (!trimmed) return true
-  return !Number.isNaN(Number(trimmed)) && Number(trimmed) >= 0
-}, 'Enter a non-negative number or leave empty')
-
-const channelTestModes = [
-  'scheduled_all',
-  'auto_ban_only',
-  'passive_recovery',
-] as const
-type ChannelTestMode = (typeof channelTestModes)[number]
-const MAX_CHANNEL_TEST_CONCURRENCY = 32
-
-const createRoutingReliabilitySchema = (
-  t: (key: string, options?: Record<string, unknown>) => string
-) =>
-  z
-    .object({
-      RetryTimes: z.coerce.number().min(0).max(10),
-      ChannelDisableThreshold: numericString,
-      AutomaticDisableChannelEnabled: z.boolean(),
-      AutomaticEnableChannelEnabled: z.boolean(),
-      AutomaticDisableKeywords: z.string(),
-      AutomaticDisableStatusCodes: z.string(),
-      AutomaticRetryStatusCodes: z.string(),
-      monitor_setting: z.object({
-        auto_test_channel_enabled: z.boolean(),
-        auto_test_channel_minutes: z.coerce
-          .number()
-          .int()
-          .min(1, t('Interval must be at least 1 minute')),
-        channel_test_concurrency: z.coerce
-          .number()
-          .int(t('Enter a positive integer'))
-          .min(1, t('Channel test concurrency must be between 1 and 32'))
-          .max(
-            MAX_CHANNEL_TEST_CONCURRENCY,
-            t('Channel test concurrency must be between 1 and 32')
-          ),
-        channel_test_mode: z.enum(channelTestModes),
-      }),
-    })
-    .superRefine((values, ctx) => {
-      const disableParsed = parseHttpStatusCodeRules(
-        values.AutomaticDisableStatusCodes
-      )
-      if (!disableParsed.ok) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['AutomaticDisableStatusCodes'],
-          message: t('Invalid status code rules: {{tokens}}', {
-            tokens: disableParsed.invalidTokens.join(', '),
-          }),
-        })
-      }
-
-      const retryParsed = parseHttpStatusCodeRules(
-        values.AutomaticRetryStatusCodes
-      )
-      if (!retryParsed.ok) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['AutomaticRetryStatusCodes'],
-          message: t('Invalid status code rules: {{tokens}}', {
-            tokens: retryParsed.invalidTokens.join(', '),
-          }),
-        })
-      }
-    })
-
-type RoutingReliabilitySchema = ReturnType<
-  typeof createRoutingReliabilitySchema
->
-type RoutingReliabilityFormValues = z.output<RoutingReliabilitySchema>
-type RoutingReliabilityFormInput = z.input<RoutingReliabilitySchema>
-
-type RoutingReliabilitySectionProps = {
-  defaultValues: {
-    RetryTimes: number
-    ChannelDisableThreshold: string
-    AutomaticDisableChannelEnabled: boolean
-    AutomaticEnableChannelEnabled: boolean
-    AutomaticDisableKeywords: string
-    AutomaticDisableStatusCodes: string
-    AutomaticRetryStatusCodes: string
-    'monitor_setting.auto_test_channel_enabled': boolean
-    'monitor_setting.auto_test_channel_minutes': number
-    'monitor_setting.channel_test_concurrency': number
-    'monitor_setting.channel_test_mode': ChannelTestMode
-  }
-}
-
-function normalizeLineEndings(value: string) {
-  return value.replaceAll('\r\n', '\n')
-}
-
-type NormalizedRoutingReliabilityValues = {
-  RetryTimes: number
-  ChannelDisableThreshold: string
-  AutomaticDisableChannelEnabled: boolean
-  AutomaticEnableChannelEnabled: boolean
-  AutomaticDisableKeywords: string
-  AutomaticDisableStatusCodes: string
-  AutomaticRetryStatusCodes: string
-  'monitor_setting.auto_test_channel_enabled': boolean
-  'monitor_setting.auto_test_channel_minutes': number
-  'monitor_setting.channel_test_concurrency': number
-  'monitor_setting.channel_test_mode': ChannelTestMode
-}
-
-function normalizeChannelTestMode(value?: string): ChannelTestMode {
-  if (value === 'auto_ban_only' || value === 'passive_recovery') {
-    return value
-  }
-  return 'scheduled_all'
-}
-
-const buildFormDefaults = (
-  defaults: RoutingReliabilitySectionProps['defaultValues']
-): RoutingReliabilityFormInput => ({
-  RetryTimes: defaults.RetryTimes ?? 0,
-  ChannelDisableThreshold: defaults.ChannelDisableThreshold ?? '',
-  AutomaticDisableChannelEnabled: defaults.AutomaticDisableChannelEnabled,
-  AutomaticEnableChannelEnabled: defaults.AutomaticEnableChannelEnabled,
-  AutomaticDisableKeywords: normalizeLineEndings(
-    defaults.AutomaticDisableKeywords ?? ''
-  ),
-  AutomaticDisableStatusCodes: defaults.AutomaticDisableStatusCodes ?? '',
-  AutomaticRetryStatusCodes: defaults.AutomaticRetryStatusCodes ?? '',
-  monitor_setting: {
-    auto_test_channel_enabled:
-      defaults['monitor_setting.auto_test_channel_enabled'],
-    auto_test_channel_minutes:
-      defaults['monitor_setting.auto_test_channel_minutes'],
-    channel_test_concurrency:
-      defaults['monitor_setting.channel_test_concurrency'],
-    channel_test_mode: normalizeChannelTestMode(
-      defaults['monitor_setting.channel_test_mode']
-    ),
-  },
-})
-
-const normalizeDefaults = (
-  defaults: RoutingReliabilitySectionProps['defaultValues']
-): NormalizedRoutingReliabilityValues => ({
-  RetryTimes: defaults.RetryTimes ?? 0,
-  ChannelDisableThreshold: (defaults.ChannelDisableThreshold ?? '').trim(),
-  AutomaticDisableChannelEnabled: defaults.AutomaticDisableChannelEnabled,
-  AutomaticEnableChannelEnabled: defaults.AutomaticEnableChannelEnabled,
-  AutomaticDisableKeywords: normalizeLineEndings(
-    defaults.AutomaticDisableKeywords ?? ''
-  ),
-  AutomaticDisableStatusCodes: parseHttpStatusCodeRules(
-    defaults.AutomaticDisableStatusCodes ?? ''
-  ).normalized,
-  AutomaticRetryStatusCodes: parseHttpStatusCodeRules(
-    defaults.AutomaticRetryStatusCodes ?? ''
-  ).normalized,
-  'monitor_setting.auto_test_channel_enabled':
-    defaults['monitor_setting.auto_test_channel_enabled'],
-  'monitor_setting.auto_test_channel_minutes':
-    defaults['monitor_setting.auto_test_channel_minutes'],
-  'monitor_setting.channel_test_concurrency':
-    defaults['monitor_setting.channel_test_concurrency'],
-  'monitor_setting.channel_test_mode': normalizeChannelTestMode(
-    defaults['monitor_setting.channel_test_mode']
-  ),
-})
-
-const normalizeFormValues = (
-  values: RoutingReliabilityFormValues
-): NormalizedRoutingReliabilityValues => ({
-  RetryTimes: values.RetryTimes,
-  ChannelDisableThreshold: values.ChannelDisableThreshold.trim(),
-  AutomaticDisableChannelEnabled: values.AutomaticDisableChannelEnabled,
-  AutomaticEnableChannelEnabled: values.AutomaticEnableChannelEnabled,
-  AutomaticDisableKeywords: normalizeLineEndings(
-    values.AutomaticDisableKeywords
-  ),
-  AutomaticDisableStatusCodes: parseHttpStatusCodeRules(
-    values.AutomaticDisableStatusCodes
-  ).normalized,
-  AutomaticRetryStatusCodes: parseHttpStatusCodeRules(
-    values.AutomaticRetryStatusCodes
-  ).normalized,
-  'monitor_setting.auto_test_channel_enabled':
-    values.monitor_setting.auto_test_channel_enabled,
-  'monitor_setting.auto_test_channel_minutes':
-    values.monitor_setting.auto_test_channel_minutes,
-  'monitor_setting.channel_test_concurrency':
-    values.monitor_setting.channel_test_concurrency,
-  'monitor_setting.channel_test_mode': values.monitor_setting.channel_test_mode,
-})
+import { MAX_CHANNEL_TEST_CONCURRENCY } from './routing-reliability-schema'
+import {
+  type RoutingReliabilitySectionProps,
+  useRoutingReliability,
+} from './use-routing-reliability'
 
 export function RoutingReliabilitySection({
   defaultValues,
 }: RoutingReliabilitySectionProps) {
   const { t } = useTranslation()
-  const updateOption = useUpdateOption()
-  const routingReliabilitySchema = createRoutingReliabilitySchema(t)
-  const baselineRef = useRef<NormalizedRoutingReliabilityValues>(
-    normalizeDefaults(defaultValues)
-  )
-
-  const formDefaults = useMemo(
-    () => buildFormDefaults(defaultValues),
-    [defaultValues]
-  )
-
-  const form = useForm<
-    RoutingReliabilityFormInput,
-    unknown,
-    RoutingReliabilityFormValues
-  >({
-    resolver: zodResolver(routingReliabilitySchema),
-    defaultValues: formDefaults,
-  })
-
-  useResetForm(form, formDefaults)
-
-  const autoDisableStatusCodes = form.watch('AutomaticDisableStatusCodes')
-  const autoRetryStatusCodes = form.watch('AutomaticRetryStatusCodes')
-  const channelTestMode = form.watch('monitor_setting.channel_test_mode')
-  let channelTestModeDescription: string
-  switch (channelTestMode) {
-    case 'auto_ban_only':
-      channelTestModeDescription = t(
-        'Periodically checks only channels with auto-disable enabled, excluding manually disabled channels.'
-      )
-      break
-    case 'passive_recovery':
-      channelTestModeDescription = t(
-        'Does not check healthy channels. It only rechecks auto-disabled channels and restores them after they recover.'
-      )
-      break
-    default:
-      channelTestModeDescription = t(
-        'Periodically checks all channels except manually disabled ones to detect failures and recover channels automatically.'
-      )
-  }
-  const autoDisableParsed = useMemo(
-    () => parseHttpStatusCodeRules(autoDisableStatusCodes),
-    [autoDisableStatusCodes]
-  )
-  const autoRetryParsed = useMemo(
-    () => parseHttpStatusCodeRules(autoRetryStatusCodes),
-    [autoRetryStatusCodes]
-  )
-
-  const onSubmit = async (values: RoutingReliabilityFormValues) => {
-    const normalized = normalizeFormValues(values)
-    const updates = (
-      Object.keys(normalized) as Array<keyof NormalizedRoutingReliabilityValues>
-    ).filter((key) => normalized[key] !== baselineRef.current[key])
-
-    if (updates.length === 0) {
-      toast.info(t('No changes to save'))
-      return
-    }
-
-    for (const key of updates) {
-      const value = normalized[key]
-      await updateOption.mutateAsync({
-        key,
-        value,
-      })
-    }
-
-    baselineRef.current = normalized
-  }
-
+  const {
+    updateOption,
+    form,
+    channelTestMode,
+    channelTestModeDescription,
+    autoDisableParsed,
+    autoRetryParsed,
+    onSubmit,
+  } = useRoutingReliability({ defaultValues })
   return (
     <SettingsSection title={t('Routing Reliability')}>
       <Form {...form}>
@@ -671,3 +409,5 @@ export function RoutingReliabilitySection({
     </SettingsSection>
   )
 }
+
+export { type RoutingReliabilitySectionProps } from './use-routing-reliability'

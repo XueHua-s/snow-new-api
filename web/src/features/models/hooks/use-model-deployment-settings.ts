@@ -18,7 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { getDeploymentSettings, testDeploymentConnection } from '../api'
+import {
+  getDeploymentSettings,
+  testDeploymentConnection,
+} from '../deployment-api'
 
 interface ConnectionState {
   loading: boolean

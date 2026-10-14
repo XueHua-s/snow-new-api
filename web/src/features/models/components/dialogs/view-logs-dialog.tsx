@@ -52,7 +52,10 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 
-import { getDeploymentLogs, listDeploymentContainers } from '../../api'
+import {
+  getDeploymentLogs,
+  listDeploymentContainers,
+} from '../../deployment-api'
 
 interface ViewLogsDialogProps {
   open: boolean

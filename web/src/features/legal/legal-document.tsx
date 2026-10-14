@@ -20,13 +20,13 @@ import { useQuery } from '@tanstack/react-query'
 import { FileWarning } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { PublicLayout } from '@/components/layout'
 import { RichContent } from '@/components/rich-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
 
+import { PublicLayout } from '../../components/layout/components/public-layout'
 import type { LegalDocumentResponse } from './types'
 
 type LegalDocumentProps = {

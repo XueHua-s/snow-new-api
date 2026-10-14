@@ -20,6 +20,7 @@ export type VerificationMethod = '2fa' | 'passkey'
 
 export type SecurityProofScope =
   | 'channel.key.read'
+  | 'channel.codex.credentials.write'
   | 'passkey.register'
   | 'passkey.delete'
 
@@ -31,8 +32,9 @@ export interface SecurityProof {
 }
 
 export interface VerificationMethods {
-  has2FA: boolean
-  hasPasskey: boolean
+  // null means the status could not be determined; never treat it as disabled.
+  has2FA: boolean | null
+  hasPasskey: boolean | null
   passkeySupported: boolean
 }
 

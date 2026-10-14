@@ -42,33 +42,33 @@ import type {
  * Fetch available verification methods for the current user.
  */
 export async function checkVerificationMethods(): Promise<VerificationMethods> {
-  try {
-    const [twoFAResponse, passkeyResponse, passkeySupported] =
-      await Promise.all([
-        get2FAStatus(),
-        getPasskeyStatus(),
-        detectPasskeySupport(),
-      ])
+  // A failed status lookup is unknown, not evidence that a method is disabled.
+  // Keep a working method available when the other endpoint is unavailable.
+  const [twoFAResult, passkeyResult, supportResult] = await Promise.allSettled([
+    get2FAStatus(),
+    getPasskeyStatus(),
+    detectPasskeySupport(),
+  ])
+  const twoFAResponse =
+    twoFAResult.status === 'fulfilled' ? twoFAResult.value : null
+  const passkeyResponse =
+    passkeyResult.status === 'fulfilled' ? passkeyResult.value : null
+  const has2FA =
+    twoFAResponse?.success === true &&
+    typeof twoFAResponse.data?.enabled === 'boolean'
+      ? twoFAResponse.data.enabled
+      : null
+  const hasPasskey =
+    passkeyResponse?.success === true &&
+    typeof passkeyResponse.data?.enabled === 'boolean'
+      ? passkeyResponse.data.enabled
+      : null
 
-    const has2FA =
-      Boolean(twoFAResponse?.success) && Boolean(twoFAResponse?.data?.enabled)
-    const hasPasskey =
-      Boolean(passkeyResponse?.success) &&
-      Boolean(passkeyResponse?.data?.enabled)
-
-    return {
-      has2FA,
-      hasPasskey,
-      passkeySupported,
-    }
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[Secure Verification] Failed to check methods', error)
-    return {
-      has2FA: false,
-      hasPasskey: false,
-      passkeySupported: false,
-    }
+  return {
+    has2FA,
+    hasPasskey,
+    passkeySupported:
+      supportResult.status === 'fulfilled' && supportResult.value,
   }
 }
 

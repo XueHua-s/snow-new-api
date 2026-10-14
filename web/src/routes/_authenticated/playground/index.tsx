@@ -18,9 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { Main } from '@/components/layout'
 import { Playground } from '@/features/playground'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
+
+import { Main } from '../../../components/layout/components/main'
 
 export const Route = createFileRoute('/_authenticated/playground/')({
   beforeLoad: () => {

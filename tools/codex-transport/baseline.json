@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "profile": "0.162.1",
+  "platform": "linux-arm64",
+  "target": "aarch64-unknown-linux-gnu",
+  "official": {
+    "release": "https://github.com/openai/codex/releases/tag/rust-v0.162.1",
+    "source_tag": "rust-v0.162.1",
+    "binary_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "observed_version": "codex-cli 0.162.1",
+    "version_execution": "isolated Docker, network none, Linux ARM64, exit 0",
+    "target": "aarch64-unknown-linux-musl",
+    "libc": "musl",
+    "openssl": "3.6.4",
+    "feature_evidence": "fixtures/protocol/official-features.json; release multi-binary graph using explicitly documented local-version-only derived lock"
+  },
+  "dependencies": {
+    "reqwest": "0.12.28",
+    "native-tls": "0.2.14",
+    "openssl": "0.10.75",
+    "openssl-sys": "0.9.111",
+    "openssl-src": "300.6.1+3.6.3",
+    "rustls": "0.23.45",
+    "aws-lc-rs": "1.18.1",
+    "hyper": "1.8.1",
+    "hyper-util": "0.1.20",
+    "h2": "0.4.19",
+    "tokio": "1.52.3"
+  },
+  "websocket_forks": [
+    {
+      "crate": "tokio-tungstenite",
+      "version": "0.28.0",
+      "git": "https://github.com/openai-oss-forks/tokio-tungstenite",
+      "rev": "0e5b2d73aa18dd9f0a50ee9ff199d5aef7594186",
+      "declared_rust_version": "1.63"
+    },
+    {
+      "crate": "tungstenite",
+      "version": "0.27.0",
+      "git": "https://github.com/openai-oss-forks/tungstenite-rs",
+      "rev": "4fffad30fe373adbdcffab9545e9e9bf4f2fc19f",
+      "declared_rust_version": "1.75"
+    }
+  ],
+  "build": {
+    "rust_toolchain": "1.91.1",
+    "minimum_supported_rust_version": "1.91.1",
+    "msrv_status": "validated full locked dependency graph and release build on rustc 1.91.1, Linux ARM64 GNU/glibc in S03",
+    "container": "docker.m.daocloud.io/library/rust@sha256:c1e5f19e773b7878c3f7a805dd00a495e747acbdc76fb2337a4ebf0418896b33",
+    "libc": "glibc",
+    "openssl": {
+      "version": "3.6.4",
+      "sha256": "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+      "source": "https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz",
+      "linkage": "static, target OPENSSL_NO_VENDOR=1 overrides locked openssl-src 3.6.3",
+      "configuration": "scripts/build-openssl.sh; official release Configure flags, GNU cc rather than musl cc"
+    }
+  },
+  "expected_features": {
+    "reqwest": [
+      "default",
+      "stream",
+      "json",
+      "cookies",
+      "rustls-tls",
+      "rustls-tls-native-roots",
+      "native-tls-vendored",
+      "socks"
+    ],
+    "rustls": [
+      "std",
+      "tls12",
+      "aws_lc_rs",
+      "prefer-post-quantum"
+    ],
+    "tokio-tungstenite": [
+      "default",
+      "proxy",
+      "rustls-tls-native-roots"
+    ],
+    "tungstenite": [
+      "deflate",
+      "proxy"
+    ]
+  },
+  "feature_evidence": {
+    "official_http": "S09 release multi-binary graph reconstructed; reqwest native-tls-vendored/socks absent. openssl-sys vendored exists but release target NO_VENDOR selects external static OpenSSL 3.6.4.",
+    "official_websocket": "source declarations and fixed HTTPS revisions",
+    "rustls_prefer_post_quantum": "S09 official merged release graph confirms prefer-post-quantum; see fixtures/protocol/official-features.json",
+    "sidecar_effective_graph": "Cargo.lock unchanged; sidecar adds native-tls-vendored/socks and patches forks/hyper-util. GNU build now selects explicit static OpenSSL 3.6.4. Graph equality is not claimed."
+  },
+  "crypto_provider": "aws-lc-rs",
+  "paths": {
+    "http_default": "native-tls",
+    "http_explicit_ca": "rustls",
+    "websocket": "rustls"
+  },
+  "limitations": [
+    "No new TLS/H2/WS equivalence claim before S09",
+    "No sidecar build or production contract validation in S01",
+    "No real account traffic or credentials in fixtures",
+    "Official binary is static musl; supported sidecar remains GNU/glibc. Same Linux ARM64 architecture and TLS library version do not prove target/build equivalence."
+  ]
+}

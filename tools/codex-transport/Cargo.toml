@@ -1,0 +1,49 @@
+[package]
+name = "codex-transport"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.91.1"
+
+[dependencies]
+base64 = "0.22"
+bytes = "1"
+futures-util = "0.3"
+http = "1"
+url = "2"
+http-body-util = "0.1"
+hyper = { version = "=1.8.1", features = ["server", "http1", "http2"] }
+hyper-util = { version = "=0.1.20", features = ["tokio"] }
+h2 = "=0.4.19"
+tokio = { version = "=1.52.3", features = ["full"] }
+reqwest = { version = "=0.12.28", features = ["stream", "json", "cookies", "rustls-tls", "rustls-tls-native-roots", "native-tls-vendored", "socks"] }
+native-tls = "=0.2.14"
+openssl = "=0.10.75"
+openssl-sys = "=0.9.111"
+openssl-src = "=300.6.1"
+rustls = { version = "=0.23.45", features = ["std", "tls12", "aws_lc_rs", "prefer-post-quantum"] }
+aws-lc-rs = "=1.18.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+libc = "0.2"
+async-stream = "0.3"
+tokio-rustls = "0.26"
+rustls-native-certs = "0.8"
+rustls-pemfile = "2"
+percent-encoding = "2"
+tokio-tungstenite = { git = "https://github.com/openai-oss-forks/tokio-tungstenite", rev = "0e5b2d73aa18dd9f0a50ee9ff199d5aef7594186", features = ["proxy", "rustls-tls-native-roots"] }
+tungstenite = { git = "https://github.com/openai-oss-forks/tungstenite-rs", rev = "4fffad30fe373adbdcffab9545e9e9bf4f2fc19f", features = ["deflate", "proxy"] }
+
+[patch.crates-io]
+hyper-util = { path = "vendor/hyper-util" }
+
+[patch."https://github.com/openai-oss-forks/tungstenite-rs"]
+tungstenite = { path = "vendor/tungstenite" }
+
+[patch."https://github.com/openai-oss-forks/tokio-tungstenite"]
+tokio-tungstenite = { path = "vendor/tokio-tungstenite" }
+
+[dev-dependencies]
+tempfile = "3"
+rcgen = "0.14"
+tokio-rustls = "0.26"

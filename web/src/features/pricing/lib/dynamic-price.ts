@@ -21,13 +21,12 @@ import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 import { TOKEN_UNIT_DIVISORS } from '../constants'
 import type { PricingModel, TokenUnit } from '../types'
 import {
-  BILLING_PRICING_VARS,
   parseTiersFromExpr,
   splitBillingExprAndRequestRules,
   tryParseRequestRuleExpr,
-  type BillingVar,
   type ParsedTier,
 } from './billing-expr'
+import { BILLING_PRICING_VARS, type BillingVar } from './billing-variables'
 import { getDisplayGroupRatio } from './model-helpers'
 
 type DynamicPriceOptions = {

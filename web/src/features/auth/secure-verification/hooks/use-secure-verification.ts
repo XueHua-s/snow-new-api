@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import i18next from 'i18next'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -41,8 +41,8 @@ interface InternalState extends SecureVerificationState {
 }
 
 const defaultMethods: VerificationMethods = {
-  has2FA: false,
-  hasPasskey: false,
+  has2FA: null,
+  hasPasskey: null,
   passkeySupported: false,
 }
 
@@ -63,6 +63,14 @@ export function useSecureVerification(
   const [methods, setMethods] = useState<VerificationMethods>(defaultMethods)
   const [state, setState] = useState<InternalState>(initialState)
   const [open, setOpen] = useState(false)
+  const attemptRef = useRef(0)
+
+  useEffect(
+    () => () => {
+      attemptRef.current += 1
+    },
+    []
+  )
 
   const fetchVerificationMethods = useCallback(async () => {
     const result = await checkVerificationMethods()
@@ -75,6 +83,7 @@ export function useSecureVerification(
   }, [fetchVerificationMethods])
 
   const reset = useCallback(() => {
+    attemptRef.current += 1
     setState(initialState)
     setOpen(false)
   }, [])
@@ -84,23 +93,25 @@ export function useSecureVerification(
       apiCall: (proofToken?: string) => Promise<unknown>,
       config: StartVerificationOptions
     ) => {
+      const attempt = ++attemptRef.current
       const { preferredMethod, scope, title, description } = config
       const availableMethods = await fetchVerificationMethods()
+      if (attempt !== attemptRef.current) return false
 
-      if (!availableMethods.has2FA && !availableMethods.hasPasskey) {
-        toast.error(
-          i18next.t(
-            'Please enable Two-factor Authentication or Passkey before proceeding'
-          )
-        )
-        onError?.(
-          new Error(
-            'No verification methods available. Enable 2FA or Passkey to continue.'
-          )
-        )
+      if (
+        !availableMethods.has2FA &&
+        !availableMethods.hasPasskey &&
+        (availableMethods.has2FA === null ||
+          availableMethods.hasPasskey === null)
+      ) {
+        const error = new Error(i18next.t('Failed to start verification'))
+        toast.error(error.message)
+        onError?.(error)
         return false
       }
 
+      // Missing site factors open setup guidance; an upstream account's MFA
+      // does not satisfy this site's proof requirement.
       let defaultMethod: VerificationMethod | null = preferredMethod ?? null
       if (
         (defaultMethod === 'passkey' &&
@@ -118,14 +129,14 @@ export function useSecureVerification(
         }
       }
 
-      setState((prev) => ({
-        ...prev,
+      setState({
+        ...initialState,
         apiCall,
         method: defaultMethod,
         scope,
         title,
         description,
-      }))
+      })
       setOpen(true)
       return true
     },
@@ -145,6 +156,7 @@ export function useSecureVerification(
         return
       }
 
+      const attempt = attemptRef.current
       setState((prev) => ({ ...prev, loading: true }))
 
       try {
@@ -156,7 +168,9 @@ export function useSecureVerification(
           state.scope,
           code ?? state.code
         )
+        if (attempt !== attemptRef.current) return
         const result = await state.apiCall(proof.proof_token)
+        if (attempt !== attemptRef.current) return
 
         if (successMessage) {
           toast.success(successMessage)
@@ -170,6 +184,7 @@ export function useSecureVerification(
 
         return result
       } catch (error) {
+        if (attempt !== attemptRef.current) return
         const message =
           error instanceof Error
             ? error.message
@@ -178,7 +193,9 @@ export function useSecureVerification(
         onError?.(error)
         throw error
       } finally {
-        setState((prev) => ({ ...prev, loading: false }))
+        if (attempt === attemptRef.current) {
+          setState((prev) => ({ ...prev, loading: false }))
+        }
       }
     },
     [state, successMessage, onSuccess, onError, autoReset, reset]
@@ -218,9 +235,9 @@ export function useSecureVerification(
 
   const canUseMethod = useCallback(
     (method: VerificationMethod) => {
-      if (method === '2fa') return methods.has2FA
+      if (method === '2fa') return methods.has2FA === true
       if (method === 'passkey') {
-        return methods.hasPasskey && methods.passkeySupported
+        return methods.hasPasskey === true && methods.passkeySupported
       }
       return false
     },
@@ -248,7 +265,7 @@ export function useSecureVerification(
     fetchVerificationMethods,
     canUseMethod,
     recommendedMethod,
-    hasAnyMethod: methods.has2FA || methods.hasPasskey,
+    hasAnyMethod: methods.has2FA === true || methods.hasPasskey === true,
     isLoading: state.loading,
     currentMethod: state.method,
     code: state.code,

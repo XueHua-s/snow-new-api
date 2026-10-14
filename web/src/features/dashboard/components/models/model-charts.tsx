@@ -28,7 +28,6 @@ import {
   DEFAULT_TIME_GRANULARITY,
   MODEL_ANALYTICS_CHART_OPTIONS,
 } from '@/features/dashboard/constants'
-import { processChartData } from '@/features/dashboard/lib'
 import type {
   ModelAnalyticsChartTab,
   QuotaDataItem,
@@ -36,6 +35,8 @@ import type {
 import { useThemeRadiusPx } from '@/lib/theme-radius'
 import type { TimeGranularity } from '@/lib/time'
 import { VCHART_OPTION } from '@/lib/vchart'
+
+import { processChartData } from '../../lib/charts'
 
 let themeManagerPromise: Promise<
   (typeof import('@visactor/vchart'))['ThemeManager']

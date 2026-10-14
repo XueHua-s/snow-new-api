@@ -182,14 +182,15 @@ export function ExtendDeploymentDialog({
         </>
       }
     >
-      {isLoadingDetails ? (
+      {isLoadingDetails && (
         <div className='flex items-center justify-center py-10'>
           <Loader2 className='text-muted-foreground h-6 w-6 animate-spin' />
         </div>
-      ) : (
+      )}{' '}
+      {!isLoadingDetails && (
         <div className='space-y-4'>
           <div className='text-muted-foreground text-sm'>
-            {t('Deployment ID')}:{' '}
+            {t('Deployment ID')}:
             <span className='font-mono'>{deploymentId}</span>
           </div>
 
@@ -216,10 +217,8 @@ export function ExtendDeploymentDialog({
                   <Loader2 className='h-4 w-4 animate-spin' />
                   {t('Calculating...')}
                 </span>
-              ) : priceParams ? (
-                priceSummary || t('Not available')
               ) : (
-                t('Not available')
+                (priceParams && priceSummary) || t('Not available')
               )}
             </div>
             {!priceParams ? (

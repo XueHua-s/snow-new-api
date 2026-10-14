@@ -22,7 +22,6 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { DataTablePage, useDataTable } from '@/components/data-table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,11 +32,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 
-import { deleteDeployment, listDeployments, searchDeployments } from '../api'
+import { useDataTable } from '../../../components/data-table/hooks/use-data-table'
+import { DataTablePage } from '../../../components/data-table/layout/data-table-page'
+import { useMediaQuery } from '../../../hooks/use-media-query'
 import { getDeploymentStatusOptions } from '../constants'
+import {
+  deleteDeployment,
+  listDeployments,
+  searchDeployments,
+} from '../deployment-api'
 import { deploymentsQueryKeys } from '../lib'
 import type { Deployment } from '../types'
 import { useDeploymentsColumns } from './deployments-columns'

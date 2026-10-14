@@ -19,16 +19,14 @@ For commercial licensing, please contact support@quantumnous.com
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  IconDiscord,
-  IconGithub,
-  IconLinuxDo,
-  IconTelegram,
-  IconWeChat,
-} from '@/assets/brand-icons'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+import { IconDiscord } from '../../../assets/brand-icons/icon-discord'
+import { IconGithub } from '../../../assets/brand-icons/icon-github'
+import { IconLinuxDo } from '../../../assets/brand-icons/icon-linuxdo'
+import { IconTelegram } from '../../../assets/brand-icons/icon-telegram'
+import { IconWeChat } from '../../../assets/brand-icons/icon-wechat'
 import { useOAuthLogin } from '../hooks/use-oauth-login'
 import type { SystemStatus } from '../types'
 import { TelegramLoginDialog } from './telegram-login-dialog'

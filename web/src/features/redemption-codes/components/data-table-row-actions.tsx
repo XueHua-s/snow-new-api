@@ -36,7 +36,7 @@ import {
 
 import { updateRedemptionStatus } from '../api'
 import { REDEMPTION_STATUS, SUCCESS_MESSAGES } from '../constants'
-import { isRedemptionExpired } from '../lib'
+import { isRedemptionExpired } from '../lib/utils'
 import { redemptionSchema } from '../types'
 import { useRedemptions } from './redemptions-provider'
 

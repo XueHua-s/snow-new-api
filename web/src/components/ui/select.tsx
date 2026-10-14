@@ -28,8 +28,9 @@ import {
 import { HugeiconsIcon } from '@hugeicons/react'
 import * as React from 'react'
 
-import { useMediaQuery } from '@/hooks'
 import { cn } from '@/lib/utils'
+
+import { useMediaQuery } from '../../hooks/use-media-query'
 
 const Select = SelectPrimitive.Root
 

@@ -35,7 +35,7 @@ import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { REDEMPTION_STATUS, REDEMPTION_STATUSES } from '../constants'
-import { isRedemptionExpired } from '../lib'
+import { isRedemptionExpired } from '../lib/utils'
 import type { Redemption } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 

@@ -1,0 +1,146 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/* ── Font axis ────────────────────────────────────────────────────────────
+ * Mirrors how `data-theme-radius` overrides a preset's default radius:
+ * presets may set `--font-body` (Anthropic → serif), and the user's
+ * explicit Font choice wins because these blocks sit AFTER preset blocks.
+ *
+ * The provider resolves `font: 'default'` → `'sans' | 'serif'` against the
+ * active preset before writing the attribute, so the DOM always carries a
+ * concrete value and CSS only needs the simple `[data-theme-font='serif']`
+ * selector below (no `:not()`, no per-preset branches). */
+[data-theme-font='sans'] {
+  --font-body: var(--font-sans);
+}
+[data-theme-font='serif'] {
+  --font-body: var(--font-serif);
+}
+
+/* ── Serif typography refinements ────────────────────────────────────────
+ * When the body runs in serif, three things happen:
+ *   1. Editorial OpenType features (kern/liga + tabular numerals so numeric
+ *      columns stay grid-aligned even with proportional serif glyphs).
+ *   2. Every UI surface inherits the editorial voice — buttons, inputs,
+ *      tabs, sidebar, table headers, badges, pagination, popovers — all
+ *      through Tailwind preflight's `button, input, ... { font: inherit }`
+ *      rule plus natural HTML inheritance. We intentionally do NOT carry
+ *      a per-slot opt-out list: it adds maintenance cost and only blunts
+ *      the Anthropic editorial intent. Monospace contexts are excluded
+ *      automatically because:
+ *        - `<code>`, `<kbd>`, `<pre>`, `<samp>` are typed monospace by
+ *          Tailwind preflight (specificity wins over body inheritance).
+ *        - `.font-mono` and `.tabular-nums` utilities declare their own
+ *          font-family / font-variant-numeric on the element itself.
+ *   3. Headings adopt the Anthropic display setting (medium weight, slight
+ *      negative tracking).
+ *
+ * All keyed off `[data-theme-font='serif']` so they apply to any preset
+ * paired with the serif font — not just Anthropic. */
+[data-theme-font='serif'] {
+  font-feature-settings:
+    'kern' 1,
+    'liga' 1,
+    'calt' 1,
+    'tnum' 1;
+}
+
+/* Heading tuning — applies to <h*> tags and the shadcn title slots so
+ * card/sheet/dialog titles read with the same authoritative voice as
+ * page headers. */
+[data-theme-font='serif'] :is(h1, h2, h3, h4, h5, h6),
+[data-theme-font='serif'] [data-slot='sheet-title'],
+[data-theme-font='serif'] [data-slot='dialog-title'],
+[data-theme-font='serif'] [data-slot='alert-dialog-title'],
+[data-theme-font='serif'] [data-slot='drawer-title'],
+[data-theme-font='serif'] [data-slot='card-title'] {
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}
+
+/* Larger displays earn tighter tracking, matching Copernicus/Tiempos
+ * editorial display setting (~ -0.02em at 30px+). */
+[data-theme-font='serif'] h1,
+[data-theme-font='serif'] .text-3xl,
+[data-theme-font='serif'] .text-4xl,
+[data-theme-font='serif'] .text-5xl {
+  letter-spacing: -0.02em;
+}
+
+/* ── Border radius ────────────────────────────────────────────────────── */
+[data-theme-radius='none'] {
+  --radius: 0rem;
+}
+[data-theme-radius='sm'] {
+  --radius: 0.3rem;
+}
+[data-theme-radius='md'] {
+  --radius: 0.5rem;
+}
+[data-theme-radius='lg'] {
+  --radius: 0.75rem;
+}
+[data-theme-radius='xl'] {
+  --radius: 1rem;
+}
+
+/* ── Density scale ────────────────────────────────────────────────────── */
+/* `sm` = compact UI; `lg` = comfortable; `xl` = extra readable. Default keeps Tailwind defaults. */
+[data-theme-scale='sm'] {
+  --text-xs: 0.7rem;
+  --text-sm: 0.78rem;
+  --text-base: 0.88rem;
+  --text-lg: 1rem;
+  --text-xl: 1.13rem;
+  --text-2xl: 1.38rem;
+  --text-3xl: 1.7rem;
+  --spacing: 0.225rem;
+}
+[data-theme-scale='lg'] {
+  --text-xs: 0.84rem;
+  --text-sm: 0.95rem;
+  --text-base: 1.075rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.35rem;
+  --text-2xl: 1.65rem;
+  --text-3xl: 2rem;
+  --spacing: 0.28rem;
+}
+[data-theme-scale='xl'] {
+  --text-xs: 0.9rem;
+  --text-sm: 1rem;
+  --text-base: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.45rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.15rem;
+  --spacing: 0.3rem;
+}
+
+/* ── Content layout ───────────────────────────────────────────────────── */
+/* `centered` clamps inset content to a comfortable reading width on large screens.
+ * Targets every direct child of <SidebarInset> so router outlet wrappers and
+ * page content alike are centered. Only kicks in once the viewport exceeds the
+ * clamp value. */
+@media (min-width: 1280px) {
+  [data-theme-content-layout='centered'] [data-slot='sidebar-inset'] > * {
+    max-width: var(--max-content-width, 1280px);
+    margin-inline: auto;
+    width: 100%;
+  }
+}

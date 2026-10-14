@@ -1,0 +1,14 @@
+{
+  "tungstenite": {
+    "repository": "https://github.com/openai-oss-forks/tungstenite-rs",
+    "rev": "4fffad30fe373adbdcffab9545e9e9bf4f2fc19f",
+    "patch": "tungstenite.patch",
+    "patch_sha256": "497bb68fac7654ac3d63ac875ef7a2cbb7ff0c98b387beb8d8c457c268a83d27"
+  },
+  "tokio-tungstenite": {
+    "repository": "https://github.com/openai-oss-forks/tokio-tungstenite",
+    "rev": "0e5b2d73aa18dd9f0a50ee9ff199d5aef7594186",
+    "patch": "tokio-tungstenite.patch",
+    "patch_sha256": "a845731bd1788eb2f424c29e1b78dc1868e1abccf6c19884c67e6850eb311981"
+  }
+}

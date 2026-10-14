@@ -23,8 +23,9 @@ import {
   getSavedLanguage,
   sanitizeAuthRedirect,
 } from '@/features/auth/lib/auth-redirect'
-import { applyAuthBundle } from '@/lib/api'
 import type { AuthBundle } from '@/stores/auth-store'
+
+import { applyAuthBundle } from '../../../lib/auth-session'
 
 /**
  * Hook for handling authentication redirects and user data management

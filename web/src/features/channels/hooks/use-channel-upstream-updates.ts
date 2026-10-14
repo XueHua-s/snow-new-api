@@ -20,8 +20,9 @@ import { useRef, useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { api, type ApiRequestConfig } from '@/lib/api'
+import { api } from '@/lib/api'
 
+import type { ApiRequestConfig } from '../../../lib/http-client'
 import { normalizeModelList } from '../lib/upstream-update-utils'
 
 const upstreamUpdateRequestConfig = {
@@ -31,9 +32,9 @@ const upstreamUpdateRequestConfig = {
 
 function getManualIgnoredModelCount(settings: unknown): number {
   let parsed: Record<string, unknown> | null = null
-  if (settings && typeof settings === 'object')
+  if (settings && typeof settings === 'object') {
     parsed = settings as Record<string, unknown>
-  else if (typeof settings === 'string') {
+  } else if (typeof settings === 'string') {
     try {
       parsed = JSON.parse(settings)
     } catch {

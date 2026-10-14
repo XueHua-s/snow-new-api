@@ -19,8 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { SSE } from 'sse.js'
 
-import { getFreshAuthHeaders } from '@/lib/api'
-
+import { getFreshAuthHeaders } from '../../../lib/auth-session'
 import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants'
 import {
   getStreamReadyStateError,
