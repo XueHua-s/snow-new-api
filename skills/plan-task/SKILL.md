@@ -1,25 +1,10 @@
 ---
 name: plan-task
 description: Refine, parallelize, and verify a draft task specification into a fully planned implementation-ready task
-metadata:
-  argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [options]
+argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [options]
 ---
 
 # Refine Task Workflow
-
-## Runtime portability
-
-This workflow uses roles, not vendor-specific agent types or models. Use the current environment's available general-purpose subagents, inherit the current model by default, and describe each role in its task prompt. Specialized agents are optional. Keep authors and judges separate; an unavailable model name is not a blocker.
-
-Resolve `PROJECT_ROOT` to the repository root and `SKILL_DIR` to this skill's directory. No external plugin installation or plugin-root environment variable is required. Use the available delegation and progress-tracking tools; if TodoWrite is absent, maintain a checklist in the task or a separate progress artifact. The orchestrator may read artifacts to coordinate and verify the work.
-
-Create required directories with ordinary filesystem tools. Create a uniquely named scratchpad directly under `.specs/scratchpad/`; do not depend on helper scripts or change gitignore automatically. Keep scratchpads free of secrets and do not stage ignored scratchpads. If the user supplies a plan outside `draft/`, preserve it and create a linked draft before refinement.
-
-### Independent judge method
-
-Each judge reads the artifact, task requirements, applicable repository rules, and the phase rubric below independently. Report a numerical score for every criterion, the weighted total (weights must sum to 1), evidence with file/section references, material gaps, and PASS/FAIL against `THRESHOLD`. Missing evidence is an uncertainty, not a passing result. A perfect score requires evidence; do not reject a score solely because it is 5.0. Reject missing scores or unsupported verdicts and rerun the judge.
-
-Use a fresh judge agent for each phase, passing the artifact and rubric rather than the author's self-assessment. Retry failures up to `MAX_ITERATIONS`. Later exploratory work may continue after that limit, but unresolved failed gates stay recorded and block promotion to `todo/`. Skipped judges must be disclosed and must not be described as passed. No separate `prompts/judge.md` file is required.
 
 ## Role
 
@@ -321,10 +306,10 @@ Before starting workflow:
 
 7. **Ensure directories exist**:
 
-   Create the task directories with ordinary filesystem tools (leave existing gitignore rules unchanged):
+   Run the folder creation script to create task directories and configure gitignore:
 
    ```bash
-   mkdir -p .specs/tasks/{draft,todo,in-progress,done} .specs/scratchpad .specs/analysis .claude/skills
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-folders.sh
    ```
 
    This creates:
@@ -333,7 +318,7 @@ Before starting workflow:
    - `.specs/tasks/todo/` - Tasks ready to implement
    - `.specs/tasks/in-progress/` - Currently being worked on
    - `.specs/tasks/done/` - Completed tasks
-   - `.specs/scratchpad/` - Temporary working files (respect existing ignore rules)
+   - `.specs/scratchpad/` - Temporary working files (gitignored)
    - `.specs/analysis/` - Codebase impact analysis files
    - `.claude/skills/` - Reusable skill documents
 
@@ -342,7 +327,7 @@ Update each todo to `in_progress` when starting a phase and `completed` when jud
 ## CRITICAL
 
 - Do not mark PASS for any judge if it did not pass the rubric. Retry the judge after each implementation change till it passes the check!
-- Delegate phase work and independent reviews; the orchestrator may read task and analysis artifacts to coordinate and verify results.
+- Do not read task files in .claude or .specs directories, your job is orchestrate agents that will do the work, not do it by yourself!
 - Use `THRESHOLD` (default 3.5) for all judge pass/fail decisions, not hardcoded values!
 - Use `MAX_ITERATIONS` (default 3) for retry limits, not hardcoded values!
 - **After `MAX_ITERATIONS` reached: PROCEED to next stage automatically - do NOT ask user unless phase is in `HUMAN_IN_THE_LOOP_PHASES`!**
@@ -354,12 +339,12 @@ Update each todo to `in_progress` when starting a phase and `completed` when jud
 
 ### Execution & Evaluation Rules
 
-- Use the available managed subagent tools, run independent phases in parallel within capacity, and wait for their results before dependent work.
+- **Use foreground agents only**: Do not use background agents. Launch parallel agents when possible. Background agents constantly run in permissions issues and other errors.
 
 Relaunch judge till you get valid results, of following happens:
 
 - Reject Long Reports: If an agent returns a very long report instead of using the scratchpad as requested, reject the result. This indicates the agent failed to follow the "use scratchpad" instruction.
-- Require evidence for every score, including 5.0; reject unsupported verdicts rather than assuming a particular score is invalid.
+- Judge Score 5.0 is a Hallucination: If a judge returns a score of 5.0/5.0, treat it as a hallucination or lazy evaluation. Reject it and re-run the judge. Perfect scores are practically impossible in this rigorous framework.
 - Reject Missing Scores: If a judge report is missing the numerical score, reject it. This indicates the judge failed to read or follow the rubric instructions.
 
 ## Workflow Execution
@@ -368,9 +353,9 @@ You MUST launch for each step a separate agent, instead of performing all steps 
 
 **CRITICAL:** For each agent you MUST:
 
-1. Assign the role specified in the step to an available agent; inherit the current model unless the user requests another available model
+1. Use the **Agent** type and **Model** specified in the step
 2. Provide the task file path and user input as context
-3. Provide absolute `PROJECT_ROOT` and `SKILL_DIR` paths so agents can resolve local references
+3. **Provide the value of `${CLAUDE_PLUGIN_ROOT}` so agents can resolve paths like `@${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh`**
 4. Require agent to implement exactly that step, not more, not less
 5. After each sub-phase, launch a judge agent to validate quality before proceeding
 
@@ -389,7 +374,7 @@ Phase 2: Parallel Analysis
     ▼                     ▼                     ▼
 Phase 2a:             Phase 2b:             Phase 2c:
 Research              Codebase Analysis     Business Analysis
-[researcher role]   [code-explorer role]  [business-analyst role]
+[sdd:researcher sonnet]   [sdd:code-explorer sonnet]  [sdd:business-analyst opus]
 Judge 2a              Judge 2b              Judge 2c
 (pass: >THRESHOLD)     (pass: >THRESHOLD)     (pass: >THRESHOLD)
     │                     │                     │
@@ -397,22 +382,22 @@ Judge 2a              Judge 2b              Judge 2c
                           │
                           ▼
                     Phase 3: Architecture Synthesis
-                    [software-architect role]
+                    [sdd:software-architect opus]
                     Judge 3 (pass: >THRESHOLD)
                           │
                           ▼
                     Phase 4: Decomposition
-                    [tech-lead role]
+                    [sdd:tech-lead opus]
                     Judge 4 (pass: >THRESHOLD)
                           │
                           ▼
                     Phase 5: Parallelize
-                    [team-lead role]
+                    [sdd:team-lead opus]
                     Judge 5 (pass: >THRESHOLD)
                           │
                           ▼
                     Phase 6: Verifications
-                    [qa-engineer role]
+                    [sdd:qa-engineer opus]
                     Judge 6 (pass: >THRESHOLD)
                           │
                           ▼
@@ -436,8 +421,8 @@ Launch these three phases **in parallel** immediately:
 
 #### Phase 2a: Research
 
-**Model:** Inherit the current available model
-**Role:** `researcher` (available general-purpose agent)
+**Model:** `sonnet`
+**Agent:** `sdd:researcher`
 **Depends on:** Task file exists
 **Purpose:** Gather relevant resources, documentation, libraries, and prior art. Creates or updates a reusable skill.
 
@@ -447,8 +432,7 @@ Launch agent:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
   Task File: <TASK_FILE>
   Task Title: <title from task file>
@@ -470,8 +454,8 @@ CRITICAL: If expected files not created, launch the agent again with the same pr
 
 #### Phase 2b: Codebase Impact Analysis
 
-**Model:** Inherit the current available model
-**Role:** `code-explorer` (available general-purpose agent)
+**Model:** `sonnet`
+**Agent:** `sdd:code-explorer`
 **Depends on:** Task file exists
 **Purpose:** Identify affected files, interfaces, and integration points
 
@@ -481,8 +465,7 @@ Launch agent:
 - **Prompt**:
 
   ```text
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
   Task File: <TASK_FILE>
   Task Title: <title from task file>
@@ -504,8 +487,8 @@ CRITICAL: If expected files not created, launch the agent again with the same pr
 
 #### Phase 2c: Business Analysis
 
-**Model:** Inherit the current available model
-**Role:** `business-analyst` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:business-analyst`
 **Depends on:** Task file exists
 **Purpose:** Refine description and create acceptance criteria
 
@@ -515,10 +498,9 @@ Launch agent:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Read ${SKILL_DIR}/analyse-business-requirements.md and execute it exactly as is!
+  Read ${CLAUDE_PLUGIN_ROOT}/skills/plan-task/analyse-business-requirements.md and execute it exactly as is!
 
   Task File: <TASK_FILE>
   Task Title: <title from task file>
@@ -537,12 +519,12 @@ Launch agent:
 
 ### Judge 2a/2b/2c: Validate Parallel Phases
 
-After **each** parallel phase completes, launch its respective judge **with the same role expertise, in a separate agent**.
+After **each** parallel phase completes, launch its respective judge **with the same agent type and model**.
 
 #### Judge 2a: Validate Research/Skill
 
-**Model:** Inherit the current available model
-**Role:** `researcher` (available general-purpose agent)
+**Model:** `sonnet`
+**Agent:** `sdd:researcher`
 **Depends on:** Phase 2a completion
 **Purpose:** Validate skill completeness and relevance
 
@@ -552,10 +534,9 @@ Launch judge:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Apply the Independent judge method in ${SKILL_DIR}/SKILL.md using the rubric below.
+  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
 
   ### Artifact Path
   {path to skill file from Phase 2a}
@@ -600,8 +581,8 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 #### Judge 2b: Validate Codebase Analysis
 
-**Model:** Inherit the current available model
-**Role:** `code-explorer` (available general-purpose agent)
+**Model:** `sonnet`
+**Agent:** `sdd:code-explorer`
 **Depends on:** Phase 2b completion
 **Purpose:** Validate file identification accuracy and integration mapping
 
@@ -611,10 +592,9 @@ Launch judge:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Apply the Independent judge method in ${SKILL_DIR}/SKILL.md using the rubric below.
+  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
 
   ### Artifact Path
   {path to analysis file from Phase 2b}
@@ -655,8 +635,8 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 #### Judge 2c: Validate Business Analysis
 
-**Model:** Inherit the current available model
-**Role:** `business-analyst` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:business-analyst`
 **Depends on:** Phase 2c completion
 **Purpose:** Validate acceptance criteria quality and scope definition
 
@@ -666,10 +646,9 @@ Launch judge:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Apply the Independent judge method in ${SKILL_DIR}/SKILL.md using the rubric below.
+  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
 
   ### Artifact Path
   {path to task file from Phase 2c}
@@ -717,8 +696,8 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 3: Architecture Synthesis
 
-**Model:** Inherit the current available model
-**Role:** `software-architect` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:software-architect`
 **Depends on:** Phase 2a + Judge 2a PASS, Phase 2b + Judge 2b PASS, Phase 2c + Judge 2c PASS
 **Purpose:** Synthesize research, analysis, and business requirements into architectural overview
 
@@ -728,8 +707,7 @@ Launch agent:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
   Task File: <TASK_FILE>
   Skill File: <skill file path from Phase 2a>
@@ -750,8 +728,8 @@ Launch agent:
 
 ### Judge 3: Validate Architecture Synthesis
 
-**Model:** Inherit the current available model
-**Role:** `software-architect` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:software-architect`
 **Depends on:** Phase 3 completion
 **Purpose:** Validate architectural coherence and completeness
 
@@ -761,10 +739,9 @@ Launch judge:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Apply the Independent judge method in ${SKILL_DIR}/SKILL.md using the rubric below.
+  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
 
   ### Artifact Path
   {path to task file after Phase 3}
@@ -811,8 +788,8 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 4: Decomposition
 
-**Model:** Inherit the current available model
-**Role:** `tech-lead` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:tech-lead`
 **Depends on:** Phase 3 + Judge 3 PASS
 **Purpose:** Break architecture into implementation steps with success criteria and risks
 
@@ -822,8 +799,7 @@ Launch agent:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
   Task File: <TASK_FILE>
 
@@ -842,8 +818,8 @@ Launch agent:
 
 ### Judge 4: Validate Decomposition
 
-**Model:** Inherit the current available model
-**Role:** `tech-lead` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:tech-lead`
 **Depends on:** Phase 4 completion
 **Purpose:** Validate implementation steps quality and completeness
 
@@ -853,10 +829,9 @@ Launch judge:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Apply the Independent judge method in ${SKILL_DIR}/SKILL.md using the rubric below.
+  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
 
   ### Artifact Path
   {path to task file after Phase 4}
@@ -906,8 +881,8 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 5: Parallelize Steps
 
-**Model:** Inherit the current available model
-**Role:** `team-lead` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:team-lead`
 **Depends on:** Phase 4 + Judge 4 PASS
 **Purpose:** Reorganize implementation steps for maximum parallel execution
 
@@ -917,12 +892,11 @@ Launch agent:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
   Task File: <TASK_FILE>
 
-  Use agents only from this list: {list the actual available agent tools/types; assign roles through prompts and inherit the current model}
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
 
   CRITICAL: DO NOT OUTPUT YOUR PARALLELIZATION, ONLY CREATE THE SCRATCHPAD AND UPDATE THE TASK FILE.
   ```
@@ -938,8 +912,8 @@ Launch agent:
 
 ### Judge 5: Validate Parallelization
 
-**Model:** Inherit the current available model
-**Role:** `team-lead` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:team-lead`
 **Depends on:** Phase 5 completion
 **Purpose:** Validate dependency accuracy and parallelization optimization
 
@@ -949,10 +923,9 @@ Launch judge:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Apply the Independent judge method in ${SKILL_DIR}/SKILL.md using the rubric below.
+  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
 
   ### Artifact Path
   {path to parallelized task file from Phase 5}
@@ -962,7 +935,7 @@ Launch judge:
   reorganized for maximum parallel execution with explicit dependencies, agent assignments, and
   parallelization diagram.
 
-  Use agents only from this list: {list the actual available agent tools/types; assign roles through prompts and inherit the current model}
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
 
   ### Rubric
   1. Dependency Accuracy (weight: 0.35)
@@ -977,8 +950,8 @@ Launch judge:
      - 1=No parallelization/wrong, 2=Some optimization, 3=Acceptable, 5=Maximum parallelization
 
   3. Agent Selection Correctness (weight: 0.20)
-     - Are the assigned roles and available agents appropriate for the outputs?
-     - Does selection follow Runtime portability and the available concurrency limits?
+     - Are agent types appropriate for outputs (opus by default, haiku for trivial, sonnet for simple but high in volume)?
+     - Does selection follow the Agent Selection Guide?
      - Are only agents from the provided available agents list used?
      - 1=Wrong agents, 2=Mostly appropriate, 3=Acceptable, 4=Optimal selection, 5=Perfect selection
 
@@ -1002,8 +975,8 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 6: Define Verifications
 
-**Model:** Inherit the current available model
-**Role:** `qa-engineer` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:qa-engineer`
 **Depends on:** Phase 5 + Judge 5 PASS
 **Purpose:** Add LLM-as-Judge verification sections with rubrics
 
@@ -1013,8 +986,7 @@ Launch agent:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
   Task File: <TASK_FILE>
 
@@ -1032,8 +1004,8 @@ Launch agent:
 
 ### Judge 6: Validate Verifications
 
-**Model:** Inherit the current available model
-**Role:** `qa-engineer` (available general-purpose agent)
+**Model:** `opus`
+**Agent:** `sdd:qa-engineer`
 **Depends on:** Phase 6 completion
 **Purpose:** Validate verification rubrics and thresholds
 
@@ -1043,10 +1015,9 @@ Launch judge:
 - **Prompt**:
 
   ```
-  PROJECT_ROOT=<absolute repository root>
-  SKILL_DIR=<absolute path to skills/plan-task>
+  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Apply the Independent judge method in ${SKILL_DIR}/SKILL.md using the rubric below.
+  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
 
   ### Artifact Path
   {path to task file with verifications from Phase 6}
@@ -1083,9 +1054,9 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 **Decision Logic:**
 
-- **PASS** (score >= `THRESHOLD`): Workflow complete; promote only when all required gates passed
+- **PASS** (score >= `THRESHOLD`): Workflow complete, promote task
 - **FAIL** (score < `THRESHOLD`): Re-launch Phase 6 with feedback
-- **MAX_ITERATIONS reached**: Finish refinement with a warning; retain draft if any required gate failed
+- **MAX_ITERATIONS reached**: Complete workflow regardless of score (log warning)
 
 ---
 
@@ -1093,7 +1064,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 **Purpose:** Move the refined task from draft to todo folder
 
-After all active phases complete, promote only if their required judges passed and no material blocker remains. Otherwise retain the draft with failed/pending gates recorded. Explicit skip-judge modes may produce a refined draft, not a claim of independently verified readiness.
+After all phases complete:
 
 1. **Move task file from draft to todo:**
 

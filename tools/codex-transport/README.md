@@ -1,6 +1,6 @@
 # Codex transport private protocol v1
 
-Implemented private transport contract and deployment guide. Current acceptance evidence and remaining gates are indexed in `.specs/analysis/codex-transport-final-audit.md`. Baseline: `baseline.json`, official Codex 0.162.1 Linux ARM64 musl; sidecar production target Linux ARM64 GNU/glibc. These are different libc/build targets. Rust owns upstream TLS/HTTP/WS; Go owns credentials, routing, conversion, retry decisions and all billing. Never parse or rewrite business JSON here.
+Implemented private transport contract and deployment guide. Baseline: `baseline.json`, official Codex 0.162.1 Linux ARM64 musl; sidecar production target Linux ARM64 GNU/glibc. These are different libc/build targets. Rust owns upstream TLS/HTTP/WS; Go owns credentials, routing, conversion, retry decisions and all billing. Never parse or rewrite business JSON here.
 
 ## Endpoints and framing
 
