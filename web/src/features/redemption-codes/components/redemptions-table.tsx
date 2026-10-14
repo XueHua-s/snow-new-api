@@ -25,19 +25,19 @@ import { toast } from 'sonner'
 import {
   DISABLED_ROW_DESKTOP,
   DISABLED_ROW_MOBILE,
-  DataTablePage,
-  useDataTable,
 } from '@/components/data-table'
-import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 
+import { useDataTable } from '../../../components/data-table/hooks/use-data-table'
+import { DataTablePage } from '../../../components/data-table/layout/data-table-page'
+import { useMediaQuery } from '../../../hooks/use-media-query'
 import { getRedemptions, searchRedemptions } from '../api'
 import {
   ERROR_MESSAGES,
   REDEMPTION_STATUS,
   getRedemptionStatusOptions,
 } from '../constants'
-import { isRedemptionExpired } from '../lib'
+import { isRedemptionExpired } from '../lib/utils'
 import type { Redemption } from '../types'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { useRedemptionsColumns } from './redemptions-columns'

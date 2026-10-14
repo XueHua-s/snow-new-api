@@ -33,13 +33,12 @@ import { IconBadge } from '@/components/ui/icon-badge'
 import { formatCurrencyFromUSD } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
 
-import { getCodexUsage, updateChannelBalance } from '../../api'
+import { updateChannelBalance } from '../../api'
 import { channelsQueryKeys } from '../../lib'
+import { getCodexUsage } from '../../oauth-api'
 import { useChannels } from '../channels-provider'
-import {
-  CodexUsageDialog,
-  type CodexUsageDialogData,
-} from './codex-usage-dialog'
+import type { CodexUsageDialogData } from './codex-usage-data'
+import { CodexUsageDialog } from './codex-usage-dialog'
 
 type BalanceQueryDialogProps = {
   initialRawResponse?: string

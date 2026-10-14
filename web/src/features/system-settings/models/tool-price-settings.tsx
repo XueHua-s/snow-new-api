@@ -21,13 +21,13 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { StaticDataTable } from '@/components/data-table'
 import { JsonCodeEditor } from '@/components/json-code-editor'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
+import { StaticDataTable } from '../../../components/data-table/static/static-data-table'
 import { useUpdateOption } from '../hooks/use-update-option'
 
 const OPTION_KEY = 'tool_price_setting.prices'

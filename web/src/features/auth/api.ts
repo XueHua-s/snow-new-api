@@ -18,9 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import axios from 'axios'
 
-import { api, refreshAuthentication, type RefreshOutcome } from '@/lib/api'
+import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 
+import {
+  refreshAuthentication,
+  type RefreshOutcome,
+} from '../../lib/auth-session'
 import { getAffiliateCode } from './lib/storage'
 import type { TelegramAuthorization } from './lib/telegram-login'
 import type {

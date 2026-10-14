@@ -1,0 +1,340 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+.usage-leaderboard-default.lb-default-shell {
+  container-type: inline-size;
+}
+
+.usage-leaderboard-default .lb-default-control {
+  background:
+    radial-gradient(circle at 8% 0%, rgb(37 99 235 / 8%), transparent 32%),
+    color-mix(in oklch, var(--card) 94%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--primary) 18%, var(--border)),
+    0 8px 24px rgb(37 99 235 / 6%);
+}
+
+.usage-leaderboard-default .lb-default-segmented {
+  background: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.usage-leaderboard-default .lb-default-tab {
+  border: 0;
+  background: transparent;
+  outline: none;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.usage-leaderboard-default .lb-default-tab:focus-visible {
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 22%);
+}
+
+.usage-leaderboard-default .lb-default-tab-active {
+  color: var(--semi-color-primary, var(--primary));
+  background: var(
+    --semi-color-primary-light-default,
+    color-mix(in oklch, var(--primary) 12%, transparent)
+  );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--primary) 18%, transparent),
+    0 5px 14px color-mix(in oklch, var(--primary) 12%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 42%);
+  transform: translateY(-1px);
+}
+
+.usage-leaderboard-default .lb-default-tab-active:hover {
+  background: var(
+    --semi-color-primary-light-hover,
+    color-mix(in oklch, var(--primary) 18%, transparent)
+  );
+}
+
+.usage-leaderboard-default .lb-default-card {
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 4px 16px rgb(15 23 42 / 5%);
+}
+
+.usage-leaderboard-default .lb-default-declaration {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(59 130 246 / 25%), transparent 34%),
+    radial-gradient(circle at 88% 88%, rgb(124 58 237 / 21%), transparent 36%),
+    linear-gradient(135deg, rgb(239 246 255 / 98%), rgb(245 243 255 / 90%));
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 30%),
+    0 10px 28px rgb(37 99 235 / 13%),
+    inset 0 1px 0 rgb(255 255 255 / 78%),
+    inset 0 0 24px rgb(124 58 237 / 8%);
+}
+
+.dark .usage-leaderboard-default .lb-default-declaration {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(37 99 235 / 25%), transparent 35%),
+    radial-gradient(circle at 88% 88%, rgb(124 58 237 / 20%), transparent 38%),
+    linear-gradient(135deg, rgb(15 23 42 / 96%), rgb(30 27 75 / 78%));
+  box-shadow:
+    inset 0 0 0 1px rgb(96 165 250 / 34%),
+    0 0 28px rgb(37 99 235 / 16%),
+    inset 0 1px 0 rgb(255 255 255 / 8%),
+    inset 0 0 30px rgb(124 58 237 / 12%);
+}
+
+.usage-leaderboard-default .lb-default-declaration::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    110deg,
+    transparent 12%,
+    rgb(59 130 246 / 42%) 38%,
+    rgb(124 58 237 / 40%) 55%,
+    transparent 82%
+  );
+  filter: blur(14px);
+  opacity: 0.45;
+}
+
+.usage-leaderboard-default .lb-default-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgb(59 130 246 / 20%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(124 58 237 / 18%) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to right, black, transparent 78%);
+}
+
+.usage-leaderboard-default .lb-default-sweep {
+  position: absolute;
+  inset: -35% auto -35% -45%;
+  width: 32%;
+  transform: rotate(12deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 68%),
+    transparent
+  );
+  filter: blur(4px);
+  animation: lb-default-sweep 4.8s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-flame {
+  z-index: 1;
+  color: rgb(124 58 237 / 17%);
+  filter: drop-shadow(0 0 12px rgb(37 99 235 / 25%));
+  animation: lb-default-flame-pulse 2.6s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-particle {
+  position: absolute;
+  left: var(--lb-x);
+  top: var(--lb-y);
+  width: var(--lb-size);
+  height: var(--lb-size);
+  border-radius: 999px;
+  background: #eff6ff;
+  box-shadow:
+    0 0 7px 2px rgb(59 130 246 / 68%),
+    0 0 14px 3px rgb(124 58 237 / 30%);
+  animation: lb-default-particle-float 3.4s ease-in-out var(--lb-delay) infinite;
+}
+
+.usage-leaderboard-default .lb-default-live-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 0 rgb(37 99 235 / 55%);
+  animation: lb-default-live-pulse 1.9s ease-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-hero {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(59 130 246 / 18%), transparent 34%),
+    radial-gradient(circle at 86% 80%, rgb(6 182 212 / 14%), transparent 36%),
+    linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--card) 90%, #dbeafe),
+      color-mix(in oklch, var(--card) 94%, #cffafe)
+    );
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 26%),
+    0 12px 34px rgb(37 99 235 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 65%);
+}
+
+.dark .usage-leaderboard-default .lb-default-hero {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(37 99 235 / 24%), transparent 36%),
+    radial-gradient(circle at 86% 80%, rgb(6 182 212 / 16%), transparent 38%),
+    linear-gradient(135deg, rgb(15 23 42 / 96%), rgb(17 24 39 / 96%));
+  box-shadow:
+    inset 0 0 0 1px rgb(96 165 250 / 26%),
+    0 12px 34px rgb(37 99 235 / 14%),
+    inset 0 1px 0 rgb(255 255 255 / 7%);
+}
+
+.usage-leaderboard-default .lb-default-hero-badge {
+  background: rgb(37 99 235 / 8%);
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 22%),
+    0 0 18px rgb(37 99 235 / 7%);
+}
+
+.usage-leaderboard-default .lb-default-hero-orbit {
+  position: absolute;
+  top: -155px;
+  right: -88px;
+  width: 310px;
+  height: 310px;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 24%),
+    0 0 0 30px rgb(37 99 235 / 5%),
+    0 0 0 68px rgb(6 182 212 / 4%);
+  animation: lb-default-orbit-spin 18s linear infinite;
+}
+
+.usage-leaderboard-default .lb-default-hero-orbit::before,
+.usage-leaderboard-default .lb-default-hero-orbit::after {
+  content: '';
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #60a5fa;
+  box-shadow: 0 0 14px 5px rgb(59 130 246 / 35%);
+}
+
+.usage-leaderboard-default .lb-default-hero-orbit::before {
+  top: 28px;
+  left: 42px;
+}
+
+.usage-leaderboard-default .lb-default-hero-orbit::after {
+  right: 22px;
+  bottom: 64px;
+  background: #22d3ee;
+  box-shadow: 0 0 14px 5px rgb(34 211 238 / 28%);
+}
+
+.usage-leaderboard-default .lb-default-hero-streak {
+  position: absolute;
+  inset: -40% auto -40% -32%;
+  width: 22%;
+  transform: rotate(14deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 55%),
+    transparent
+  );
+  filter: blur(4px);
+  animation: lb-default-hero-streak 7s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-hero-spark {
+  position: absolute;
+  left: var(--lb-x);
+  top: var(--lb-y);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #93c5fd;
+  box-shadow: 0 0 8px 2px rgb(59 130 246 / 55%);
+  animation: lb-default-hero-spark 4s ease-in-out var(--lb-delay) infinite;
+}
+
+.usage-leaderboard-default .lb-default-champion-card {
+  box-shadow:
+    inset 0 0 0 1px rgb(245 158 11 / 24%),
+    0 10px 30px rgb(37 99 235 / 9%),
+    inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+.usage-leaderboard-default .lb-default-crown-orb {
+  box-shadow:
+    0 8px 22px rgb(245 158 11 / 25%),
+    inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+.usage-leaderboard-default .lb-default-crown-ring {
+  position: absolute;
+  inset: -7px;
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px rgb(245 158 11 / 46%);
+  animation: lb-default-crown-ring 2.5s ease-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-crown-icon {
+  filter: drop-shadow(0 0 7px rgb(255 247 237 / 60%));
+  animation: lb-default-crown-float 2.8s ease-in-out infinite;
+}
+
+.usage-leaderboard-default .lb-default-stat-champion {
+  box-shadow:
+    inset 0 0 0 1px rgb(245 158 11 / 38%),
+    0 8px 26px rgb(245 158 11 / 16%);
+}
+
+.usage-leaderboard-default .lb-default-stat-chase {
+  box-shadow:
+    inset 0 0 0 1px rgb(59 130 246 / 26%),
+    0 6px 22px rgb(37 99 235 / 10%);
+}
+
+.usage-leaderboard-default .lb-default-stat-data {
+  box-shadow:
+    inset 0 0 0 1px rgb(124 58 237 / 22%),
+    0 6px 22px rgb(124 58 237 / 9%);
+}
+
+.usage-leaderboard-default .lb-default-stat-target {
+  box-shadow:
+    inset 0 0 0 1px rgb(6 182 212 / 24%),
+    0 6px 22px rgb(6 182 212 / 9%);
+}
+
+.usage-leaderboard-default .lb-default-stat-glint {
+  position: absolute;
+  top: -65%;
+  left: -34%;
+  width: 26%;
+  height: 230%;
+  transform: rotate(16deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 58%),
+    transparent
+  );
+  animation: lb-default-stat-glint 6.2s ease-in-out infinite;
+}

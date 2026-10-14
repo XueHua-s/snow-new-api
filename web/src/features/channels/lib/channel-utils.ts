@@ -16,15 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { formatCurrencyFromUSD, formatQuotaWithCurrency } from '@/lib/currency'
-import { formatTimestampToDate } from '@/lib/format'
-
 import {
   CHANNEL_STATUS_CONFIG,
   CHANNEL_TYPES,
   MULTI_KEY_STATUS_CONFIG,
-  RESPONSE_TIME_CONFIG,
-  RESPONSE_TIME_THRESHOLDS,
   TYPE_TO_KEY_PROMPT,
 } from '../constants'
 import type { Channel, ChannelSettings, ChannelOtherSettings } from '../types'
@@ -321,207 +316,6 @@ export function validateChannelSettings(settings: string): boolean {
 }
 
 // ============================================================================
-// Balance Formatting
-// ============================================================================
-
-/**
- * Format balance with currency symbol
- */
-export function formatBalance(balance: number | null | undefined): string {
-  if (balance == null || Number.isNaN(balance)) {
-    return '-'
-  }
-  return formatCurrencyFromUSD(balance, {
-    digitsLarge: 2,
-    digitsSmall: 4,
-    abbreviate: false,
-  })
-}
-
-/**
- * Get balance status color
- */
-export function getBalanceVariant(
-  balance: number
-): 'success' | 'warning' | 'danger' | 'neutral' {
-  if (balance === 0) {
-    return 'neutral'
-  }
-  if (balance < 1) {
-    return 'danger'
-  }
-  if (balance < 10) {
-    return 'warning'
-  }
-  return 'success'
-}
-
-// ============================================================================
-// Response Time Utilities
-// ============================================================================
-
-/** Optional i18n: (key, options) => string, e.g. useTranslation().t */
-type TFunction = (key: string, options?: { value?: number | string }) => string
-
-/**
- * Format response time in milliseconds to human-readable.
- * Pass `t` from useTranslation() for i18n (e.g. "Not tested", "{{value}}ms", "{{value}}s").
- */
-export function formatResponseTime(timeMs: number, t?: TFunction): string {
-  if (timeMs === 0) {
-    return t ? t('Not tested') : 'Not tested'
-  }
-  if (timeMs < 1000) {
-    return t ? t('{{value}}ms', { value: timeMs }) : `${timeMs}ms`
-  }
-  return t
-    ? t('{{value}}s', { value: (timeMs / 1000).toFixed(2) })
-    : `${(timeMs / 1000).toFixed(2)}s`
-}
-
-/**
- * Get response time performance rating
- */
-export function getResponseTimeConfig(timeMs: number) {
-  if (timeMs === 0) {
-    return RESPONSE_TIME_CONFIG.UNKNOWN
-  }
-  if (timeMs <= RESPONSE_TIME_THRESHOLDS.EXCELLENT) {
-    return RESPONSE_TIME_CONFIG.EXCELLENT
-  }
-  if (timeMs <= RESPONSE_TIME_THRESHOLDS.GOOD) {
-    return RESPONSE_TIME_CONFIG.GOOD
-  }
-  if (timeMs <= RESPONSE_TIME_THRESHOLDS.FAIR) {
-    return RESPONSE_TIME_CONFIG.FAIR
-  }
-  if (timeMs <= RESPONSE_TIME_THRESHOLDS.POOR) {
-    return RESPONSE_TIME_CONFIG.POOR
-  }
-  return RESPONSE_TIME_CONFIG.POOR
-}
-
-// ============================================================================
-// Time Formatting
-// ============================================================================
-
-/**
- * Format a Unix timestamp (seconds) as a compact, locale-aware relative time.
- * Uses `Intl.RelativeTimeFormat` with the `narrow` style so the label stays
- * short inside table cells, e.g. "4h ago" / "42m ago" (en) or "4 小时前" (zh),
- * instead of the verbose "4 hours ago".
- */
-export function formatRelativeTime(
-  timestamp: number,
-  locale?: Intl.LocalesArgument
-): string {
-  if (!timestamp || timestamp === 0) {
-    return 'Never'
-  }
-
-  try {
-    const diffSec = timestamp - Date.now() / 1000
-    const absSec = Math.abs(diffSec)
-    const rtf = new Intl.RelativeTimeFormat(locale, {
-      numeric: 'always',
-      style: 'narrow',
-    })
-
-    const MINUTE = 60
-    const HOUR = 60 * MINUTE
-    const DAY = 24 * HOUR
-    const MONTH = 30 * DAY
-    const YEAR = 365 * DAY
-
-    let value: number
-    let unit: Intl.RelativeTimeFormatUnit
-    if (absSec < MINUTE) {
-      value = Math.round(diffSec)
-      unit = 'second'
-    } else if (absSec < HOUR) {
-      value = Math.round(diffSec / MINUTE)
-      unit = 'minute'
-    } else if (absSec < DAY) {
-      value = Math.round(diffSec / HOUR)
-      unit = 'hour'
-    } else if (absSec < MONTH) {
-      value = Math.round(diffSec / DAY)
-      unit = 'day'
-    } else if (absSec < YEAR) {
-      value = Math.round(diffSec / MONTH)
-      unit = 'month'
-    } else {
-      value = Math.round(diffSec / YEAR)
-      unit = 'year'
-    }
-
-    const formatted = rtf.format(value, unit)
-    const primaryLocale = Array.isArray(locale) ? locale[0] : locale
-    const language = primaryLocale?.toString()
-    if (language?.startsWith('zh')) {
-      return formatted.replaceAll(/(\d)([\u4e00-\u9fff])/g, '$1 $2')
-    }
-    return formatted
-  } catch {
-    return 'Unknown'
-  }
-}
-
-/**
- * Format Unix timestamp to date string
- */
-export function formatTimestamp(timestamp: number): string {
-  if (!timestamp || timestamp === 0) {
-    return 'N/A'
-  }
-
-  try {
-    return formatTimestampToDate(timestamp)
-  } catch {
-    return 'Invalid date'
-  }
-}
-
-// ============================================================================
-// Quota Formatting
-// ============================================================================
-
-/** Format quota units using the global currency display configuration. */
-export function formatQuota(quota: number): string {
-  return formatQuotaWithCurrency(quota, {
-    digitsLarge: 2,
-    digitsSmall: 4,
-    abbreviate: true,
-  })
-}
-
-// ============================================================================
-// Priority & Weight Utilities
-// ============================================================================
-
-/**
- * Get priority display value
- */
-export function getPriorityDisplay(
-  priority: number | null | undefined
-): string {
-  if (priority === null || priority === undefined) {
-    return '0'
-  }
-  return String(priority)
-}
-
-/**
- * Get weight display value
- */
-export function getWeightDisplay(weight: number | null | undefined): string {
-  if (weight === null || weight === undefined) {
-    return '0'
-  }
-  return String(weight)
-}
-
-// ============================================================================
 // Validation Utilities
 // ============================================================================
 
@@ -602,126 +396,6 @@ export function getAttentionReason(channel: Channel): string | null {
 }
 
 // ============================================================================
-// Tag Aggregation Utilities
-// ============================================================================
-
-/**
- * Tag row type (extends Channel with children)
- */
-export type TagRow = Channel & {
-  children: Channel[]
-}
-
-/**
- * Type guard to check whether a row is a tag aggregate row
- */
-export function isTagAggregateRow(row: Channel | TagRow): row is TagRow {
-  return Array.isArray((row as TagRow).children)
-}
-
-export function getChannelTableRowId(row: Channel | TagRow): string {
-  if (isTagAggregateRow(row)) {
-    return `tag:${row.tag || ''}`
-  }
-
-  return `channel:${row.id}`
-}
-
-/**
- * Aggregate channels by tag for tag mode display
- * Converts flat array into tree structure grouped by tag
- */
-export function aggregateChannelsByTag(
-  channels: Channel[]
-): (Channel | TagRow)[] {
-  const tagMap = new Map<string, TagRow>()
-  const result: (Channel | TagRow)[] = []
-
-  for (const channel of channels) {
-    const tag = channel.tag || ''
-
-    if (!tagMap.has(tag)) {
-      // Create tag aggregate row
-      const tagRow = {
-        ...channel,
-        key: tag,
-        id: tag as unknown as number,
-        tag,
-        name: tag,
-        type: 0,
-        status: undefined as unknown as number,
-        group: '',
-        used_quota: 0,
-        response_time: 0,
-        priority: -1 as unknown as number | null,
-        weight: -1 as unknown as number | null,
-        balance: 0,
-        test_time: 0,
-        created_time: 0,
-        balance_updated_time: 0,
-        models: '',
-        children: [],
-      } as TagRow
-      tagMap.set(tag, tagRow)
-      result.push(tagRow)
-    }
-
-    const tagRow = tagMap.get(tag)
-    if (!tagRow) {
-      continue
-    }
-
-    // Add to children
-    tagRow.children.push(channel)
-    const childCount = tagRow.children.length
-
-    // Aggregate used_quota (sum)
-    tagRow.used_quota += channel.used_quota
-
-    // Aggregate response_time (average)
-    tagRow.response_time =
-      (tagRow.response_time * (childCount - 1) + channel.response_time) /
-      childCount
-
-    // Aggregate priority (same value or null if different)
-    if (tagRow.priority === -1) {
-      tagRow.priority = channel.priority
-    } else if (tagRow.priority !== channel.priority) {
-      tagRow.priority = null
-    }
-
-    // Aggregate weight (same value or null if different)
-    if (tagRow.weight === -1) {
-      tagRow.weight = channel.weight
-    } else if (tagRow.weight !== channel.weight) {
-      tagRow.weight = null
-    }
-
-    // Aggregate group (concatenate and deduplicate)
-    if (tagRow.group === '') {
-      tagRow.group = channel.group
-    } else {
-      const existingGroups = new Set(tagRow.group.split(',').filter(Boolean))
-      const newGroups = channel.group.split(',').filter(Boolean)
-      newGroups.forEach((g) => {
-        if (!existingGroups.has(g)) {
-          tagRow.group += `,${g}`
-        }
-      })
-    }
-
-    // Aggregate status (enabled if any child is enabled)
-    if (channel.status === 1) {
-      tagRow.status = 1
-    } else if (tagRow.status === undefined) {
-      tagRow.status = channel.status
-    }
-  }
-
-  return result
-}
-
-// ============================================================================
 // Key Management Utilities
 // ============================================================================
 
@@ -778,3 +452,21 @@ export function deduplicateKeys(keysText: string): {
 export function getKeyPromptForType(type: number): string {
   return TYPE_TO_KEY_PROMPT[type] || 'Enter API key for this channel'
 }
+
+export {
+  formatBalance,
+  getBalanceVariant,
+  formatResponseTime,
+  getResponseTimeConfig,
+  formatRelativeTime,
+  formatTimestamp,
+  formatQuota,
+  getPriorityDisplay,
+  getWeightDisplay,
+} from './channel-display'
+export {
+  type TagRow,
+  isTagAggregateRow,
+  getChannelTableRowId,
+  aggregateChannelsByTag,
+} from './channel-tags'

@@ -56,6 +56,15 @@ web/           — Frontend (React 19, Rsbuild, Base UI, Tailwind)
 
 ### Common Code Quality
 
+**Business source file size — hard limit:** A single business source file MUST NOT exceed **500 lines**. This rule applies repository-wide to both backend and frontend business code, including controllers, services, models, middleware, OAuth flows, relay/provider adapters, protocol converters, and frontend business components, hooks, and utilities.
+
+- Count total physical lines after formatting, including imports, comments, and blank lines; exactly 500 lines is allowed.
+- Every new or modified business source file MUST meet this limit before the task is complete. If an existing file already exceeds 500 lines, split it as part of modifying it; do not keep extending an oversized file. Unrelated existing oversized files do not require a repository-wide cleanup in every task.
+- Split by cohesive business responsibility and preserve behavior, public contracts, and module boundaries. Do not evade the limit by compressing code, deleting useful comments, moving business logic into excluded files, or introducing arbitrary numbered fragments.
+- Tests, generated code, vendored dependencies, lockfiles, configuration-only files, translation data, and documentation are outside this business-source limit. Handwritten business logic is not exempt merely because of its filename or directory.
+- Before completing a code change, run `python3 scripts/check-business-file-size.py` from the repository root and resolve every violation. This audits tracked and untracked owned production sources, including Go, Rust, frontend, and Electron; `--json` lists explicit exemption reasons.
+- For every development, fix, refactoring, or review task, first read `skills/new-api-project-standards/SKILL.md`, which carries this rule into the default project skill workflow.
+
 - New code should stay direct and readable. Prefer early returns, clear branches, and well-named local variables to deep nesting or layered control flow.
 - Minimize nested function definitions. Use them only when required by a callback API or when keeping the closure local is clearly simpler than adding another symbol.
 - Avoid adding package-level or module-level helper functions that have only one caller and do not express a stable business concept. Inline that logic at the call site instead.

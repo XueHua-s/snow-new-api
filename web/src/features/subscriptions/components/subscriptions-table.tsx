@@ -20,8 +20,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { DataTablePage, useDataTable } from '@/components/data-table'
-
+import { useDataTable } from '../../../components/data-table/hooks/use-data-table'
+import { DataTablePage } from '../../../components/data-table/layout/data-table-page'
 import { getAdminPlans } from '../api'
 import { useSubscriptionsColumns } from './subscriptions-columns'
 import { useSubscriptions } from './subscriptions-provider'

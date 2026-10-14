@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { BILLING_CACHE_VAR_MAP } from './billing-expr'
+import { BILLING_CACHE_VAR_MAP } from './billing-variables'
 
 export const CACHE_MODE_TIMED = 'timed'
 export const CACHE_MODE_GENERIC = 'generic'
@@ -234,7 +234,7 @@ export function tryParseVisualConfig(
 
     const cfg = normalizeVisualConfig({ tiers })
     const regenerated = generateExprFromVisualConfig(cfg)
-    if (regenerated.replace(/\s+/g, '') !== body.replace(/\s+/g, '')) {
+    if (regenerated.replaceAll(/\s+/g, '') !== body.replaceAll(/\s+/g, '')) {
       return null
     }
     return cfg

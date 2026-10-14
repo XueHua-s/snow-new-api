@@ -6,11 +6,12 @@ it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 */
-import { useCallback, type ReactNode } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { RefreshCw } from 'lucide-react'
+import { useCallback, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SectionPageLayout } from '@/components/layout'
+
+import { SectionPageLayout } from '../../components/layout/components/section-page-layout'
 import { GapRoadmap } from './components/gap-roadmap'
 import { LeaderboardControls } from './components/leaderboard-controls'
 import { LeaderboardHero } from './components/leaderboard-hero'
@@ -30,6 +31,7 @@ import type {
   UsageLeaderboardPeriod,
   UsageLeaderboardSnapshot,
 } from './types'
+
 import './usage-leaderboard.css'
 
 function normalizePeriod(period: string | undefined): UsageLeaderboardPeriod {

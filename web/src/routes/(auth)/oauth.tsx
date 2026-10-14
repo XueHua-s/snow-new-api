@@ -23,8 +23,9 @@ import { toast } from 'sonner'
 
 import { wechatLoginByCode } from '@/features/auth/api'
 import { sanitizeAuthRedirect } from '@/features/auth/lib/auth-redirect'
-import { applyAuthBundle, isAuthBundle } from '@/lib/api'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
+
+import { applyAuthBundle, isAuthBundle } from '../../lib/auth-session'
 
 function OAuthComponent() {
   const navigate = useNavigate()

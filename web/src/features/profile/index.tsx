@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Main } from '@/components/layout'
 import {
   CardStaggerContainer,
   CardStaggerItem,
@@ -24,6 +23,7 @@ import {
 import { useStatus } from '@/hooks/use-status'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { Main } from '../../components/layout/components/main'
 import { CheckinCalendarCard } from './components/checkin-calendar-card'
 import { LanguagePreferencesCard } from './components/language-preferences-card'
 import { LoginSessionsCard } from './components/login-sessions-card'

@@ -20,9 +20,9 @@ import { SendIcon, SquareIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { PromptInputButton } from '@/components/ai-elements/prompt-input'
 import { ModelGroupSelector } from '@/components/model-group-selector'
 
+import { PromptInputButton } from '../../../../components/ai-elements/prompt-input-controls'
 import { getInputControlState } from '../../lib'
 import type { GroupOption, ModelOption } from '../../types'
 

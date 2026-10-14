@@ -55,7 +55,7 @@ import {
   ERROR_MESSAGES,
   isUserDeleted,
 } from '../constants'
-import { getUserActionMessage } from '../lib'
+import { getUserActionMessage } from '../lib/user-actions'
 import type { User, ManageUserAction } from '../types'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
 import { useUsers } from './users-provider'

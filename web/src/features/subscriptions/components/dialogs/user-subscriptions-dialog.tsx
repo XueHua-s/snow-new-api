@@ -23,10 +23,6 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
-  DataTableRowActionMenu,
-  StaticDataTable,
-} from '@/components/data-table'
-import {
   sideDrawerContentClassName,
   sideDrawerFormClassName,
   sideDrawerHeaderClassName,
@@ -57,6 +53,8 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { formatQuota } from '@/lib/format'
 
+import { DataTableRowActionMenu } from '../../../../components/data-table/core/row-action-menu'
+import { StaticDataTable } from '../../../../components/data-table/static/static-data-table'
 import {
   getAdminPlans,
   getUserSubscriptions,
@@ -65,7 +63,7 @@ import {
   deleteUserSubscription,
   resetUserSubscriptionsByPlan,
 } from '../../api'
-import { formatTimestamp } from '../../lib'
+import { formatTimestamp } from '../../lib/format'
 import type { PlanRecord, UserSubscriptionRecord } from '../../types'
 
 interface Props {

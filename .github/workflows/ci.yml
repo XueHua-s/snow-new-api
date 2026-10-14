@@ -27,6 +27,11 @@ jobs:
           repository: ${{ github.event.pull_request.base.repo.full_name }}
           ref: ${{ github.event.action == 'closed' && github.event.pull_request.base.ref || github.ref }}
 
+      - name: Check business source file size
+        run: |
+          python3 -m unittest discover -s scripts/tests
+          python3 scripts/check-business-file-size.py
+
       - name: Set up Go
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:

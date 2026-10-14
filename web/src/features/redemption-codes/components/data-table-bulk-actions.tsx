@@ -21,8 +21,8 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
-import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
 
+import { DataTableBulkActions as BulkActionsToolbar } from '../../../components/data-table/toolbar/bulk-actions'
 import type { Redemption } from '../types'
 
 type DataTableBulkActionsProps<TData> = {

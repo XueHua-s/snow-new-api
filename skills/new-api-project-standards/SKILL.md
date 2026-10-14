@@ -1,6 +1,6 @@
 ---
 name: new-api-project-standards
-description: "new-api 仓库默认入口技能。用于后端 Go relay/provider 适配、计费、配置、数据库迁移、前端 web/default 变更、跨层影响分析和验证命令选择。开始任何 new-api 功能开发、缺陷修复、重构或审查前优先读取。"
+description: "new-api 仓库默认入口技能。用于后端 Go relay/provider 适配、计费、配置、数据库迁移、前端 web 变更、跨层影响分析和验证命令选择。开始任何 new-api 功能开发、缺陷修复、重构或审查前优先读取。"
 ---
 
 # new-api Project Standards
@@ -9,7 +9,7 @@ description: "new-api 仓库默认入口技能。用于后端 Go relay/provider 
 
 - 先读仓库根 `AGENTS.md`，再按任务范围选择其他技能。
 - 编码前先定位目标模块和既有模式；不要凭记忆改 provider、计费或数据库路径。
-- 依赖优先复用现有 `go.mod`、`web/default/package.json` 和本地工具；新增依赖前说明收益、替代方案和迁移成本。
+- 依赖优先复用现有 `go.mod`、`web/package.json` 和本地工具；新增依赖前说明收益、替代方案和迁移成本。
 
 ## Backend Boundaries
 
@@ -20,6 +20,9 @@ description: "new-api 仓库默认入口技能。用于后端 Go relay/provider 
 
 ## Required Rules
 
+- 全仓手写生产业务源码单文件不得超过 **500 个物理行**（格式化后含导入、注释、空行）。按业务职责拆分，保持行为与公共契约，不得压缩格式、删有用注释或移入豁免目录规避限制。测试、生成代码、第三方依赖、纯配置、翻译数据和文档不属于业务代码。
+- 完成代码修改前在仓库根执行 `python3 scripts/check-business-file-size.py`；必须消除全部超限项。使用 `--json` 查看逐文件结果和明确的豁免原因，扫描包含 Git 未跟踪的新文件。
+
 - JSON 编解码必须使用 `common/json.go` 的 `common.Marshal`、`common.Unmarshal`、`common.DecodeJson` 等封装；业务代码不要直接调用 `encoding/json` marshal/unmarshal。
 - SQLite、MySQL、PostgreSQL 必须同时兼容。raw SQL 不可避免时，使用 `model/main.go` 中的 reserved-word 列名变量和 DB 方言分支。
 - 转发到上游的可选标量字段使用 pointer + `omitempty`，保留客户端显式传入的 `0`、`0.0`、`false`。
@@ -29,7 +32,7 @@ description: "new-api 仓库默认入口技能。用于后端 Go relay/provider 
 
 ## Frontend Scope
 
-- 触碰 `web/default` 前，继续读取 `web/default/AGENTS.md`。
+- 触碰 `web` 前，继续读取 `web/AGENTS.md`。
 - 默认前端栈：React 19、TypeScript、Rsbuild、Base UI、Tailwind、TanStack Query/Router、Zustand、i18next。
 - 前端包管理和脚本使用 Bun：`bun install`、`bun run typecheck`、`bun run lint`、`bun run build`。
 - 新增用户可见文案时使用 `useTranslation()` / `t()`，并同步 locale。
@@ -38,7 +41,7 @@ description: "new-api 仓库默认入口技能。用于后端 Go relay/provider 
 
 - Go 后端常规验证：`go test ./...`。
 - 目标包快速验证：`go test ./relay/channel/<provider> ./service ./types` 等，按影响面选择。
-- 前端 TS/TSX 改动：在 `web/default` 执行 `bun run typecheck`，必要时补 `bun run lint` 和 `bun run build`。
+- 前端 TS/TSX 改动：在 `web` 执行 `bun run typecheck`，必要时补 `bun run lint` 和 `bun run build`。
 - Docker/部署链路改动：至少验证 `docker compose` 配置或构建命令，不要只跑单元测试。
 
 ## Pair With

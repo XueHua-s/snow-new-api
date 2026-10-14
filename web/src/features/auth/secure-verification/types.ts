@@ -32,8 +32,9 @@ export interface SecurityProof {
 }
 
 export interface VerificationMethods {
-  has2FA: boolean
-  hasPasskey: boolean
+  // null means the status could not be determined; never treat it as disabled.
+  has2FA: boolean | null
+  hasPasskey: boolean | null
   passkeySupported: boolean
 }
 

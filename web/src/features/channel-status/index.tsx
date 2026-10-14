@@ -20,7 +20,6 @@ import { Activity, Clock3, Gauge, Radio, Timer, Zap } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { SectionPageLayout } from '@/components/layout'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -35,6 +34,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
+import { SectionPageLayout } from '../../components/layout/components/section-page-layout'
 import { CodexChannelUsageSection } from './components/codex-channel-usage-section'
 import { ModelStatusCard } from './components/model-status-card'
 import { useChannelStatusSocket } from './hooks/use-channel-status-socket'

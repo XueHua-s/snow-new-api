@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute } from '@tanstack/react-router'
 
 import { ConfigDrawer } from '@/components/config-drawer'
-import { Header } from '@/components/layout'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
@@ -28,6 +27,8 @@ import { GeneralError } from '@/features/errors/general-error'
 import { MaintenanceError } from '@/features/errors/maintenance-error'
 import { NotFoundError } from '@/features/errors/not-found-error'
 import { UnauthorisedError } from '@/features/errors/unauthorized-error'
+
+import { Header } from '../../../components/layout/components/header'
 
 export const Route = createFileRoute('/_authenticated/errors/$error')({
   component: RouteComponent,

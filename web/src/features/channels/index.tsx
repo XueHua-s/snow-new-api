@@ -21,7 +21,6 @@ import { Link } from '@tanstack/react-router'
 import { Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { SectionPageLayout } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
@@ -31,6 +30,7 @@ import {
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { SectionPageLayout } from '../../components/layout/components/section-page-layout'
 import { getChannelOps } from './api'
 import { ChannelsDialogs } from './components/channels-dialogs'
 import { ChannelsPrimaryButtons } from './components/channels-primary-buttons'

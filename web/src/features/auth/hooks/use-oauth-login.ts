@@ -20,15 +20,14 @@ import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { clearAuthentication, isAuthBundle } from '@/lib/api'
-
-import { createOAuthFlow, logout, telegramLogin } from '../api'
+import { clearAuthentication, isAuthBundle } from '../../../lib/auth-session'
 import {
   buildGitHubOAuthUrl,
   buildDiscordOAuthUrl,
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
-} from '../lib/oauth'
+} from '../../../lib/oauth'
+import { createOAuthFlow, logout, telegramLogin } from '../api'
 import { pickTelegramAuthorization } from '../lib/telegram-login'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 import { useAuthRedirect } from './use-auth-redirect'

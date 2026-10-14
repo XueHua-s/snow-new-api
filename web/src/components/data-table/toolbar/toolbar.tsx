@@ -24,9 +24,9 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useDebounce } from '@/hooks'
 import { cn } from '@/lib/utils'
 
+import { useDebounce } from '../../../hooks/use-debounce'
 import { DataTableFacetedFilter } from './faceted-filter'
 import { DataTableViewOptions } from './view-options'
 

@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { describe, expect, test } from 'vitest'
 
 import type { Channel } from '../../types'
-import { getChannelTableRowId, type TagRow } from '../channel-utils'
+import { getChannelTableRowId, type TagRow } from '../channel-tags'
 
 function channel(id: number): Channel {
   return { id } as Channel

@@ -21,7 +21,6 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { SectionPageLayout } from '@/components/layout'
 import { FadeIn } from '@/components/page-transition'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -35,6 +34,7 @@ import { ROLE } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { SectionPageLayout } from '../../components/layout/components/section-page-layout'
 import { ModelsChartPreferences } from './components/models/models-chart-preferences'
 import { ModelsFilter } from './components/models/models-filter-dialog'
 import { OverviewDashboard } from './components/overview/overview-dashboard'
@@ -45,7 +45,7 @@ import {
   getSavedChartPreferences,
   getSavedGranularity,
   saveChartPreferences,
-} from './lib'
+} from './lib/filters'
 import {
   type DashboardSectionId,
   DASHBOARD_DEFAULT_SECTION,

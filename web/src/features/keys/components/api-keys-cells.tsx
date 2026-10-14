@@ -20,7 +20,6 @@ import { Check, Copy, Loader2 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { BadgeCell } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,6 +35,7 @@ import {
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { formatQuota } from '@/lib/format'
 
+import { BadgeCell } from '../../../components/data-table/core/badge-cell'
 import type { ApiKey } from '../types'
 import { useApiKeys } from './api-keys-provider'
 

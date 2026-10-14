@@ -34,9 +34,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { useMediaQuery } from '@/hooks'
 import { cn } from '@/lib/utils'
 
+import { useMediaQuery } from '../../../hooks/use-media-query'
 import {
   AUTO_GROUP_FRAME_CLASS_NAME,
   AutoGroupFlowBorder,

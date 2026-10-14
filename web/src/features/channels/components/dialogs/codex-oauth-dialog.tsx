@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { completeCodexOAuth, startCodexOAuth } from '../../api'
+import { completeCodexOAuth, startCodexOAuth } from '../../oauth-api'
 import { OAuthCredentialDialog } from './oauth-credential-dialog'
 
 type CodexOAuthDialogProps = {

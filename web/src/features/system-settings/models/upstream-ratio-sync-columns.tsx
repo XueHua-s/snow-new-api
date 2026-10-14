@@ -21,7 +21,6 @@ import { AlertTriangle } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { DataTableColumnHeader } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -31,6 +30,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import { DataTableColumnHeader } from '../../../components/data-table/core/column-header'
 import type { RatioType } from '../types'
 import {
   getAlignedRatioTypes,

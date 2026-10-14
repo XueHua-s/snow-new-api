@@ -41,8 +41,8 @@ interface InternalState extends SecureVerificationState {
 }
 
 const defaultMethods: VerificationMethods = {
-  has2FA: false,
-  hasPasskey: false,
+  has2FA: null,
+  hasPasskey: null,
   passkeySupported: false,
 }
 
@@ -98,7 +98,22 @@ export function useSecureVerification(
       const availableMethods = await fetchVerificationMethods()
       if (attempt !== attemptRef.current) return false
 
-      if (!availableMethods.has2FA && !availableMethods.hasPasskey) {
+      if (
+        !availableMethods.has2FA &&
+        !availableMethods.hasPasskey &&
+        (availableMethods.has2FA === null ||
+          availableMethods.hasPasskey === null)
+      ) {
+        const error = new Error(i18next.t('Failed to start verification'))
+        toast.error(error.message)
+        onError?.(error)
+        return false
+      }
+
+      if (
+        availableMethods.has2FA === false &&
+        availableMethods.hasPasskey === false
+      ) {
         toast.error(
           i18next.t(
             'Please enable Two-factor Authentication or Passkey before proceeding'
@@ -235,9 +250,9 @@ export function useSecureVerification(
 
   const canUseMethod = useCallback(
     (method: VerificationMethod) => {
-      if (method === '2fa') return methods.has2FA
+      if (method === '2fa') return methods.has2FA === true
       if (method === 'passkey') {
-        return methods.hasPasskey && methods.passkeySupported
+        return methods.hasPasskey === true && methods.passkeySupported
       }
       return false
     },
@@ -265,7 +280,7 @@ export function useSecureVerification(
     fetchVerificationMethods,
     canUseMethod,
     recommendedMethod,
-    hasAnyMethod: methods.has2FA || methods.hasPasskey,
+    hasAnyMethod: methods.has2FA === true || methods.hasPasskey === true,
     isLoading: state.loading,
     currentMethod: state.method,
     code: state.code,

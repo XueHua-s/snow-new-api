@@ -21,10 +21,6 @@ import { AlertTriangle, HeartPulse, Timer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  StaticDataTable,
-  staticDataTableClassNames as tableStyles,
-} from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { getPerfMetrics } from '@/features/performance-metrics/api'
 import {
@@ -36,7 +32,9 @@ import {
 import type { PerformanceGroup } from '@/features/performance-metrics/types'
 import { cn } from '@/lib/utils'
 
-import { type UptimeDayPoint } from '../lib/mock-stats'
+import { StaticDataTable } from '../../../components/data-table/static/static-data-table'
+import { staticDataTableClassNames as tableStyles } from '../../../components/data-table/static/static-data-table-classnames'
+import type { UptimeDayPoint } from '../lib/mock-stats'
 import type { PricingModel } from '../types'
 import { LatencyTrendChart, UptimeTrendChart } from './model-details-charts'
 import { UptimeSparkline } from './model-details-uptime-sparkline'
@@ -97,7 +95,7 @@ function toLatencySeries(groups: PerformanceGroup[]) {
     }
   }
 
-  return Array.from(byTs.entries())
+  return [...byTs.entries()]
     .sort(([a], [b]) => a - b)
     .map(([ts, values]) => ({
       timestamp: new Date(ts * 1000).toISOString(),
@@ -121,7 +119,7 @@ function toUptimeSeries(groups: PerformanceGroup[]): UptimeDayPoint[] {
       byTs.set(point.ts, current)
     }
   }
-  return Array.from(byTs.entries())
+  return [...byTs.entries()]
     .sort(([a], [b]) => a - b)
     .map(([ts, value]) => {
       const uptime =

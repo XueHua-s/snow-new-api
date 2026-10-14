@@ -16,14 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
-import { type Resolver, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
 import { Dialog } from '@/components/dialog'
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,145 +48,21 @@ import {
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../../../components/settings-form-layout'
-import { buildOAuthCallbackUrl } from '../../oauth-callback-url'
-import {
-  useCreateProvider,
-  useUpdateProvider,
-} from '../hooks/use-custom-oauth-mutations'
-import {
-  customOAuthFormSchema,
-  AUTH_STYLE_OPTIONS,
-  type CustomOAuthProvider,
-  type CustomOAuthFormValues,
-} from '../types'
-import {
-  ACCESS_DENIED_MESSAGE_TEMPLATES,
-  ACCESS_POLICY_TEMPLATES,
-} from './access-policy-templates'
+import { AUTH_STYLE_OPTIONS } from '../types'
 import { DiscoveryButton } from './discovery-button'
 import { PresetSelector } from './preset-selector'
-
-type ProviderFormDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  provider?: CustomOAuthProvider | null
-  serverAddress: string
-}
+import { ProviderAccessPolicy } from './provider-access-policy'
+import {
+  type ProviderFormDialogProps,
+  useOAuthProviderForm,
+} from './use-o-auth-provider-form'
 
 const PROVIDER_FORM_ID = 'custom-oauth-provider-form'
 
 export function ProviderFormDialog(props: ProviderFormDialogProps) {
   const { t } = useTranslation()
-  const isEditing = !!props.provider
-  const createProvider = useCreateProvider()
-  const updateProvider = useUpdateProvider()
-
-  const form = useForm<CustomOAuthFormValues>({
-    resolver: zodResolver(
-      customOAuthFormSchema
-    ) as unknown as Resolver<CustomOAuthFormValues>,
-    defaultValues: {
-      name: '',
-      slug: '',
-      icon: '',
-      enabled: true,
-      client_id: '',
-      client_secret: '',
-      authorization_endpoint: '',
-      token_endpoint: '',
-      user_info_endpoint: '',
-      scopes: '',
-      user_id_field: '',
-      username_field: '',
-      display_name_field: '',
-      email_field: '',
-      well_known: '',
-      auth_style: 0,
-      access_policy: '',
-      access_denied_message: '',
-    },
-  })
-  const watchedSlug = useWatch({ control: form.control, name: 'slug' })
-  const callbackPath = watchedSlug?.trim() || '{slug}'
-  const callbackUrl = buildOAuthCallbackUrl(
-    props.serverAddress,
-    callbackPath,
-    t('Site URL')
-  )
-
-  useEffect(() => {
-    if (props.open && props.provider) {
-      form.reset({
-        name: props.provider.name,
-        slug: props.provider.slug,
-        icon: props.provider.icon || '',
-        enabled: props.provider.enabled,
-        client_id: props.provider.client_id,
-        client_secret: props.provider.client_secret || '',
-        authorization_endpoint: props.provider.authorization_endpoint,
-        token_endpoint: props.provider.token_endpoint,
-        user_info_endpoint: props.provider.user_info_endpoint,
-        scopes: props.provider.scopes || '',
-        user_id_field: props.provider.user_id_field,
-        username_field: props.provider.username_field || '',
-        display_name_field: props.provider.display_name_field || '',
-        email_field: props.provider.email_field || '',
-        well_known: props.provider.well_known || '',
-        auth_style: props.provider.auth_style ?? 0,
-        access_policy: props.provider.access_policy || '',
-        access_denied_message: props.provider.access_denied_message || '',
-      })
-    } else if (props.open && !props.provider) {
-      form.reset({
-        name: '',
-        slug: '',
-        icon: '',
-        enabled: true,
-        client_id: '',
-        client_secret: '',
-        authorization_endpoint: '',
-        token_endpoint: '',
-        user_info_endpoint: '',
-        scopes: '',
-        user_id_field: '',
-        username_field: '',
-        display_name_field: '',
-        email_field: '',
-        well_known: '',
-        auth_style: 0,
-        access_policy: '',
-        access_denied_message: '',
-      })
-    }
-  }, [props.open, props.provider, form])
-
-  const onSubmit = async (values: CustomOAuthFormValues) => {
-    if (isEditing && props.provider) {
-      const res = await updateProvider.mutateAsync({
-        id: props.provider.id,
-        data: values,
-      })
-      if (res.success) {
-        props.onOpenChange(false)
-      }
-    } else {
-      const res = await createProvider.mutateAsync(
-        values as Omit<CustomOAuthProvider, 'id'>
-      )
-      if (res.success) {
-        props.onOpenChange(false)
-      }
-    }
-  }
-
-  const isPending = createProvider.isPending || updateProvider.isPending
-  let submitLabel = t('Create Provider')
-  if (isPending) {
-    submitLabel = t('Saving...')
-  } else if (isEditing) {
-    submitLabel = t('Update Provider')
-  }
-
+  const { isEditing, form, callbackUrl, onSubmit, isPending, submitLabel } =
+    useOAuthProviderForm(props)
   return (
     <Dialog
       open={props.open}
@@ -598,127 +470,7 @@ export function ProviderFormDialog(props: ProviderFormDialogProps) {
           <Separator />
 
           {/* Advanced */}
-          <div className='space-y-4'>
-            <h4 className='text-sm font-medium'>{t('Advanced')}</h4>
-
-            <FormField
-              control={form.control}
-              name='access_policy'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Access Policy (JSON)')}</FormLabel>
-                  <FormDescription>
-                    {t(
-                      'Evaluate fields from the provider user info response. Conditions and nested groups use and/or logic.'
-                    )}
-                  </FormDescription>
-                  <FormControl>
-                    <JsonCodeEditor
-                      value={field.value || ''}
-                      onChange={field.onChange}
-                      name={field.name}
-                      onBlur={field.onBlur}
-                      textareaRef={field.ref}
-                      placeholder={t(
-                        'Optional JSON policy to restrict access based on user info fields'
-                      )}
-                      heightClassName='h-40 min-h-40 max-h-40'
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {t(
-                      'Supported operators: eq, ne, gt, gte, lt, lte, in, not_in, contains, not_contains, exists, not_exists. Leave empty to allow all users.'
-                    )}
-                  </FormDescription>
-                  <div className='flex flex-wrap gap-2'>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='xs'
-                      onClick={() =>
-                        form.setValue(
-                          'access_policy',
-                          ACCESS_POLICY_TEMPLATES.levelAndActive,
-                          { shouldDirty: true, shouldValidate: true }
-                        )
-                      }
-                    >
-                      {t('Fill template: level and active')}
-                    </Button>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='xs'
-                      onClick={() =>
-                        form.setValue(
-                          'access_policy',
-                          ACCESS_POLICY_TEMPLATES.orgOrRole,
-                          { shouldDirty: true, shouldValidate: true }
-                        )
-                      }
-                    >
-                      {t('Fill template: organization or role')}
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name='access_denied_message'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Access Denied Message')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t(
-                        'e.g. Requires level {{required}}; your current level is {{current}}'
-                      )}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {t(
-                      'Available variables: {{provider}}, {{field}}, {{op}}, {{required}}, {{current}}, and paths such as {{current.roles}}.'
-                    )}
-                  </FormDescription>
-                  <div className='flex flex-wrap gap-2'>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='xs'
-                      onClick={() =>
-                        form.setValue(
-                          'access_denied_message',
-                          ACCESS_DENIED_MESSAGE_TEMPLATES.level,
-                          { shouldDirty: true }
-                        )
-                      }
-                    >
-                      {t('Fill template: level message')}
-                    </Button>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='xs'
-                      onClick={() =>
-                        form.setValue(
-                          'access_denied_message',
-                          ACCESS_DENIED_MESSAGE_TEMPLATES.org,
-                          { shouldDirty: true }
-                        )
-                      }
-                    >
-                      {t('Fill template: organization message')}
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <ProviderAccessPolicy form={form} />
         </SettingsForm>
       </Form>
     </Dialog>

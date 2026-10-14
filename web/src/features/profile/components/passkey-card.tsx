@@ -108,6 +108,10 @@ export function PasskeyCard({ loading: pageLoading }: PasskeyCardProps) {
     }
 
     const methods = await fetchVerificationMethods()
+    if (methods.has2FA === null) {
+      toast.error(t('Failed to start verification'))
+      return
+    }
     if (!methods.has2FA) {
       // Without 2FA enabled, register directly. The browser-level Passkey prompt
       // is itself a strong proof of presence, so no extra verification is needed.
@@ -128,6 +132,14 @@ export function PasskeyCard({ loading: pageLoading }: PasskeyCardProps) {
 
   const handleRemove = useCallback(async () => {
     const methods = await fetchVerificationMethods()
+    // Removal requires 2FA when enrolled; an unknown status must not downgrade it.
+    if (
+      methods.has2FA === null ||
+      (!methods.has2FA && methods.hasPasskey === null)
+    ) {
+      toast.error(t('Failed to start verification'))
+      return
+    }
     let required: VerificationMethod | null = null
     if (methods.has2FA) {
       required = '2fa'

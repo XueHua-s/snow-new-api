@@ -20,11 +20,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Construction } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { PublicLayout } from '@/components/layout'
 import { RichContent } from '@/components/rich-content'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
 
+import { PublicLayout } from '../../components/layout/components/public-layout'
 import { getAboutContent } from './api'
 
 function EmptyAboutState() {

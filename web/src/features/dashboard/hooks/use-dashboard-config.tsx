@@ -30,7 +30,8 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import type { IconBadgeTone } from '@/components/ui/icon-badge'
-import { safeDivide } from '@/features/dashboard/lib'
+
+import { safeDivide } from '../lib/stats'
 
 interface StatCardConfig {
   key: string

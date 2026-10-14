@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { SlidersHorizontalIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { PromptInputButton } from '@/components/ai-elements/prompt-input'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
@@ -44,6 +43,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 
+import { PromptInputButton } from '../../../../components/ai-elements/prompt-input-controls'
 import {
   getParameterControlValueText,
   normalizeParameterNumberValue,

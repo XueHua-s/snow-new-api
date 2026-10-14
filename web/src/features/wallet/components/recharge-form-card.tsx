@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Gift, ExternalLink, Loader2, Receipt, WalletCards } from 'lucide-react'
-import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -44,44 +43,12 @@ import {
   getMinTopupAmount,
   calculatePresetPricing,
 } from '../lib'
-import type {
-  PaymentMethod,
-  PresetAmount,
-  TopupInfo,
-  CreemProduct,
-  WaffoPayMethod,
-} from '../types'
 import { CreemProductsSection } from './creem-products-section'
-
-interface RechargeFormCardProps {
-  topupInfo: TopupInfo | null
-  presetAmounts: PresetAmount[]
-  selectedPreset: number | null
-  onSelectPreset: (preset: PresetAmount) => void
-  topupAmount: number
-  onTopupAmountChange: (amount: number) => void
-  paymentAmount: number
-  calculating: boolean
-  onPaymentMethodSelect: (method: PaymentMethod) => void
-  paymentLoading: string | null
-  redemptionCode: string
-  onRedemptionCodeChange: (code: string) => void
-  onRedeem: () => void
-  redeeming: boolean
-  topupLink?: string
-  loading?: boolean
-  priceRatio?: number
-  usdExchangeRate?: number
-  onOpenBilling?: () => void
-  creemProducts?: CreemProduct[]
-  enableCreemTopup?: boolean
-  onCreemProductSelect?: (product: CreemProduct) => void
-  enableWaffoTopup?: boolean
-  waffoPayMethods?: WaffoPayMethod[]
-  waffoMinTopup?: number
-  onWaffoMethodSelect?: (method: WaffoPayMethod, index: number) => void
-  enableWaffoPancakeTopup?: boolean
-}
+import {
+  type RechargeFormCardProps,
+  useRechargeForm,
+} from './use-recharge-form'
+import { WaffoRechargeMethods } from './waffo-recharge-methods'
 
 export function RechargeFormCard({
   topupInfo,
@@ -113,36 +80,44 @@ export function RechargeFormCard({
   enableWaffoPancakeTopup,
 }: RechargeFormCardProps) {
   const { t } = useTranslation()
-  const [localAmount, setLocalAmount] = useState(topupAmount.toString())
-
-  useEffect(() => {
-    // Empty string must survive, otherwise the field can never be cleared
-    setLocalAmount((prev) =>
-      prev === '' && topupAmount === 0 ? prev : topupAmount.toString()
-    )
-  }, [topupAmount])
-
-  const handleAmountChange = (value: string) => {
-    setLocalAmount(value)
-    const numValue = Number.parseInt(value) || 0
-    if (numValue >= 0) {
-      onTopupAmountChange(numValue)
-    }
-  }
-
-  const hasConfigurableTopup =
-    topupInfo?.enable_online_topup ||
-    topupInfo?.enable_stripe_topup ||
-    enableWaffoTopup ||
-    enableWaffoPancakeTopup
-  const hasAnyTopup = hasConfigurableTopup || enableCreemTopup
-  const hasStandardPaymentMethods =
-    Array.isArray(topupInfo?.pay_methods) && topupInfo.pay_methods.length > 0
-  const hasWaffoPaymentMethods =
-    Array.isArray(waffoPayMethods) && waffoPayMethods.length > 0
-  const minTopup = getMinTopupAmount(topupInfo)
-  const redemptionEnabled = topupInfo?.enable_redemption !== false
-
+  const {
+    localAmount,
+    handleAmountChange,
+    hasConfigurableTopup,
+    hasAnyTopup,
+    hasStandardPaymentMethods,
+    hasWaffoPaymentMethods,
+    minTopup,
+    redemptionEnabled,
+  } = useRechargeForm({
+    topupInfo,
+    presetAmounts,
+    selectedPreset,
+    onSelectPreset,
+    topupAmount,
+    onTopupAmountChange,
+    paymentAmount,
+    calculating,
+    onPaymentMethodSelect,
+    paymentLoading,
+    redemptionCode,
+    onRedemptionCodeChange,
+    onRedeem,
+    redeeming,
+    topupLink,
+    loading,
+    onOpenBilling,
+    creemProducts,
+    enableCreemTopup,
+    onCreemProductSelect,
+    enableWaffoTopup,
+    waffoPayMethods,
+    waffoMinTopup,
+    onWaffoMethodSelect,
+    enableWaffoPancakeTopup,
+    priceRatio,
+    usdExchangeRate,
+  })
   if (loading) {
     return (
       <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
@@ -398,81 +373,13 @@ export function RechargeFormCard({
               {enableWaffoTopup &&
                 hasWaffoPaymentMethods &&
                 onWaffoMethodSelect && (
-                  <div className='space-y-2.5 sm:space-y-3'>
-                    <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
-                      {t('Waffo Payment')}
-                    </Label>
-                    <div className='grid grid-cols-2 gap-1.5 sm:gap-3 lg:grid-cols-3'>
-                      {waffoPayMethods?.map((method, index) => {
-                        const loadingKey = `waffo-${index}`
-                        const methodKey = `${method.payMethodType ?? 'unknown'}-${method.payMethodName ?? method.name}`
-                        const waffoMin = waffoMinTopup || 0
-                        const belowMin = waffoMin > topupAmount
-                        const disabledReason = belowMin
-                          ? t('Minimum topup amount: {{amount}}', {
-                              amount: waffoMin,
-                            })
-                          : undefined
-                        const disabledLabel = belowMin
-                          ? `${t('Minimum:')} ${waffoMin}`
-                          : undefined
-
-                        let methodIcon = getPaymentIcon('waffo')
-                        if (paymentLoading === loadingKey) {
-                          methodIcon = (
-                            <Loader2 className='h-4 w-4 animate-spin' />
-                          )
-                        } else if (method.icon) {
-                          methodIcon = (
-                            <img
-                              src={method.icon}
-                              alt={method.name}
-                              className='h-4 w-4 object-contain'
-                            />
-                          )
-                        }
-
-                        const button = (
-                          <Button
-                            key={methodKey}
-                            variant='outline'
-                            onClick={() => onWaffoMethodSelect(method, index)}
-                            disabled={belowMin || !!paymentLoading}
-                            title={disabledReason}
-                            aria-label={
-                              disabledReason
-                                ? `${method.name}. ${disabledReason}`
-                                : method.name
-                            }
-                            className='min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left'
-                          >
-                            {methodIcon}
-                            <span className='flex min-w-0 flex-col items-start gap-0.5'>
-                              <span className='max-w-full truncate'>
-                                {method.name}
-                              </span>
-                              {disabledLabel && (
-                                <span className='text-muted-foreground max-w-full truncate text-[11px] leading-4 font-normal'>
-                                  {disabledLabel}
-                                </span>
-                              )}
-                            </span>
-                          </Button>
-                        )
-
-                        return belowMin ? (
-                          <TooltipProvider key={methodKey}>
-                            <Tooltip>
-                              <TooltipTrigger render={button} />
-                              <TooltipContent>{disabledReason}</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          button
-                        )
-                      })}
-                    </div>
-                  </div>
+                  <WaffoRechargeMethods
+                    waffoPayMethods={waffoPayMethods}
+                    waffoMinTopup={waffoMinTopup}
+                    topupAmount={topupAmount}
+                    paymentLoading={paymentLoading}
+                    onWaffoMethodSelect={onWaffoMethodSelect}
+                  />
                 )}
             </>
           )}

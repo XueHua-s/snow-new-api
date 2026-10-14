@@ -19,8 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 /**
  * Type definitions for usage logs
  */
-import type { RequestRuleTrace } from '@/features/pricing/lib/billing-expr'
-
+import type { RequestRuleTrace } from '../pricing/lib/billing-rule-types'
 import type { UsageLog } from './data/schema'
 // ============================================================================
 // Log Category Types

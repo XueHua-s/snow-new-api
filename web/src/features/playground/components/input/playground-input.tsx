@@ -20,12 +20,13 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
-  PromptInput,
   PromptInputFooter,
   PromptInputTextarea,
+} from '../../../../components/ai-elements/prompt-input-controls'
+import {
+  PromptInput,
   type PromptInputMessage,
-} from '@/components/ai-elements/prompt-input'
-
+} from '../../../../components/ai-elements/prompt-input-form'
 import { getSubmittableInputText } from '../../lib'
 import type {
   ModelOption,

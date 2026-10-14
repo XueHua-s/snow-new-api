@@ -3,7 +3,6 @@ package controller
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/middleware"
@@ -22,10 +21,6 @@ type Setup2FARequest struct {
 type Verify2FARequest struct {
 	Code      string `json:"code" binding:"required"`
 	FlowToken string `json:"flow_token,omitempty"`
-}
-
-type twoFALoginFlowPayload struct {
-	AuthVersion int64 `json:"auth_version"`
 }
 
 // Setup2FAResponse 设置2FA响应结构
@@ -420,175 +415,5 @@ func RegenerateBackupCodes(c *gin.Context) {
 		"success": true,
 		"message": "备用码重新生成成功",
 		"data":    data,
-	})
-}
-
-// Verify2FALogin 登录时验证2FA
-func Verify2FALogin(c *gin.Context) {
-	var req Verify2FARequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "参数错误",
-		})
-		return
-	}
-
-	flow, err := model.GetAuthFlow(req.FlowToken, model.AuthFlowMatch{Purpose: model.AuthFlowPurposeTwoFALogin})
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "会话已过期，请重新登录",
-		})
-		return
-	}
-	// 获取用户信息
-	user, err := model.GetUserById(flow.UserId, false)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "用户不存在",
-		})
-		return
-	}
-	if user.Status != common.UserStatusEnabled {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "用户已被禁用",
-		})
-		return
-	}
-	var flowPayload twoFALoginFlowPayload
-	if err := common.UnmarshalJsonStr(flow.Payload, &flowPayload); err != nil || flowPayload.AuthVersion <= 0 || flowPayload.AuthVersion != user.AuthVersion {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "会话已过期，请重新登录",
-		})
-		return
-	}
-
-	// 获取2FA记录
-	twoFA, err := model.GetTwoFAByUserId(user.Id)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	if twoFA == nil || !twoFA.IsEnabled {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "用户未启用2FA",
-		})
-		return
-	}
-
-	// 验证TOTP验证码或备用码
-	cleanCode, err := common.ValidateNumericCode(req.Code)
-	isValidTOTP := false
-	isValidBackup := false
-
-	if err == nil {
-		// 尝试验证TOTP
-		isValidTOTP, _ = twoFA.ValidateTOTPAndUpdateUsage(cleanCode)
-	}
-
-	if !isValidTOTP {
-		// 尝试验证备用码
-		isValidBackup, err = twoFA.ValidateBackupCodeAndUpdateUsage(req.Code)
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !isValidTOTP && !isValidBackup {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "验证码或备用码错误，请重试",
-		})
-		return
-	}
-
-	if _, err := model.ConsumeAuthFlow(req.FlowToken, model.AuthFlowMatch{
-		Purpose: model.AuthFlowPurposeTwoFALogin,
-		UserId:  user.Id,
-	}); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "会话已过期，请重新登录",
-		})
-		return
-	}
-
-	setupLoginAtAuthVersion(user, flowPayload.AuthVersion, c)
-}
-
-// Admin2FAStats 管理员获取2FA统计信息
-func Admin2FAStats(c *gin.Context) {
-	stats, err := model.GetTwoFAStats()
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    stats,
-	})
-}
-
-// AdminDisable2FA 管理员强制禁用用户2FA
-func AdminDisable2FA(c *gin.Context) {
-	userIdStr := c.Param("id")
-	userId, err := strconv.Atoi(userIdStr)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "用户ID格式错误",
-		})
-		return
-	}
-
-	// 检查目标用户权限
-	targetUser, err := model.GetUserById(userId, false)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-
-	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, targetUser.Role) {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "无权操作同级或更高级用户的2FA设置",
-		})
-		return
-	}
-
-	// 禁用2FA
-	if err := model.DisableTwoFAWithAuthVersion(userId); err != nil {
-		if errors.Is(err, model.ErrTwoFANotEnabled) {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "用户未启用2FA",
-			})
-			return
-		}
-		common.ApiError(c, err)
-		return
-	}
-	if _, err := model.RevokeAllUserSessions(userId, "admin_twofa_disabled"); err != nil {
-		common.ApiError(c, err)
-		return
-	}
-
-	recordManageAuditFor(c, userId, "user.2fa_disable", nil)
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "用户2FA已被强制禁用",
 	})
 }

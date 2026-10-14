@@ -31,17 +31,15 @@ import {
   TIME_GRANULARITY_OPTIONS,
   TIME_RANGE_PRESETS,
 } from '@/features/dashboard/constants'
-import {
-  getDefaultDays,
-  saveGranularity,
-  processUserChartData,
-} from '@/features/dashboard/lib'
 import type {
   ProcessedUserChartData,
   UserChartsFilters,
 } from '@/features/dashboard/types'
 import { getRollingDateRange, type TimeGranularity } from '@/lib/time'
 import { VCHART_OPTION } from '@/lib/vchart'
+
+import { getDefaultDays, saveGranularity } from '../../lib/filters'
+import { processUserChartData } from '../../lib/user-charts'
 
 let themeManagerPromise: Promise<
   (typeof import('@visactor/vchart'))['ThemeManager']

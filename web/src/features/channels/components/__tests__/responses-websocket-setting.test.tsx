@@ -23,12 +23,12 @@ import { describe, expect, test } from 'vitest'
 
 import { Form } from '@/components/ui/form'
 
+import type { ChannelFormValues } from '../../lib/channel-form'
 import {
-  buildSettingJSON,
   CHANNEL_FORM_DEFAULT_VALUES,
   transformChannelToFormDefaults,
-  type ChannelFormValues,
-} from '../../lib/channel-form'
+} from '../../lib/channel-form-defaults'
+import { buildSettingJSON } from '../../lib/channel-form-payload'
 import { channelSchema } from '../../types'
 import { ResponsesWebSocketSetting } from '../responses-websocket-setting'
 

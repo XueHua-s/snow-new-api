@@ -18,12 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { StatusBadgeProps } from '@/components/status-badge'
 import {
-  BILLING_PRICING_VARS,
   normalizeTierLabel,
   parseTiersFromExpr,
   type ParsedTier,
 } from '@/features/pricing/lib/billing-expr'
 
+import { BILLING_PRICING_VARS } from '../../pricing/lib/billing-variables'
 import type { UsageLog } from '../data/schema'
 import type { LogOtherData } from '../types'
 

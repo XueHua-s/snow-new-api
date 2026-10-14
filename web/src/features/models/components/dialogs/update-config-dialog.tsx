@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
-import { getDeployment, updateDeployment } from '../../api'
+import { getDeployment, updateDeployment } from '../../deployment-api'
 import { deploymentsQueryKeys } from '../../lib'
 
 const schema = z.object({

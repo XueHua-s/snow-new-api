@@ -31,24 +31,25 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { useSecureVerification } from '@/features/auth/secure-verification'
 import { api } from '@/lib/api'
 
+import { updateChannel } from '../api'
+import { CodexOAuthDialog } from '../components/dialogs/codex-oauth-dialog'
+import { deleteMultiKey, deleteDisabledMultiKeys } from '../multi-key-api'
 import {
   startCodexOAuth,
   completeCodexOAuth,
   refreshCodexCredential,
-  updateChannel,
-  deleteMultiKey,
-  deleteDisabledMultiKeys,
   startClaudeOAuth,
-} from '../api'
-import { CodexOAuthDialog } from '../components/dialogs/codex-oauth-dialog'
+} from '../oauth-api'
 
 const originalAdapter = api.defaults.adapter
 let requests: InternalAxiosRequestConfig[]
 let rejectProof = false
+let failPasskeyStatus = false
 let verifyResponse: Promise<void> | undefined
 beforeEach(() => {
   requests = []
   rejectProof = false
+  failPasskeyStatus = false
   verifyResponse = undefined
   api.defaults.adapter = async (config) => {
     requests.push(config)
@@ -57,6 +58,13 @@ beforeEach(() => {
       data = { success: true, data: { enabled: true } }
     }
     if (config.url === '/api/user/passkey') {
+      if (failPasskeyStatus) {
+        throw new AxiosError(
+          'Passkey status unavailable',
+          'ERR_NETWORK',
+          config
+        )
+      }
       data = { success: true, data: { enabled: false } }
     }
     if (config.url === '/api/verify') {
@@ -285,61 +293,69 @@ describe('Codex credential proof requests', () => {
     expect(requests.some((r) => r.url?.includes('/codex/oauth/'))).toBe(false)
     expect(onKey).not.toHaveBeenCalled()
   })
-  test('existing-channel OAuth start and complete each obtain a scoped proof before sending', async () => {
-    const user = userEvent.setup()
-    const saved = vi.fn()
-    render(
-      <CodexOAuthDialog
-        open
-        channelId={12}
-        onOpenChange={() => {}}
-        onKeyGenerated={saved}
-      />
-    )
-    await user.click(
-      screen.getByRole('button', { name: 'Open authorization page' })
-    )
-    let dialog = await screen.findByRole('dialog', {
-      name: 'Additional verification required',
-    })
-    await user.type(
-      within(dialog).getByPlaceholderText('Enter verification code'),
-      '123456'
-    )
-    await user.click(within(dialog).getByRole('button', { name: 'Verify' }))
-    await waitFor(() => expect(window.open).toHaveBeenCalled())
-    await user.type(
-      screen.getByPlaceholderText(
-        'Paste the full callback URL (includes code & state)'
-      ),
-      'http://localhost/callback?code=synthetic'
-    )
-    await user.click(screen.getByRole('button', { name: 'Authorize and save' }))
-    dialog = await screen.findByRole('dialog', {
-      name: 'Additional verification required',
-    })
-    await user.type(
-      within(dialog).getByPlaceholderText('Enter verification code'),
-      '654321'
-    )
-    await user.click(within(dialog).getByRole('button', { name: 'Verify' }))
-    await waitFor(() => expect(saved).toHaveBeenCalledWith(''))
-    expect(requests.filter((r) => r.url === '/api/verify')).toHaveLength(2)
-    const operations = requests.filter((r) => r.url?.includes('/codex/oauth/'))
-    expect(operations.map((r) => r.url)).toEqual([
-      '/api/channel/12/codex/oauth/start',
-      '/api/channel/12/codex/oauth/complete',
-    ])
-    expect(
-      operations.every(
-        (r) => r.headers.get('X-Security-Proof') === 'synthetic-proof'
+  test.each([false, true])(
+    'existing-channel OAuth obtains scoped proofs even with passkey status unavailable=%s',
+    async (unavailable) => {
+      failPasskeyStatus = unavailable
+      const user = userEvent.setup()
+      const saved = vi.fn()
+      render(
+        <CodexOAuthDialog
+          open
+          channelId={12}
+          onOpenChange={() => {}}
+          onKeyGenerated={saved}
+        />
       )
-    ).toBe(true)
-    expect(JSON.parse(operations[1].data)).toEqual({
-      input: 'http://localhost/callback?code=synthetic',
-      flow_token: 'synthetic-flow',
-    })
-  })
+      await user.click(
+        screen.getByRole('button', { name: 'Open authorization page' })
+      )
+      let dialog = await screen.findByRole('dialog', {
+        name: 'Additional verification required',
+      })
+      await user.type(
+        within(dialog).getByPlaceholderText('Enter verification code'),
+        '123456'
+      )
+      await user.click(within(dialog).getByRole('button', { name: 'Verify' }))
+      await waitFor(() => expect(window.open).toHaveBeenCalled())
+      await user.type(
+        screen.getByPlaceholderText(
+          'Paste the full callback URL (includes code & state)'
+        ),
+        'http://localhost/callback?code=synthetic'
+      )
+      await user.click(
+        screen.getByRole('button', { name: 'Authorize and save' })
+      )
+      dialog = await screen.findByRole('dialog', {
+        name: 'Additional verification required',
+      })
+      await user.type(
+        within(dialog).getByPlaceholderText('Enter verification code'),
+        '654321'
+      )
+      await user.click(within(dialog).getByRole('button', { name: 'Verify' }))
+      await waitFor(() => expect(saved).toHaveBeenCalledWith(''))
+      expect(requests.filter((r) => r.url === '/api/verify')).toHaveLength(2)
+      const operations = requests.filter((r) =>
+        r.url?.includes('/codex/oauth/')
+      )
+      expect(operations.map((r) => r.url)).toEqual([
+        '/api/channel/12/codex/oauth/start',
+        '/api/channel/12/codex/oauth/complete',
+      ])
+      expect(
+        operations.every(
+          (r) => r.headers.get('X-Security-Proof') === 'synthetic-proof'
+        )
+      ).toBe(true)
+      expect(JSON.parse(operations[1].data)).toEqual({
+        input: 'http://localhost/callback?code=synthetic',
+        flow_token: 'synthetic-flow',
+      })
+    }
+  )
   test('new-channel OAuth uses the generic path without a security-proof prompt', async () => {
     const user = userEvent.setup()
     render(

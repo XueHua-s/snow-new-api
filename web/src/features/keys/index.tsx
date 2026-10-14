@@ -18,8 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
 
-import { SectionPageLayout } from '@/components/layout'
-
+import { SectionPageLayout } from '../../components/layout/components/section-page-layout'
 import { ApiKeysDialogs } from './components/api-keys-dialogs'
 import { ApiKeysPrimaryButtons } from './components/api-keys-primary-buttons'
 import { ApiKeysProvider } from './components/api-keys-provider'

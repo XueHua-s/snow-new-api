@@ -18,9 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { describe, expect, test } from 'vitest'
 
-import type { RefreshOutcome } from '@/lib/api'
 import type { AuthBundle } from '@/stores/auth-store'
 
+import type { RefreshOutcome } from '../../lib/auth-session'
 import { executeLogout } from './api'
 
 const bundle: AuthBundle = {

@@ -19,9 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { SectionPageLayout } from '@/components/layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+import { SectionPageLayout } from '../../components/layout/components/section-page-layout'
 import { SubscriptionsDialogs } from './components/subscriptions-dialogs'
 import { SubscriptionsPrimaryButtons } from './components/subscriptions-primary-buttons'
 import {

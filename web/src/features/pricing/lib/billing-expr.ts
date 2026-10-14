@@ -16,225 +16,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-/**
- * Billing expression parsing utilities.
- *
- * Parses the dynamic billing expression format so that the pricing breakdown
- * UI can be rendered from the same backend expressions.
- *
- * The grammar is intentionally narrow: we only support the shapes that the
- * server emits (tiered pricing + request-rule conditional multipliers), so
- * the regular expressions are exact rather than tolerant of arbitrary
- * expression syntax.
- */
-
-// ---------------------------------------------------------------------------
-// Variable registry
-// ---------------------------------------------------------------------------
-
-export type BillingVar = {
-  key: string
-  field: string | null
-  tierField: string | null
-  label: string
-  shortLabel: string
-  side: 'input' | 'output' | 'condition'
-  isBase?: boolean
-  isConditionOnly?: boolean
-  group?: string
-}
-
-export const BILLING_VARS: BillingVar[] = [
-  {
-    key: 'p',
-    field: 'inputPrice',
-    tierField: 'input_unit_cost',
-    label: 'Input price',
-    shortLabel: 'Input',
-    side: 'input',
-    isBase: true,
-  },
-  {
-    key: 'c',
-    field: 'outputPrice',
-    tierField: 'output_unit_cost',
-    label: 'Completion price',
-    shortLabel: 'Output',
-    side: 'output',
-    isBase: true,
-  },
-  {
-    key: 'len',
-    field: null,
-    tierField: null,
-    label: 'Input length',
-    shortLabel: 'Length',
-    side: 'condition',
-    isConditionOnly: true,
-  },
-  {
-    key: 'cr',
-    field: 'cacheReadPrice',
-    tierField: 'cache_read_unit_cost',
-    label: 'Cache read price',
-    shortLabel: 'Cache Read',
-    side: 'input',
-    group: 'cache',
-  },
-  {
-    key: 'cc',
-    field: 'cacheCreatePrice',
-    tierField: 'cache_create_unit_cost',
-    label: 'Cache create price',
-    shortLabel: 'Cache Write',
-    side: 'input',
-    group: 'cache',
-  },
-  {
-    key: 'cc1h',
-    field: 'cacheCreate1hPrice',
-    tierField: 'cache_create_1h_unit_cost',
-    label: 'Cache create (1h) price',
-    shortLabel: 'Cache Write (1h)',
-    side: 'input',
-    group: 'cache',
-  },
-  {
-    key: 'img',
-    field: 'imagePrice',
-    tierField: 'image_unit_cost',
-    label: 'Image input price',
-    shortLabel: 'Image In',
-    side: 'input',
-    group: 'media',
-  },
-  {
-    key: 'img_o',
-    field: 'imageOutputPrice',
-    tierField: 'image_output_unit_cost',
-    label: 'Image output price',
-    shortLabel: 'Image Out',
-    side: 'output',
-    group: 'media',
-  },
-  {
-    key: 'ai',
-    field: 'audioInputPrice',
-    tierField: 'audio_input_unit_cost',
-    label: 'Audio input price',
-    shortLabel: 'Audio In',
-    side: 'input',
-    group: 'media',
-  },
-  {
-    key: 'ao',
-    field: 'audioOutputPrice',
-    tierField: 'audio_output_unit_cost',
-    label: 'Audio output price',
-    shortLabel: 'Audio Out',
-    side: 'output',
-    group: 'media',
-  },
-]
-
-/** Vars that have real price fields (excludes condition-only vars like `len`) */
-export const BILLING_PRICING_VARS: BillingVar[] = BILLING_VARS.filter(
-  (v) => !v.isConditionOnly
-)
-
-/** Vars valid in tier conditions (`p`, `c`, `len`) */
-export const BILLING_CONDITION_VARS: string[] = BILLING_VARS.filter(
-  (v) => v.isBase || v.isConditionOnly
-).map((v) => v.key)
-
-const BILLING_VAR_KEY_TO_FIELD = Object.fromEntries(
-  BILLING_PRICING_VARS.map((v) => [v.key, v.field as string])
-) as Record<string, string>
-
-export const BILLING_EXTRA_VARS: BillingVar[] = BILLING_VARS.filter(
-  (v) => !v.isBase && !v.isConditionOnly
-)
-
-export const BILLING_CACHE_VAR_MAP = BILLING_EXTRA_VARS.map((v) => ({
-  field: v.tierField as string,
-  exprVar: v.key,
-}))
-
-const BILLING_VAR_REGEX = new RegExp(
-  `\\b(${BILLING_PRICING_VARS.map((v) => v.key).join('|')})\\s*\\*\\s*([\\d.eE+-]+)`,
-  'g'
-)
-
-// ---------------------------------------------------------------------------
-// Request rule constants
-// ---------------------------------------------------------------------------
-
-export const SOURCE_PARAM = 'param'
-export const SOURCE_HEADER = 'header'
-export const SOURCE_TIME = 'time'
-
-export const MATCH_EQ = 'eq'
-export const MATCH_CONTAINS = 'contains'
-export const MATCH_GT = 'gt'
-export const MATCH_GTE = 'gte'
-export const MATCH_LT = 'lt'
-export const MATCH_LTE = 'lte'
-export const MATCH_EXISTS = 'exists'
-export const MATCH_RANGE = 'range'
-
-export const TIME_FUNCS = ['hour', 'minute', 'weekday', 'month', 'day'] as const
-export type TimeFunc = (typeof TIME_FUNCS)[number]
-
-export const COMMON_TIMEZONES: { value: string; label: string }[] = [
-  { value: 'Asia/Shanghai', label: 'UTC+8 Shanghai (Asia/Shanghai)' },
-  { value: 'UTC', label: 'UTC' },
-  { value: 'America/New_York', label: 'UTC-5 New York (America/New_York)' },
-  {
-    value: 'America/Los_Angeles',
-    label: 'UTC-8 Los Angeles (America/Los_Angeles)',
-  },
-  { value: 'America/Chicago', label: 'UTC-6 Chicago (America/Chicago)' },
-  { value: 'Europe/London', label: 'UTC+0 London (Europe/London)' },
-  { value: 'Europe/Berlin', label: 'UTC+1 Berlin (Europe/Berlin)' },
-  { value: 'Asia/Tokyo', label: 'UTC+9 Tokyo (Asia/Tokyo)' },
-  { value: 'Asia/Singapore', label: 'UTC+8 Singapore (Asia/Singapore)' },
-  { value: 'Asia/Seoul', label: 'UTC+9 Seoul (Asia/Seoul)' },
-  { value: 'Australia/Sydney', label: 'UTC+10 Sydney (Australia/Sydney)' },
-]
-
-const NUMERIC_LITERAL_REGEX = /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/
-
-export type ParamHeaderCondition = {
-  source: 'param' | 'header'
-  path: string
-  mode: string
-  value: string
-}
-
-export type TimeCondition = {
-  source: 'time'
-  timeFunc: TimeFunc
-  timezone: string
-  mode: string
-  value: string
-  rangeStart: string
-  rangeEnd: string
-}
-
-export type RequestCondition = TimeCondition | ParamHeaderCondition
-
-export type RequestRuleGroup = {
-  conditions: RequestCondition[]
-  multiplier: string
-  conditionText?: string
-  matched?: boolean
-}
-
-export type RequestRuleTrace = {
-  cond: string
-  multiplier: number
-  matched: boolean
-}
+import {
+  NUMERIC_LITERAL_REGEX,
+  type RequestCondition,
+  type TimeFunc,
+  MATCH_RANGE,
+  MATCH_EQ,
+  MATCH_GTE,
+  MATCH_LT,
+  MATCH_EXISTS,
+  MATCH_CONTAINS,
+  MATCH_GT,
+  MATCH_LTE,
+  type RequestRuleGroup,
+  type RequestRuleTrace,
+} from './billing-rule-types'
+import {
+  BILLING_VAR_REGEX,
+  BILLING_VAR_KEY_TO_FIELD,
+} from './billing-variables'
 
 export type TierCondition = {
   var: 'p' | 'c' | 'len'
@@ -601,207 +401,43 @@ export function combineBillingExpr(
   return `(${base}) * ${rules}`
 }
 
-// ---------------------------------------------------------------------------
-// Editor: empty constructors
-// ---------------------------------------------------------------------------
-
-export function createEmptyCondition(): ParamHeaderCondition {
-  return { source: 'param', path: '', mode: MATCH_EQ, value: '' }
-}
-
-export function createEmptyTimeCondition(): TimeCondition {
-  return {
-    source: 'time',
-    timeFunc: 'hour',
-    timezone: 'Asia/Shanghai',
-    mode: MATCH_GTE,
-    value: '',
-    rangeStart: '',
-    rangeEnd: '',
-  }
-}
-
-export function createEmptyRuleGroup(): RequestRuleGroup {
-  return { conditions: [createEmptyCondition()], multiplier: '' }
-}
-
-export function createEmptyTimeRuleGroup(): RequestRuleGroup {
-  return { conditions: [createEmptyTimeCondition()], multiplier: '' }
-}
-
-// ---------------------------------------------------------------------------
-// Editor: match option helpers
-// ---------------------------------------------------------------------------
-
-export type MatchOption = { value: string; labelKey: string }
-
-export function getRequestRuleMatchOptions(source: string): MatchOption[] {
-  if (source === SOURCE_TIME) {
-    return [
-      { value: MATCH_EQ, labelKey: 'Equals' },
-      { value: MATCH_GTE, labelKey: 'Greater than or equal' },
-      { value: MATCH_LT, labelKey: 'Less than' },
-      { value: MATCH_RANGE, labelKey: 'Overnight range' },
-    ]
-  }
-  const base: MatchOption[] = [
-    { value: MATCH_EQ, labelKey: 'Equals' },
-    { value: MATCH_CONTAINS, labelKey: 'Contains' },
-    { value: MATCH_EXISTS, labelKey: 'Exists' },
-  ]
-  if (source === SOURCE_HEADER) return base
-  return [
-    ...base,
-    { value: MATCH_GT, labelKey: 'Greater than' },
-    { value: MATCH_GTE, labelKey: 'Greater than or equal' },
-    { value: MATCH_LT, labelKey: 'Less than' },
-    { value: MATCH_LTE, labelKey: 'Less than or equal' },
-  ]
-}
-
-// ---------------------------------------------------------------------------
-// Editor: normalize a single condition
-// ---------------------------------------------------------------------------
-
-function isTimeFunc(value: unknown): value is TimeFunc {
-  return typeof value === 'string' && TIME_FUNCS.includes(value as TimeFunc)
-}
-
-export function normalizeCondition(
-  cond: Partial<RequestCondition> | null | undefined
-): RequestCondition {
-  let source: RequestCondition['source'] = 'param'
-  if (cond?.source === 'time') {
-    source = 'time'
-  } else if (cond?.source === 'header') {
-    source = 'header'
-  }
-
-  if (source === 'time') {
-    const timeCond = cond as Partial<TimeCondition> | null | undefined
-    const timeFunc: TimeFunc = isTimeFunc(timeCond?.timeFunc)
-      ? timeCond.timeFunc
-      : 'hour'
-    const options = getRequestRuleMatchOptions(SOURCE_TIME)
-    const mode = options.some((item) => item.value === timeCond?.mode)
-      ? (timeCond?.mode as string)
-      : MATCH_GTE
-    return {
-      source: 'time',
-      timeFunc,
-      timezone: timeCond?.timezone || 'Asia/Shanghai',
-      mode,
-      value: timeCond?.value == null ? '' : String(timeCond.value),
-      rangeStart:
-        timeCond?.rangeStart == null ? '' : String(timeCond.rangeStart),
-      rangeEnd: timeCond?.rangeEnd == null ? '' : String(timeCond.rangeEnd),
-    }
-  }
-
-  const phCond = cond as Partial<ParamHeaderCondition> | null | undefined
-  const options = getRequestRuleMatchOptions(source)
-  const mode = options.some((item) => item.value === phCond?.mode)
-    ? (phCond?.mode as string)
-    : MATCH_EQ
-  return {
-    source,
-    path: phCond?.path || '',
-    mode,
-    value: phCond?.value == null ? '' : String(phCond.value),
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Editor: build expression strings
-// ---------------------------------------------------------------------------
-
-function buildExprLiteral(mode: string, value: string): string {
-  const text = String(value || '').trim()
-  if (mode === MATCH_CONTAINS) return JSON.stringify(text)
-  if (text === 'true' || text === 'false') return text
-  if (NUMERIC_LITERAL_REGEX.test(text)) return text
-  return JSON.stringify(text)
-}
-
-function buildTimeConditionExpr(cond: TimeCondition): string {
-  const normalized = normalizeCondition(cond) as TimeCondition
-  const { timeFunc, timezone, mode } = normalized
-  const tz = JSON.stringify(timezone)
-  const fn = `${timeFunc}(${tz})`
-
-  if (mode === MATCH_RANGE) {
-    const s = normalized.rangeStart.trim()
-    const e = normalized.rangeEnd.trim()
-    if (!NUMERIC_LITERAL_REGEX.test(s) || !NUMERIC_LITERAL_REGEX.test(e)) {
-      return ''
-    }
-    return `${fn} >= ${s} || ${fn} < ${e}`
-  }
-  const v = normalized.value.trim()
-  if (!NUMERIC_LITERAL_REGEX.test(v)) return ''
-  const opMap: Record<string, string> = {
-    [MATCH_EQ]: '==',
-    [MATCH_GTE]: '>=',
-    [MATCH_LT]: '<',
-  }
-  return `${fn} ${opMap[mode] || '=='} ${v}`
-}
-
-function buildRequestConditionExpr(cond: RequestCondition): string {
-  if (cond.source === 'time') return buildTimeConditionExpr(cond)
-  const normalized = normalizeCondition(cond) as ParamHeaderCondition
-  const path = normalized.path.trim()
-  if (!path) return ''
-
-  const sourceExpr =
-    normalized.source === 'header'
-      ? `header(${JSON.stringify(path)})`
-      : `param(${JSON.stringify(path)})`
-
-  switch (normalized.mode) {
-    case MATCH_EXISTS:
-      return normalized.source === 'header'
-        ? `${sourceExpr} != ""`
-        : `${sourceExpr} != nil`
-    case MATCH_CONTAINS:
-      return normalized.source === 'header'
-        ? `has(${sourceExpr}, ${buildExprLiteral(normalized.mode, normalized.value)})`
-        : `${sourceExpr} != nil && has(${sourceExpr}, ${buildExprLiteral(normalized.mode, normalized.value)})`
-    case MATCH_GT:
-    case MATCH_GTE:
-    case MATCH_LT:
-    case MATCH_LTE: {
-      const opMap: Record<string, string> = {
-        [MATCH_GT]: '>',
-        [MATCH_GTE]: '>=',
-        [MATCH_LT]: '<',
-        [MATCH_LTE]: '<=',
-      }
-      const numText = String(normalized.value).trim()
-      if (!NUMERIC_LITERAL_REGEX.test(numText)) return ''
-      return `${sourceExpr} != nil && ${sourceExpr} ${opMap[normalized.mode]} ${numText}`
-    }
-    case MATCH_EQ:
-    default:
-      return `${sourceExpr} == ${buildExprLiteral(normalized.mode, normalized.value)}`
-  }
-}
-
-function buildRuleGroupFactor(group: RequestRuleGroup): string {
-  const multiplier = (group.multiplier || '').trim()
-  if (!NUMERIC_LITERAL_REGEX.test(multiplier)) return ''
-  const condExprs = (group.conditions || [])
-    .map(buildRequestConditionExpr)
-    .filter(Boolean)
-  if (condExprs.length === 0) return ''
-
-  const combined =
-    condExprs.length === 1
-      ? condExprs[0]
-      : condExprs.map((e) => (e.includes(' || ') ? `(${e})` : e)).join(' && ')
-  return `(${combined} ? ${multiplier} : 1)`
-}
-
-export function buildRequestRuleExpr(groups: RequestRuleGroup[]): string {
-  return (groups || []).map(buildRuleGroupFactor).filter(Boolean).join(' * ')
-}
+export {
+  SOURCE_PARAM,
+  SOURCE_HEADER,
+  SOURCE_TIME,
+  MATCH_EQ,
+  MATCH_CONTAINS,
+  MATCH_GT,
+  MATCH_GTE,
+  MATCH_LT,
+  MATCH_LTE,
+  MATCH_EXISTS,
+  MATCH_RANGE,
+  TIME_FUNCS,
+  type TimeFunc,
+  COMMON_TIMEZONES,
+  NUMERIC_LITERAL_REGEX,
+  type ParamHeaderCondition,
+  type TimeCondition,
+  type RequestCondition,
+  type RequestRuleGroup,
+  type RequestRuleTrace,
+} from './billing-rule-types'
+export {
+  type BillingVar,
+  BILLING_VARS,
+  BILLING_PRICING_VARS,
+  BILLING_CONDITION_VARS,
+  BILLING_EXTRA_VARS,
+  BILLING_CACHE_VAR_MAP,
+} from './billing-variables'
+export {
+  createEmptyCondition,
+  createEmptyTimeCondition,
+  createEmptyRuleGroup,
+  createEmptyTimeRuleGroup,
+  type MatchOption,
+  getRequestRuleMatchOptions,
+  normalizeCondition,
+  buildRequestRuleExpr,
+} from './billing-request-rules'

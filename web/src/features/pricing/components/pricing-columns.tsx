@@ -19,15 +19,13 @@ For commercial licensing, please contact support@quantumnous.com
 import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
-import {
-  BadgeCell,
-  BadgeListCell,
-  DataTableColumnHeader,
-} from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
 import { getLobeIcon } from '@/lib/lobe-icon'
 
+import { BadgeCell } from '../../../components/data-table/core/badge-cell'
+import { BadgeListCell } from '../../../components/data-table/core/badge-list-cell'
+import { DataTableColumnHeader } from '../../../components/data-table/core/column-header'
 import { DEFAULT_TOKEN_UNIT } from '../constants'
 import {
   getDynamicDisplayGroupRatio,

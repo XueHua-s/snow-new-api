@@ -20,13 +20,10 @@ import type { Row, PaginationState } from '@tanstack/react-table'
 import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  DataTablePagination,
-  DataTableRow,
-  DataTableView,
-  useDataTable,
-} from '@/components/data-table'
-
+import { DataTableRow } from '../../../components/data-table/core/data-table-row'
+import { DataTableView } from '../../../components/data-table/core/data-table-view'
+import { DataTablePagination } from '../../../components/data-table/core/pagination'
+import { useDataTable } from '../../../components/data-table/hooks/use-data-table'
 import { DEFAULT_PRICING_PAGE_SIZE, DEFAULT_TOKEN_UNIT } from '../constants'
 import type { PricingModel, TokenUnit } from '../types'
 import { usePricingColumns } from './pricing-columns'

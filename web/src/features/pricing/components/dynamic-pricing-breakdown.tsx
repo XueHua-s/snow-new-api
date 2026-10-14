@@ -20,13 +20,21 @@ import { Tag as TagIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { StaticDataTable } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
+import { StaticDataTable } from '../../../components/data-table/static/static-data-table'
 import {
-  BILLING_PRICING_VARS,
+  normalizeTierLabel,
+  parseTiersFromExpr,
+  requestRuleGroupsFromTrace,
+  splitBillingExprAndRequestRules,
+  tryParseRequestRuleExpr,
+  type ParsedTier,
+  type TierCondition,
+} from '../lib/billing-expr'
+import {
   MATCH_CONTAINS,
   MATCH_EQ,
   MATCH_EXISTS,
@@ -34,17 +42,11 @@ import {
   MATCH_LT,
   MATCH_RANGE,
   SOURCE_TIME,
-  normalizeTierLabel,
-  parseTiersFromExpr,
-  requestRuleGroupsFromTrace,
-  splitBillingExprAndRequestRules,
-  tryParseRequestRuleExpr,
-  type ParsedTier,
   type RequestCondition,
   type RequestRuleGroup,
   type RequestRuleTrace,
-  type TierCondition,
-} from '../lib/billing-expr'
+} from '../lib/billing-rule-types'
+import { BILLING_PRICING_VARS } from '../lib/billing-variables'
 
 type DynamicPricingBreakdownProps = {
   billingExpr: string | null | undefined

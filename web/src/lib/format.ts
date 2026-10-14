@@ -22,8 +22,8 @@ import {
   formatCurrencyFromUSD,
   formatQuotaWithCurrency,
   getCurrencyDisplay,
-  getCurrencyFractionDigits,
 } from './currency'
+import { getCurrencyFractionDigits } from './currency-format'
 
 // ============================================================================
 // Number Formatting
