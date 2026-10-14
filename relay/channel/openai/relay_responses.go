@@ -82,8 +82,23 @@ func OaiResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp
 			sr.Error(err)
 			return
 		}
-		sendResponsesStreamData(c, streamResponse, data)
 		accumulator.Observe(&streamResponse)
+		// Responses ends at its terminal event, without requiring [DONE] or
+		// HTTP EOF. Record that fact before flushing: clients may disconnect
+		// immediately after receiving it. Failed writes still remain errors.
+		switch streamResponse.Type {
+		case "response.completed", "response.done":
+			if streamResponse.Response != nil && relaycommon.IsNonBillableResponsesStatus(streamResponse.Response.Status) {
+				sr.Stop(fmt.Errorf("responses stream ended with status %s", streamResponse.Response.Status))
+			} else {
+				sr.Done()
+			}
+		case "response.failed", "response.incomplete", "response.cancelled", "response.canceled", "response.error", "error":
+			sr.Stop(fmt.Errorf("responses stream ended with %s", streamResponse.Type))
+		}
+		if err := helper.ResponseChunkData(c, streamResponse, data); err != nil {
+			sr.Stop(err)
+		}
 	})
 
 	return accumulator.Finish(), nil
