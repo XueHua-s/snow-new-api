@@ -176,7 +176,11 @@ WS resource gate; this example does not impose a speculative memory limit.
 CI has one Linux ARM64 transport job. Its entry point is
 `scripts/test-http.sh`, including the exact vendored stale-checkout no-replay
 regression; it then runs `scripts/test-go-rust.sh`, builds the production image
-and validates Compose. The Go runner compiles service/controller test binaries,
+and validates Compose. The standalone vendor tests use their own committed
+`Cargo.lock` files; the sidecar lock does not lock those separate Cargo roots.
+Keep the `hyper-util` regression's hyper/h2/tokio versions aligned with the
+sidecar lock, and retain the vendor `.gitignore` exceptions when updating sources.
+The Go runner compiles service/controller test binaries,
 requires an existing absolute `CODEX_TRANSPORT_TEST_BINARY`, and copies only
 those binaries plus the synthetic contract into a network-disabled Linux
 container. It fails on skipped or zero-matching integration tests. To repeat it

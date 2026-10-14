@@ -428,6 +428,13 @@ func (s *responsesWSSession) runCall(c *gin.Context, state *responsesWSCallState
 		}
 	}
 
+	return s.receiveResponse(c, state, info, create.StreamID)
+}
+
+// receiveResponse owns the admitted turn until settlement. Event correlation
+// decides which upstream frames belong to this turn; only this worker applies
+// their usage and settles, including cancellation and transport interruption.
+func (s *responsesWSSession) receiveResponse(c *gin.Context, state *responsesWSCallState, info *relaycommon.RelayInfo, streamID string) *types.NewAPIError {
 	accumulator := service.NewResponsesUsageAccumulator(info)
 	info.StreamStatus = relaycommon.NewStreamStatus()
 	timeout := time.Duration(appconstant.StreamingTimeout) * time.Second
@@ -436,11 +443,11 @@ func (s *responsesWSSession) runCall(c *gin.Context, state *responsesWSCallState
 	}
 	idle := time.NewTimer(timeout)
 	defer idle.Stop()
-	accepted := false
-	var pendingControl []byte
-	var sentControl []byte
-	var responseID string
-	defer func() { state.correlationMissing = accepted && responseID == "" }()
+	if s.responseIDs == nil {
+		s.responseIDs = make(map[[32]byte]struct{})
+	}
+	turn := responsesWSTurn{streamID: streamID, history: s.responseIDs}
+	defer func() { state.correlationMissing = turn.accepted && turn.responseID == "" }()
 	for {
 		select {
 		case incoming := <-state.inbox:
@@ -452,137 +459,54 @@ func (s *responsesWSSession) runCall(c *gin.Context, state *responsesWSCallState
 				return nil
 			}
 			info.SetFirstResponseTime()
-			var event struct {
-				dto.ResponsesStreamResponse
-				StreamID   string `json:"stream_id"`
-				ResponseID string `json:"response_id"`
-				Message    string `json:"message"`
-				Code       any    `json:"code"`
+			wasAccepted := turn.accepted
+			result := turn.observe(incoming.body)
+			if !wasAccepted && turn.accepted {
+				service.RecordChannelAffinity(c, s.lockedChannelID)
 			}
-			if err := common.Unmarshal(incoming.body, &event); err != nil {
-				info.StreamStatus.RecordError("invalid upstream websocket event")
-			} else {
-				eventResponseID := event.ResponseID
-				if event.Response != nil && event.Response.ID != "" {
-					if eventResponseID != "" && eventResponseID != event.Response.ID {
-						continue
-					}
-					eventResponseID = event.Response.ID
-				}
-				if event.Type != "error" && eventResponseID != "" {
-					_, seen := s.responseIDs[sha256.Sum256([]byte(eventResponseID))]
-					if seen && eventResponseID != responseID {
-						continue
-					}
-				}
-				if event.Type != "error" && event.StreamID != "" && event.StreamID != create.StreamID {
-					if err := s.writeClient(incoming.kind, incoming.body); err != nil {
-						s.shutdown(websocket.CloseInternalServerErr, "")
-					}
-					continue
-				}
-				if event.Type != "error" && eventResponseID != "" && responseID != "" && eventResponseID != responseID {
-					continue
-				}
-				if event.Type == "error" {
-					var rejection responsesWSErrorEvent
-					_ = common.Unmarshal(incoming.body, &rejection)
-					if rejection.ResponseID == "" {
-						rejection.ResponseID = eventResponseID
-					}
-					terminal, ambiguous, controlError := responsesWSErrorEndsRequest(rejection, create.StreamID, responseID, sentControl)
-					if rejection.ResponseID != "" && rejection.ResponseID != responseID {
-						_, seen := s.responseIDs[sha256.Sum256([]byte(rejection.ResponseID))]
-						// A correlated cancellation error still belongs to the
-						// pending control, even when it names an older response.
-						if seen && !controlError {
-							continue
-						}
-					}
-					if !terminal {
-						if err := s.writeClient(incoming.kind, incoming.body); err != nil {
-							s.shutdown(websocket.CloseInternalServerErr, "")
-						}
-						// Only a control error in this stream resolves its pending control.
-						if controlError {
-							sentControl = nil
-						}
-						continue
-					}
-					if accepted {
-						if rejection.Error != nil {
-							code := ""
-							if rejection.Error.Code != nil {
-								code = fmt.Sprint(rejection.Error.Code)
-							}
-							info.StreamStatus.RecordError(fmt.Sprintf("upstream error: code=%s type=%s status=%d", code, rejection.Error.Type, rejection.Status))
-						}
-						accumulator.Observe(&event.ResponsesStreamResponse)
-						info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonDone, nil)
-						state.terminal = &incoming
-						if ambiguous {
-							state.closeCode = websocket.CloseInternalServerErr
-						}
-						ConsumeResponsesQuota(c, info, accumulator.Finish())
-						return nil
-					}
-					if rejection.Error == nil {
-						// An error frame without an error object still describes the
-						// rejected request; keep the client-facing type stable.
-						rejection.Error = &types.OpenAIError{Type: "invalid_request_error", Message: event.Message, Code: event.Code}
-					}
-					rejected := types.WithOpenAIError(*rejection.Error, rejection.Status, types.ErrOptionWithSkipRetry())
-					if rejected.StatusCode < 400 || rejected.StatusCode > 599 {
-						rejected.StatusCode = http.StatusBadRequest
-					}
-					return rejected
-				}
-				if strings.HasPrefix(event.Type, "response.") {
-					if !accepted {
-						// Like HTTP, bind the session only once upstream accepted the request.
-						service.RecordChannelAffinity(c, s.lockedChannelID)
-					}
-					accepted = true
-					if responseID == "" && eventResponseID != "" {
-						responseID = eventResponseID
-						if s.responseIDs == nil {
-							s.responseIDs = make(map[[32]byte]struct{})
-						}
-						s.responseIDs[sha256.Sum256([]byte(responseID))] = struct{}{}
-					}
-				}
-				accumulator.Observe(&event.ResponsesStreamResponse)
+			if result.diagnostic != "" {
+				info.StreamStatus.RecordError(result.diagnostic)
 			}
-			switch event.Type {
-			case "response.completed", "response.done", "response.incomplete", "response.failed", "response.cancelled", "response.canceled":
+			if result.event != nil {
+				accumulator.Observe(result.event)
+			}
+			switch result.action {
+			case responsesWSDrop:
+				continue
+			case responsesWSReject:
+				return result.err
+			case responsesWSComplete:
 				info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonDone, nil)
 				state.terminal = &incoming
+				if result.ambiguous {
+					state.closeCode = websocket.CloseInternalServerErr
+				}
 				ConsumeResponsesQuota(c, info, accumulator.Finish())
 				return nil
 			}
 			if err := s.writeClient(incoming.kind, incoming.body); err != nil {
 				s.shutdown(websocket.CloseInternalServerErr, "")
 			}
-			if accepted && pendingControl != nil {
-				if err := s.writeTarget(websocket.TextMessage, pendingControl); err != nil {
+			if turn.accepted && turn.pendingControl != nil {
+				if err := s.writeTarget(websocket.TextMessage, turn.pendingControl); err != nil {
 					s.shutdown(websocket.CloseInternalServerErr, "")
 				}
-				sentControl = pendingControl
-				pendingControl = nil
+				turn.sentControl = turn.pendingControl
+				turn.pendingControl = nil
 			}
 		case control := <-state.controls:
-			if pendingControl != nil || sentControl != nil {
+			if turn.pendingControl != nil || turn.sentControl != nil {
 				s.sendError(control.eventID, control.streamID, newResponsesWSInvalidRequestError(errors.New("a response control event is already pending")))
 				continue
 			}
-			if !accepted {
-				pendingControl = control.body
+			if !turn.accepted {
+				turn.pendingControl = control.body
 				continue
 			}
 			if err := s.writeTarget(websocket.TextMessage, control.body); err != nil {
 				s.shutdown(websocket.CloseInternalServerErr, "")
 			}
-			sentControl = control.body
+			turn.sentControl = control.body
 		case <-idle.C:
 			info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonTimeout, context.DeadlineExceeded)
 			state.closeCode, state.closeReason = websocket.CloseInternalServerErr, "upstream response timed out"
@@ -594,36 +518,6 @@ func (s *responsesWSSession) runCall(c *gin.Context, state *responsesWSCallState
 			return nil
 		}
 	}
-}
-
-// A single generation is active, but a cancel can fail independently. Correlate
-// available IDs first; uncorrelated control/server errors require a bounded
-// connection close because continuing could leave the generation stuck forever.
-func responsesWSErrorEndsRequest(event responsesWSErrorEvent, streamID, responseID string, control []byte) (terminal, ambiguous, controlError bool) {
-	if len(control) > 0 {
-		var pending struct {
-			EventID    string `json:"event_id"`
-			StreamID   string `json:"stream_id"`
-			ResponseID string `json:"response_id"`
-		}
-		_ = common.Unmarshal(control, &pending)
-		if event.EventID != "" && event.EventID == pending.EventID {
-			return false, false, true
-		}
-		if event.ResponseID != "" && event.ResponseID == pending.ResponseID && event.ResponseID != responseID {
-			return false, false, true
-		}
-		if (event.StreamID == "" || event.StreamID == pending.StreamID) && event.Error != nil && event.Error.Type == "invalid_request_error" {
-			switch event.Error.Code {
-			case "response_not_found", "response_not_active", "response_already_completed":
-				return false, false, true
-			}
-		}
-	}
-	if event.StreamID != "" && event.StreamID != streamID || responseID != "" && event.ResponseID != "" && event.ResponseID != responseID {
-		return false, false, false
-	}
-	return true, len(control) > 0 && event.ResponseID == "", false
 }
 
 func (s *responsesWSSession) restoreConnectionContext(c *gin.Context, model string) *types.NewAPIError {

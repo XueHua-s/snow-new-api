@@ -8,9 +8,7 @@ import (
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
 	appdto "github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/relaykit/dto"
 
 	"github.com/samber/lo"
 	"gorm.io/gorm"
@@ -110,36 +108,42 @@ func getChannelQuery(group string, model string, retry int) (*gorm.DB, error) {
 func GetChannel(group string, model string, retry int, requestPath string, filters ...appdto.ChannelFilter) (*Channel, error) {
 	var abilities []Ability
 
-	var err error = nil
-	channelQuery, err := getChannelQuery(group, model, retry)
-	if err != nil {
-		return nil, err
-	}
 	requireWebSocket := slices.ContainsFunc(filters, func(filter appdto.ChannelFilter) bool { return filter.Kind == appdto.FilterResponsesWebSocket })
+	var channelQuery *gorm.DB
+	var err error
 	if requireWebSocket {
 		channelQuery = DB.Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true)
-	}
-	if common.UsingMainDatabase(common.DatabaseTypeSQLite) || common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
-		err = channelQuery.Order("weight DESC").Find(&abilities).Error
 	} else {
-		err = channelQuery.Order("weight DESC").Find(&abilities).Error
+		channelQuery, err = getChannelQuery(group, model, retry)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if err != nil {
+	if err = channelQuery.Order("weight DESC").Find(&abilities).Error; err != nil {
 		return nil, err
 	}
-	abilities = filterAbilitiesByRequestPathAndModel(abilities, requestPath, model)
-	if len(filters) > 0 {
-		filtered := make([]Ability, 0, len(abilities))
+	pathFilter := appdto.ChannelFilter{Kind: appdto.FilterRequestPath, RequestPath: requestPath}
+	if requestPath != "" && !slices.Contains(filters, pathFilter) {
+		filters = append(slices.Clone(filters), pathFilter)
+	}
+	if len(filters) > 0 && len(abilities) > 0 {
+		// Fetch candidate policy once for every filter. Never turn a relay
+		// request into one database round trip per candidate channel.
+		ids := make([]int, 0, len(abilities))
 		for _, ability := range abilities {
-			candidate, lookupErr := GetChannelById(ability.ChannelId, true)
-			if lookupErr != nil {
-				return nil, lookupErr
-			}
-			if ok, _ := ChannelSatisfiesFilters(candidate, model, filters); ok {
-				filtered = append(filtered, ability)
-			}
+			ids = append(ids, ability.ChannelId)
 		}
-		abilities = filtered
+		var channels []*Channel
+		if err := DB.Where("id IN ?", ids).Find(&channels).Error; err != nil {
+			return nil, err
+		}
+		eligible := make(map[int]bool, len(channels))
+		for _, channel := range channels {
+			eligible[channel.Id], _ = ChannelSatisfiesFilters(channel, model, filters)
+		}
+		abilities = slices.DeleteFunc(abilities, func(ability Ability) bool {
+			return !eligible[ability.ChannelId]
+		})
 	}
 	if requireWebSocket && len(abilities) > 0 {
 		priorities := make([]int64, 0, len(abilities))
@@ -175,53 +179,6 @@ func GetChannel(group string, model string, retry int, requestPath string, filte
 	}
 	err = DB.First(&channel, "id = ?", channel.Id).Error
 	return &channel, err
-}
-
-// filterAbilitiesByRequestPathAndModel restricts candidates by request path and
-// model for the DB (non-memory-cache) selection path. Only Advanced Custom
-// (type 58) channels are path-checked: kept only when one of their routes matches
-// requestPath and model; all other channel types always pass. When requestPath is
-// empty, filtering is skipped.
-func filterAbilitiesByRequestPathAndModel(abilities []Ability, requestPath string, model string) []Ability {
-	if requestPath == "" || len(abilities) == 0 {
-		return abilities
-	}
-
-	channelIds := make([]int, 0, len(abilities))
-	seen := make(map[int]struct{}, len(abilities))
-	for _, ability := range abilities {
-		if _, ok := seen[ability.ChannelId]; ok {
-			continue
-		}
-		seen[ability.ChannelId] = struct{}{}
-		channelIds = append(channelIds, ability.ChannelId)
-	}
-
-	var channels []*Channel
-	if err := DB.Where("id IN ?", channelIds).Find(&channels).Error; err != nil {
-		// On error, fall back to unfiltered candidates to avoid blocking selection
-		return abilities
-	}
-
-	advancedConfigs := make(map[int]*dto.AdvancedCustomConfig)
-	for _, channel := range channels {
-		if channel.Type == constant.ChannelTypeAdvancedCustom {
-			advancedConfigs[channel.Id] = channel.GetOtherSettings().AdvancedCustom
-		}
-	}
-
-	filtered := make([]Ability, 0, len(abilities))
-	for _, ability := range abilities {
-		config, isAdvancedCustom := advancedConfigs[ability.ChannelId]
-		if !isAdvancedCustom {
-			filtered = append(filtered, ability)
-			continue
-		}
-		if config != nil && config.SupportsPathForModel(requestPath, model) {
-			filtered = append(filtered, ability)
-		}
-	}
-	return filtered
 }
 
 func (channel *Channel) AddAbilities(tx *gorm.DB) error {
