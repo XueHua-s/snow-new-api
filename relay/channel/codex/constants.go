@@ -1,7 +1,7 @@
 package codex
 
 const (
-	codexImageToolHostModel = "gpt-5.5"
+	codexImageToolHostModel = "gpt-6.1-sol"
 	codexFastServiceTier    = "priority"
 )
 
@@ -40,6 +40,7 @@ var ModelList = []string{
 	"gpt-5.6-luna-fast",
 	"gpt-5.5-fast",
 	"gpt-5.4-fast",
+	"gpt-image-2",
 	"gpt-image-2-codex",
 	"chatgpt-image-latest",
 	"imagegen",
