@@ -23,7 +23,7 @@ var httpTransportPolicyWarnings sync.Map
 func defaultHTTPTransportPolicy() HTTPTransportPolicy {
 	return HTTPTransportPolicy{
 		Protocol: dto.HTTPProtocolAuto,
-		Shards:   1,
+		Shards:   2,
 	}
 }
 
@@ -51,7 +51,7 @@ func NormalizeHTTPTransportPolicy(settings dto.ChannelSettings) HTTPTransportPol
 	shards := settings.HTTP2ConnectionShards
 	switch {
 	case shards == 0:
-		policy.Shards = 1
+		policy.Shards = defaultHTTPTransportPolicy().Shards
 	case shards < 1:
 		warnHTTPTransportPolicyOnce("http2_connection_shards", fmt.Sprintf("%d", shards))
 		policy.Shards = 1
