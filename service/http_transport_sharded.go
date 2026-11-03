@@ -2,7 +2,9 @@ package service
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -16,6 +18,44 @@ import (
 
 // shardedRoundTripper fans requests for each origin across N independent
 // transports so each origin can keep N reusable HTTP/2 connections.
+type responseBodyRecovery struct {
+	body    io.ReadCloser
+	onError func(error)
+	once    sync.Once
+}
+
+func (b *responseBodyRecovery) Read(p []byte) (int, error) {
+	n, err := b.body.Read(p)
+	if err != nil && !errors.Is(err, io.EOF) {
+		b.once.Do(func() { b.onError(err) })
+	}
+	return n, err
+}
+
+func (b *responseBodyRecovery) Close() error { return b.body.Close() }
+
+type recoveryRoundTripper struct {
+	base      http.RoundTripper
+	closeIdle func()
+}
+
+func (r *recoveryRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := r.base.RoundTrip(req)
+	if err != nil || resp == nil || resp.Body == nil {
+		return resp, err
+	}
+	if resp.ProtoMajor == 2 {
+		resp.Body = &responseBodyRecovery{body: resp.Body, onError: func(readErr error) {
+			if strings.Contains(readErr.Error(), "http2: response body closed") || strings.Contains(readErr.Error(), "unexpected EOF") {
+				r.closeIdle()
+			}
+		}}
+	}
+	return resp, nil
+}
+
+func (r *recoveryRoundTripper) CloseIdleConnections() { r.closeIdle() }
+
 type shardedRoundTripper struct {
 	shards   []http.RoundTripper
 	n        uint32

@@ -99,6 +99,21 @@ func newRelayHTTPTransport() *http.Transport {
 }
 
 func newRelayHTTPClient(transport http.RoundTripper) *http.Client {
+	// Wrap only HTTP/2-capable transports. Keeping HTTP/1.1 transports concrete
+	// preserves their existing behavior and compatibility with callers.
+	isHTTP2 := false
+	if _, ok := transport.(*shardedRoundTripper); ok {
+		isHTTP2 = true
+	} else if t, ok := transport.(*http.Transport); ok {
+		isHTTP2 = t.ForceAttemptHTTP2 && len(t.TLSNextProto) == 0
+	}
+	if isHTTP2 {
+		closeIdle := func() {}
+		if closer, ok := transport.(interface{ CloseIdleConnections() }); ok {
+			closeIdle = closer.CloseIdleConnections
+		}
+		transport = &recoveryRoundTripper{base: transport, closeIdle: closeIdle}
+	}
 	client := &http.Client{
 		Transport:     transport,
 		CheckRedirect: checkRedirect,
