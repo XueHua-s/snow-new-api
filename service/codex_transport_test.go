@@ -1332,21 +1332,6 @@ func TestCodexTransportManagementClients(t *testing.T) {
 		w.Header().Set(codexCompleteTrailer, "1")
 	}, nil)
 	ctx := context.Background()
-	_, err := ExchangeCodexAuthorizationCodeWithProxy(ctx, "synthetic-code", "synthetic-verifier", "")
-	require.NoError(t, err)
-	exchange := <-observed
-	assert.Equal(t, CodexTransportAuth, exchange.Meta.Purpose)
-	assert.Equal(t, codexOAuthTokenURL, exchange.Meta.URL)
-	form, err := url.ParseQuery(exchange.Body)
-	require.NoError(t, err)
-	assert.Equal(t, "synthetic-code", form.Get("code"))
-	assert.Equal(t, "synthetic-verifier", form.Get("code_verifier"))
-	_, err = RefreshCodexOAuthTokenWithProxy(ctx, "synthetic-refresh", "")
-	require.NoError(t, err)
-	refresh := <-observed
-	assert.Equal(t, CodexTransportAuth, refresh.Meta.Purpose)
-	assert.Equal(t, codexOAuthTokenURL, refresh.Meta.URL)
-	assert.Contains(t, refresh.Body, "grant_type=refresh_token")
 	base := "https://synthetic.invalid"
 	channel := &model.Channel{Type: constant.ChannelTypeCodex, BaseURL: &base, Key: `{"access_token":"synthetic-access","account_id":"synthetic-account"}`}
 	models, err := FetchCodexChannelModels(channel)
@@ -1402,28 +1387,21 @@ func TestCodexTransportManagementErrorsAreSafe(t *testing.T) {
 	assert.NotContains(t, SafeCodexHTTPError(wrapped).Error(), "sentinel")
 }
 
-func TestCodexTransportOAuthRejectsIncompleteResponse(t *testing.T) {
-	var calls atomic.Int32
-	codexTestState(t, func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
-		_, _ = io.Copy(io.Discard, r.Body)
-		body := `{"access_token":"synthetic-access","refresh_token":"synthetic-refresh","expires_in":3600}`
-		length := int64(len(body))
-		w.Header().Set(codexResponseHeader, codexTestEnvelope(t, codexTestResponse(200, &length)))
-		w.Header().Set("Trailer", codexCompleteTrailer)
-		_, _ = io.WriteString(w, body)
-		// Valid JSON without a successful transport completion is not a credential.
-	}, nil)
-	_, err := ExchangeCodexAuthorizationCodeWithProxy(context.Background(), "synthetic-code", "synthetic-verifier", "")
-	require.Error(t, err)
-	var transportErr *CodexTransportError
-	require.ErrorAs(t, err, &transportErr)
-	_, err = RefreshCodexOAuthTokenWithProxy(context.Background(), "synthetic-refresh", "")
-	require.ErrorAs(t, err, &transportErr)
-	assert.Equal(t, int32(2), calls.Load())
+func TestCodexOAuthUsesDirectHTTPClient(t *testing.T) {
+	oldState, oldEnabled := codexTransportState.Load(), common.CodexTransportEnabled
+	codexTransportState.Store(nil)
+	common.CodexTransportEnabled = true
+	t.Cleanup(func() {
+		codexTransportState.Store(oldState)
+		common.CodexTransportEnabled = oldEnabled
+	})
+	client, err := getCodexOAuthHTTPClient("")
+	require.NoError(t, err)
+	_, usesCodexTransport := client.Transport.(*codexRoundTripper)
+	assert.False(t, usesCodexTransport)
 }
 
-func TestCodexTransportDisabledAuthRejectsInsecure(t *testing.T) {
+func TestCodexOAuthUsesConfiguredLegacyTransport(t *testing.T) {
 	oldState, oldEnabled, oldInsecure, oldClient := codexTransportState.Load(), common.CodexTransportEnabled, common.TLSInsecureSkipVerify, httpClient
 	t.Cleanup(func() {
 		codexTransportState.Store(oldState)
@@ -1446,11 +1424,12 @@ func TestCodexTransportDisabledAuthRejectsInsecure(t *testing.T) {
 			}}}
 			_, err := RefreshCodexOAuthTokenWithProxy(context.Background(), "synthetic-refresh", "")
 			var transportErr *CodexTransportError
-			require.ErrorAs(t, err, &transportErr)
-			assert.False(t, transportErr.MayHaveSent)
+			require.Error(t, err)
+			assert.NotErrorAs(t, err, &transportErr)
 			_, err = ExchangeCodexAuthorizationCodeWithProxy(context.Background(), "synthetic-code", "synthetic-verifier", "")
-			require.ErrorAs(t, err, &transportErr)
-			assert.Zero(t, dials.Load())
+			require.Error(t, err)
+			assert.NotErrorAs(t, err, &transportErr)
+			assert.Greater(t, dials.Load(), int32(0))
 			legacy, err := getCodexOAuthHTTPClient("")
 			require.NoError(t, err)
 			assert.Same(t, httpClient.Transport, legacy.Transport)
